@@ -1,0 +1,213 @@
+@use '../../../styles/variables' as *;
+@use '../../../styles/mixins' as *;
+
+.search-box {
+  position: relative;
+  width: 100%;
+  
+  &__input-wrapper {
+    display: flex;
+    position: relative;
+    width: 100%;
+    background-color: $white;
+    border-radius: $border-radius-xl;
+    box-shadow: $shadow-md;
+    overflow: hidden;
+    transition: box-shadow $transition-fast;
+    
+    &:focus-within {
+      box-shadow: $shadow-lg;
+    }
+  }
+  
+  &__icon {
+    position: absolute;
+    left: $spacing-4;
+    top: 50%;
+    transform: translateY(-50%);
+    color: $gray-500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    
+    .material-icons {
+      font-size: 20px;
+    }
+  }
+  
+  &__input {
+    flex: 1;
+    height: 56px;
+    padding: $spacing-4 $spacing-4 $spacing-4 $spacing-10;
+    border: none;
+    font-size: $font-size-md;
+    color: $gray-900;
+    background-color: transparent;
+    
+    &::placeholder {
+      color: $gray-500;
+    }
+    
+    &:focus {
+      outline: none;
+    }
+  }
+  
+  &__clear {
+    position: absolute;
+    right: 100px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: $gray-500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: $spacing-1;
+    border-radius: $border-radius-full;
+    transition: all $transition-fast;
+    
+    &:hover {
+      background-color: $gray-200;
+      color: $gray-700;
+    }
+    
+    .material-icons {
+      font-size: 18px;
+    }
+  }
+  
+  &__button {
+    min-width: 100px;
+    background-color: $primary-color;
+    color: $white;
+    border: none;
+    padding: 0 $spacing-5;
+    font-weight: $font-weight-medium;
+    font-size: $font-size-md;
+    cursor: pointer;
+    transition: background-color $transition-fast;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    &:hover {
+      background-color: $primary-dark;
+    }
+    
+    .material-icons {
+      font-size: 20px;
+    }
+  }
+  
+  &__dropdown {
+    position: absolute;
+    top: calc(100% + 5px);
+    left: 0;
+    width: 100%;
+    background-color: $white;
+    border-radius: $border-radius-lg;
+    box-shadow: $shadow-lg;
+    z-index: $z-dropdown;
+    overflow: hidden;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+  
+  &__section {
+    padding: $spacing-2 0;
+    
+    &:not(:last-child) {
+      border-bottom: 1px solid $gray-200;
+    }
+  }
+  
+  &__section-header {
+    @include flex-between;
+    padding: $spacing-2 $spacing-4;
+    color: $gray-600;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+  }
+  
+  &__clear-all {
+    background: none;
+    border: none;
+    color: $primary-color;
+    font-size: $font-size-xs;
+    cursor: pointer;
+    padding: $spacing-1 $spacing-2;
+    border-radius: $border-radius-md;
+    transition: all $transition-fast;
+    
+    &:hover {
+      background-color: rgba($primary-color, 0.1);
+    }
+  }
+  
+  &__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: $spacing-3;
+    width: 100%;
+    text-align: left;
+    padding: $spacing-3 $spacing-4;
+    background: none;
+    border: none;
+    color: $gray-800;
+    cursor: pointer;
+    transition: background-color $transition-fast;
+    
+    &:hover {
+      background-color: $gray-100;
+    }
+    
+    .material-icons {
+      color: $gray-500;
+      font-size: 18px;
+    }
+  }
+  
+  // Variants
+  &--compact {
+    .search-box__input {
+      height: 48px;
+    }
+    
+    .search-box__button {
+      min-width: 80px;
+    }
+  }
+  
+  &--header {
+    max-width: 400px;
+    
+    .search-box__input-wrapper {
+      border-radius: $border-radius-full;
+    }
+    
+    .search-box__input {
+      height: 44px;
+      font-size: $font-size-sm;
+    }
+    
+    .search-box__button {
+      min-width: 44px;
+      width: 44px;
+      border-radius: 0 $border-radius-full $border-radius-full 0;
+    }
+    
+    .search-box__clear {
+      right: 50px;
+    }
+  }
+} 

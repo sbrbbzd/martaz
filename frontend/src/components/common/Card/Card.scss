@@ -1,0 +1,144 @@
+@use '../../../styles/variables' as vars;
+@use '../../../styles/mixins' as mix;
+
+.card {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  overflow: hidden;
+  
+  // Variants
+  &--default {
+    background-color: vars.$white;
+    box-shadow: vars.$shadow-md;
+  }
+  
+  &--outlined {
+    background-color: vars.$white;
+    border: 1px solid vars.$border-color;
+  }
+  
+  &--elevated {
+    background-color: vars.$white;
+    box-shadow: vars.$shadow-lg;
+  }
+  
+  &--flat {
+    background-color: vars.$gray-100;
+  }
+  
+  // Padding
+  &--padding-none {
+    .card__content, 
+    .card__header, 
+    .card__footer {
+      padding: 0;
+    }
+  }
+  
+  &--padding-sm {
+    .card__content, 
+    .card__header, 
+    .card__footer {
+      padding: vars.$spacing-3;
+    }
+  }
+  
+  &--padding-md {
+    .card__content, 
+    .card__header, 
+    .card__footer {
+      padding: vars.$spacing-4;
+    }
+  }
+  
+  &--padding-lg {
+    .card__content, 
+    .card__header, 
+    .card__footer {
+      padding: vars.$spacing-5;
+    }
+  }
+  
+  // Border radius
+  &--radius-none {
+    border-radius: 0;
+  }
+  
+  &--radius-sm {
+    border-radius: vars.$border-radius-sm;
+  }
+  
+  &--radius-md {
+    border-radius: vars.$border-radius-md;
+  }
+  
+  &--radius-lg {
+    border-radius: vars.$border-radius-lg;
+  }
+  
+  &--radius-xl {
+    border-radius: vars.$border-radius-xl;
+  }
+  
+  // Hover
+  &--hover {
+    transition: transform vars.$transition-normal, box-shadow vars.$transition-normal;
+    
+    &:hover {
+      transform: translateY(-4px);
+      box-shadow: vars.$shadow-xl;
+    }
+  }
+  
+  // Clickable
+  &--clickable {
+    cursor: pointer;
+    transition: transform vars.$transition-fast;
+    
+    &:hover {
+      transform: translateY(-2px);
+    }
+    
+    &:active {
+      transform: translateY(0);
+    }
+    
+    &:focus-visible {
+      outline: 2px solid vars.$primary-color;
+      outline-offset: 2px;
+    }
+  }
+  
+  // Subcomponents
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid vars.$border-light;
+  }
+  
+  &__media {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+  }
+  
+  &__content {
+    flex: 1;
+  }
+  
+  &__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid vars.$border-light;
+  }
+} 

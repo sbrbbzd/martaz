@@ -1,0 +1,126 @@
+@use 'sass:color';
+@use '../variables' as *;
+@use '../mixins' as *;
+
+.alert {
+  position: relative;
+  padding: $spacing-4;
+  margin-bottom: $spacing-4;
+  border: 1px solid transparent;
+  border-radius: $border-radius-md;
+  display: flex;
+  align-items: flex-start;
+  
+  // Alert icon
+  &__icon {
+    flex-shrink: 0;
+    margin-right: $spacing-3;
+    font-size: $font-size-xl;
+  }
+  
+  // Alert content
+  &__content {
+    flex: 1;
+  }
+  
+  // Alert title
+  &__title {
+    font-weight: $font-weight-semibold;
+    margin-bottom: $spacing-1;
+    font-size: $font-size-md;
+  }
+  
+  // Alert message
+  &__message {
+    margin-bottom: 0;
+    font-size: $font-size-sm;
+  }
+  
+  // Alert close button
+  &__close {
+    position: absolute;
+    top: $spacing-3;
+    right: $spacing-3;
+    background: none;
+    border: none;
+    font-size: $font-size-lg;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0.5;
+    transition: opacity $transition-fast;
+    padding: $spacing-1;
+    
+    &:hover {
+      opacity: 1;
+    }
+  }
+  
+  // Alert variants
+  &--primary {
+    background-color: rgba($primary-color, 0.1);
+    border-color: rgba($primary-color, 0.3);
+    color: $primary-dark;
+    
+    .alert__icon, .alert__close {
+      color: $primary-color;
+    }
+  }
+  
+  &--success {
+    background-color: rgba($success, 0.1);
+    border-color: $success;
+    
+    .alert__icon, .alert__close {
+      color: color.adjust($success, $lightness: -10%);
+    }
+  }
+  
+  &--warning {
+    background-color: rgba($warning, 0.1);
+    border-color: $warning;
+    
+    .alert__icon, .alert__close {
+      color: color.adjust($warning, $lightness: -10%);
+    }
+  }
+  
+  &--error {
+    background-color: rgba($error, 0.1);
+    border-color: $error;
+    
+    .alert__icon, .alert__close {
+      color: color.adjust($error, $lightness: -10%);
+    }
+  }
+  
+  &--info {
+    background-color: rgba($info, 0.1);
+    border-color: $info;
+    
+    .alert__icon, .alert__close {
+      color: color.adjust($info, $lightness: -10%);
+    }
+  }
+  
+  // Alert sizes
+  &--sm {
+    padding: $spacing-2 $spacing-3;
+    font-size: $font-size-sm;
+    
+    .alert__icon {
+      font-size: $font-size-lg;
+    }
+    
+    .alert__close {
+      font-size: $font-size-md;
+    }
+  }
+  
+  &--lg {
+    padding: $spacing-5 $spacing-6;
+    
+    .alert__icon {
+      font-size: $font-size-2xl;
+    }
+  }
+} 

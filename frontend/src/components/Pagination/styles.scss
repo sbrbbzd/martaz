@@ -1,0 +1,61 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as mix;
+
+.pagination {
+  display: flex;
+  gap: $spacing-2;
+  background: rgba($white, 0.5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: $border-radius-full;
+  padding: $spacing-2;
+  box-shadow: 0 4px 15px rgba($black, 0.05);
+  
+  &__item {
+    min-width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: $border-radius-full;
+    font-weight: $font-weight-medium;
+    color: $gray-700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    user-select: none;
+    
+    &:hover {
+      background: rgba($white, 0.8);
+      color: $primary-color;
+    }
+    
+    &--active {
+      background: $primary-color;
+      color: $white;
+      box-shadow: 0 4px 8px rgba($primary-color, 0.3);
+      
+      &:hover {
+        background: $primary-color;
+        color: $white;
+      }
+    }
+    
+    &--disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      
+      &:hover {
+        background: transparent;
+        color: $gray-700;
+      }
+    }
+    
+    &--ellipsis {
+      cursor: default;
+      
+      &:hover {
+        background: transparent;
+      }
+    }
+  }
+} 

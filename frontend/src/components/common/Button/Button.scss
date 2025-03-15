@@ -1,0 +1,214 @@
+@use '../../../styles/variables' as vars;
+@use '../../../styles/mixins' as mix;
+@use "sass:color";
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  font-family: vars.$font-family-base;
+  font-weight: 600;
+  border-radius: vars.$border-radius;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  text-decoration: none;
+  outline: none;
+  white-space: nowrap;
+  
+  &:disabled,
+  &.btn--loading {
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+  
+  &__text {
+    position: relative;
+    z-index: 1;
+  }
+  
+  &__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+    
+    &--left {
+      margin-right: 8px;
+    }
+    
+    &--right {
+      margin-left: 8px;
+    }
+  }
+  
+  &__spinner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1;
+    width: 20px;
+    height: 20px;
+    
+    svg {
+      animation: spin 1s linear infinite;
+      width: 100%;
+      height: 100%;
+      
+      circle {
+        stroke: currentColor;
+        stroke-linecap: round;
+        stroke-dasharray: 60, 200;
+        stroke-dashoffset: 0;
+        animation: dash 1.5s ease-in-out infinite;
+      }
+    }
+  }
+  
+  // Sizes
+  &--sm {
+    height: 32px;
+    padding: 0 12px;
+    font-size: 14px;
+    
+    .btn__icon {
+      font-size: 16px;
+    }
+  }
+  
+  &--md {
+    height: 40px;
+    padding: 0 16px;
+    font-size: 16px;
+    
+    .btn__icon {
+      font-size: 18px;
+    }
+  }
+  
+  &--lg {
+    height: 48px;
+    padding: 0 20px;
+    font-size: 18px;
+    
+    .btn__icon {
+      font-size: 20px;
+    }
+  }
+  
+  // Variants
+  &--primary {
+    background-color: vars.$primary-color;
+    color: vars.$white;
+    
+    &:hover:not(:disabled):not(.btn--loading) {
+      background-color: color.adjust(vars.$primary-color, $lightness: -10%);
+    }
+    
+    &:active:not(:disabled):not(.btn--loading) {
+      background-color: color.adjust(vars.$primary-color, $lightness: -15%);
+    }
+  }
+  
+  &--secondary {
+    background-color: vars.$secondary-color;
+    color: vars.$white;
+    
+    &:hover:not(:disabled):not(.btn--loading) {
+      background-color: color.adjust(vars.$secondary-color, $lightness: -10%);
+    }
+    
+    &:active:not(:disabled):not(.btn--loading) {
+      background-color: color.adjust(vars.$secondary-color, $lightness: -15%);
+    }
+  }
+  
+  &--accent {
+    background-color: vars.$accent-color;
+    color: vars.$white;
+    
+    &:hover:not(:disabled):not(.btn--loading) {
+      background-color: color.adjust(vars.$accent-color, $lightness: -10%);
+    }
+    
+    &:active:not(:disabled):not(.btn--loading) {
+      background-color: color.adjust(vars.$accent-color, $lightness: -15%);
+    }
+  }
+  
+  &--outline {
+    background-color: transparent;
+    color: vars.$primary-color;
+    border: 1px solid vars.$primary-color;
+    
+    &:hover:not(:disabled):not(.btn--loading) {
+      background-color: rgba(vars.$primary-color, 0.1);
+    }
+    
+    &:active:not(:disabled):not(.btn--loading) {
+      background-color: rgba(vars.$primary-color, 0.2);
+    }
+  }
+  
+  &--text {
+    background-color: transparent;
+    color: vars.$primary-color;
+    padding-left: 8px;
+    padding-right: 8px;
+    
+    &:hover:not(:disabled):not(.btn--loading) {
+      background-color: rgba(vars.$primary-color, 0.1);
+    }
+    
+    &:active:not(:disabled):not(.btn--loading) {
+      background-color: rgba(vars.$primary-color, 0.2);
+    }
+  }
+  
+  // Full width
+  &--full-width {
+    width: 100%;
+  }
+  
+  // With icon
+  &--with-icon {
+    .btn__text {
+      display: inline-flex;
+    }
+  }
+  
+  // Loading state
+  &--loading {
+    .btn__text,
+    .btn__icon {
+      visibility: hidden;
+    }
+  }
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes dash {
+  0% {
+    stroke-dasharray: 1, 200;
+    stroke-dashoffset: 0;
+  }
+  50% {
+    stroke-dasharray: 90, 200;
+    stroke-dashoffset: -35;
+  }
+  100% {
+    stroke-dasharray: 90, 200;
+    stroke-dashoffset: -125;
+  }
+} 

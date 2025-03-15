@@ -1,0 +1,607 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as mix;
+@use 'sass:color';
+
+.listings-page {
+  padding: $spacing-8 0;
+  background: linear-gradient(135deg, color.adjust($primary-color, $lightness: 35%), color.adjust($secondary-color, $lightness: 35%));
+  min-height: 100vh;
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('/images/pattern.svg');
+    background-size: cover;
+    opacity: 0.05;
+    z-index: 0;
+  }
+  
+  &__container {
+    position: relative;
+    z-index: 1;
+    @include mix.container;
+  }
+  
+  // Page title and search section
+  &__header {
+    margin-bottom: $spacing-8;
+    
+    @include mix.mobile {
+      margin-bottom: $spacing-6;
+    }
+  }
+  
+  &__title-wrapper {
+    padding: $spacing-6;
+    border-radius: $border-radius-2xl;
+    background: rgba($white, 0.7);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba($white, 0.8);
+    box-shadow: 0 8px 32px rgba($black, 0.08);
+    margin-bottom: $spacing-6;
+    
+    @include mix.mobile {
+      padding: $spacing-4;
+      border-radius: $border-radius-xl;
+    }
+  }
+  
+  // Modern title with gradient
+  &__title {
+    font-family: $font-family-secondary;
+    font-size: $font-size-4xl;
+    font-weight: $font-weight-bold;
+    margin-bottom: $spacing-4;
+    background: linear-gradient(90deg, $primary-color, $secondary-color);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    display: inline-block;
+    
+    @include mix.mobile {
+      font-size: $font-size-2xl;
+      margin-bottom: $spacing-3;
+    }
+  }
+  
+  // Advanced search bar in its own container
+  &__search-container {
+    padding: $spacing-5;
+    border-radius: $border-radius-xl;
+    background: rgba($white, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba($white, 0.7);
+    box-shadow: 0 4px 16px rgba($black, 0.06);
+    margin-bottom: $spacing-6;
+    
+    @include mix.mobile {
+      padding: $spacing-4;
+    }
+    
+    h3 {
+      font-size: $font-size-lg;
+      font-weight: $font-weight-semibold;
+      color: $gray-800;
+      margin-bottom: $spacing-3;
+    }
+  }
+  
+  &__search {
+    position: relative;
+    
+    input {
+      width: 100%;
+      padding: $spacing-4 $spacing-12 $spacing-4 $spacing-5;
+      border: none;
+      border-radius: $border-radius-full;
+      font-size: $font-size-md;
+      background: rgba($white, 0.9);
+      box-shadow: 
+        inset 2px 2px 5px rgba($black, 0.05),
+        0 5px 15px rgba($primary-color, 0.1);
+      transition: all 0.3s ease;
+      
+      &:focus {
+        outline: none;
+        box-shadow: 
+          inset 2px 2px 5px rgba($black, 0.05),
+          0 5px 20px rgba($primary-color, 0.2);
+        background: $white;
+      }
+      
+      &::placeholder {
+        color: $gray-400;
+      }
+    }
+    
+    button {
+      position: absolute;
+      right: 6px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, $primary-color, color.adjust($primary-color, $lightness: -10%));
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 10px rgba($primary-color, 0.3);
+      
+      &:hover {
+        transform: translateY(-50%) scale(1.05);
+        box-shadow: 0 6px 15px rgba($primary-color, 0.4);
+      }
+      
+      svg {
+        width: 20px;
+        height: 20px;
+        color: $white;
+      }
+    }
+  }
+  
+  // Category section with clear labeling
+  &__categories-container {
+    padding: $spacing-5;
+    border-radius: $border-radius-xl;
+    background: rgba($white, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba($white, 0.7);
+    box-shadow: 0 4px 16px rgba($black, 0.06);
+    margin-bottom: $spacing-6;
+    
+    @include mix.mobile {
+      padding: $spacing-4;
+    }
+    
+    h3 {
+      font-size: $font-size-lg;
+      font-weight: $font-weight-semibold;
+      color: $gray-800;
+      margin-bottom: $spacing-3;
+    }
+  }
+  
+  &__categories {
+    ul {
+      display: flex;
+      flex-wrap: wrap;
+      gap: $spacing-3;
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      
+      li {
+        a {
+          display: inline-block;
+          padding: $spacing-2 $spacing-4;
+          border-radius: $border-radius-full;
+          font-size: $font-size-sm;
+          font-weight: $font-weight-medium;
+          text-decoration: none;
+          background: rgba($white, 0.6);
+          border: 1px solid rgba($white, 0.8);
+          color: $gray-700;
+          transition: all 0.2s ease;
+          
+          &:hover, &.active {
+            background: $white;
+            box-shadow: 0 4px 12px rgba($black, 0.08);
+            color: $primary-color;
+            border-color: rgba($primary-color, 0.3);
+          }
+        }
+      }
+    }
+  }
+  
+  // Mobile filter toggle
+  &__filter-toggle {
+    width: 100%;
+    padding: $spacing-3 $spacing-4;
+    border-radius: $border-radius-lg;
+    background-color: $white;
+    border: 1px solid rgba($primary-color, 0.2);
+    color: $gray-800;
+    font-weight: $font-weight-medium;
+    font-size: $font-size-md;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: $spacing-2;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-bottom: $spacing-5;
+    box-shadow: 0 4px 10px rgba($black, 0.05);
+    
+    @include mix.desktop {
+      display: none;
+    }
+    
+    &:hover {
+      background-color: $primary-color;
+      color: $white;
+      box-shadow: 0 6px 15px rgba($primary-color, 0.2);
+    }
+    
+    svg {
+      width: 20px;
+      height: 20px;
+    }
+  }
+  
+  // Content layout with proper spacing
+  &__content {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: $spacing-6;
+    
+    @include mix.mobile {
+      grid-template-columns: 1fr;
+      gap: $spacing-4;
+    }
+  }
+
+  // Sidebar filter panel with clear labeling
+  &__sidebar {
+    background: rgba($white, 0.8);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: $border-radius-xl;
+    padding: $spacing-5;
+    border: 1px solid rgba($white, 0.8);
+    box-shadow: 0 8px 32px rgba($black, 0.08);
+    align-self: start;
+    
+    @include mix.mobile {
+      margin-bottom: $spacing-5;
+    }
+    
+    h3 {
+      font-size: $font-size-lg;
+      font-weight: $font-weight-semibold;
+      color: $gray-800;
+      margin-bottom: $spacing-4;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: $spacing-3;
+      border-bottom: 1px solid rgba($gray-300, 0.5);
+      
+      button {
+        background: transparent;
+        border: none;
+        color: $gray-500;
+        cursor: pointer;
+        padding: $spacing-1;
+        border-radius: $border-radius-full;
+        
+        &:hover {
+          color: $gray-700;
+          background: $gray-100;
+        }
+        
+        svg {
+          width: 18px;
+          height: 18px;
+        }
+      }
+    }
+    
+    // Form inputs with consistent styling
+    input[type="text"], 
+    input[type="number"],
+    select {
+      width: 100%;
+      padding: $spacing-3;
+      margin-bottom: $spacing-4;
+      background: rgba($white, 0.9);
+      border: 1px solid rgba($gray-300, 0.5);
+      border-radius: $border-radius-lg;
+      font-size: $font-size-md;
+      color: $gray-800;
+      box-shadow: 
+        inset 2px 2px 5px rgba($black, 0.03),
+        0 2px 5px rgba($black, 0.02);
+      transition: all 0.2s ease;
+      
+      &:focus {
+        outline: none;
+        border-color: rgba($primary-color, 0.3);
+        background: $white;
+        box-shadow: 
+          inset 2px 2px 5px rgba($black, 0.03),
+          0 5px 15px rgba($primary-color, 0.08);
+      }
+      
+      &::placeholder {
+        color: $gray-400;
+      }
+    }
+    
+    select {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%236e707f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      background-size: 16px;
+      padding-right: 36px;
+      cursor: pointer;
+    }
+    
+    // Filter sections with clear headers
+    &-section {
+      margin-bottom: $spacing-5;
+      
+      &:last-of-type {
+        margin-bottom: 0;
+      }
+    }
+    
+    // Price range inputs with better spacing
+    &-price {
+      @extend .listings-page__sidebar-section;
+      
+      h4 {
+        font-size: $font-size-md;
+        font-weight: $font-weight-medium;
+        color: $gray-800;
+        margin-bottom: $spacing-3;
+      }
+      
+      &-inputs {
+        display: flex;
+        gap: $spacing-2;
+        
+        input {
+          width: 100%;
+          margin-bottom: 0;
+        }
+      }
+    }
+    
+    // Condition selector with clear labeling
+    &-condition {
+      @extend .listings-page__sidebar-section;
+      
+      h4 {
+        font-size: $font-size-md;
+        font-weight: $font-weight-medium;
+        color: $gray-800;
+        margin-bottom: $spacing-3;
+      }
+    }
+    
+    // Location filter with proper spacing
+    &-location {
+      @extend .listings-page__sidebar-section;
+      
+      h4 {
+        font-size: $font-size-md;
+        font-weight: $font-weight-medium;
+        color: $gray-800;
+        margin-bottom: $spacing-3;
+      }
+    }
+    
+    // Filter buttons with consistent styling
+    &-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: $spacing-3;
+      margin-top: $spacing-6;
+      padding-top: $spacing-4;
+      border-top: 1px solid rgba($gray-300, 0.5);
+      
+      button {
+        padding: $spacing-3 $spacing-4;
+        border-radius: $border-radius-lg;
+        font-size: $font-size-sm;
+        font-weight: $font-weight-medium;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: $spacing-2;
+        
+        svg {
+          width: 16px;
+          height: 16px;
+        }
+        
+        &.apply {
+          background: linear-gradient(135deg, $primary-color, color.adjust($primary-color, $lightness: -10%));
+          color: $white;
+          border: none;
+          flex: 1;
+          justify-content: center;
+          box-shadow: 0 4px 10px rgba($primary-color, 0.2);
+          
+          &:hover {
+            box-shadow: 0 6px 15px rgba($primary-color, 0.3);
+            transform: translateY(-2px);
+          }
+        }
+        
+        &.clear {
+          background: transparent;
+          color: $gray-600;
+          border: 1px solid $gray-300;
+          
+          &:hover {
+            background: $gray-100;
+            color: $gray-800;
+          }
+        }
+      }
+    }
+  }
+  
+  // Main content area with proper spacing
+  &__main {
+    min-height: 300px;
+    background: rgba($white, 0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: $border-radius-xl;
+    padding: $spacing-5;
+    border: 1px solid rgba($white, 0.7);
+    
+    @include mix.mobile {
+      padding: $spacing-4;
+    }
+  }
+  
+  // Results and sorting row with improved alignment
+  &__sort {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: $spacing-5;
+    padding-bottom: $spacing-4;
+    border-bottom: 1px solid rgba($gray-300, 0.5);
+    
+    @include mix.mobile {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: $spacing-3;
+    }
+  }
+  
+  // Results count pill
+  &__results {
+    display: inline-flex;
+    align-items: center;
+    padding: $spacing-2 $spacing-4;
+    background: rgba($primary-color, 0.1);
+    border-radius: $border-radius-full;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    color: $primary-color;
+    
+    svg {
+      width: 16px;
+      height: 16px;
+      margin-right: $spacing-2;
+    }
+  }
+  
+  // Sort options with better spacing
+  &__sort-options {
+    display: flex;
+    gap: $spacing-2;
+    
+    select {
+      padding: $spacing-2 $spacing-4;
+      padding-right: 36px;
+      background-color: rgba($white, 0.7);
+      border: 1px solid rgba($white, 0.8);
+      border-radius: $border-radius-full;
+      color: $gray-800;
+      font-size: $font-size-sm;
+      font-weight: $font-weight-medium;
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%236e707f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 8px center;
+      background-size: 16px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 5px rgba($black, 0.05);
+      
+      &:focus {
+        outline: none;
+        border-color: rgba($primary-color, 0.3);
+        background-color: $white;
+      }
+    }
+  }
+  
+  // Grid with proper spacing
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: $spacing-6;
+    margin-bottom: $spacing-8;
+    
+    @include mix.mobile {
+      grid-template-columns: 1fr;
+      gap: $spacing-5;
+    }
+  }
+  
+  // Empty state with proper spacing
+  &__empty {
+    text-align: center;
+    padding: $spacing-8 $spacing-6;
+    background: rgba($white, 0.7);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: $border-radius-xl;
+    border: 1px solid rgba($white, 0.8);
+    box-shadow: 0 8px 32px rgba($black, 0.08);
+    
+    svg {
+      width: 64px;
+      height: 64px;
+      color: rgba($primary-color, 0.5);
+      margin-bottom: $spacing-4;
+    }
+    
+    h3 {
+      font-size: $font-size-xl;
+      font-weight: $font-weight-bold;
+      background: linear-gradient(90deg, $primary-color, $secondary-color);
+      background-clip: text;
+      -webkit-background-clip: text;
+      color: transparent;
+      margin-bottom: $spacing-3;
+      display: inline-block;
+    }
+    
+    p {
+      color: $gray-600;
+      margin-bottom: $spacing-6;
+      max-width: 400px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    
+    button {
+      padding: $spacing-3 $spacing-6;
+      background: linear-gradient(135deg, $primary-color, color.adjust($primary-color, $lightness: -10%));
+      color: $white;
+      border: none;
+      border-radius: $border-radius-full;
+      font-size: $font-size-md;
+      font-weight: $font-weight-medium;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba($primary-color, 0.3);
+      
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba($primary-color, 0.4);
+      }
+    }
+  }
+  
+  // Pagination with proper spacing
+  &__pagination {
+    margin-top: $spacing-8;
+    display: flex;
+    justify-content: center;
+  }
+} 

@@ -1,0 +1,160 @@
+@use 'sass:color';
+@use '../variables' as *;
+@use '../mixins' as *;
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: $spacing-1 $spacing-2;
+  font-size: $font-size-xs;
+  font-weight: $font-weight-medium;
+  line-height: 1;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: middle;
+  border-radius: $border-radius-sm;
+  
+  // Badge variants
+  &--primary {
+    background-color: $primary-color;
+    color: $white;
+  }
+  
+  &--secondary {
+    background-color: $gray-600;
+    color: $white;
+  }
+  
+  &--success {
+    background-color: $success;
+    color: $white;
+  }
+  
+  &--warning {
+    background-color: $warning;
+    color: $white;
+  }
+  
+  &--error {
+    background-color: $error;
+    color: $white;
+  }
+  
+  &--info {
+    background-color: $info;
+    color: $white;
+  }
+  
+  // Light variants
+  &--light-primary {
+    background-color: rgba($primary-color, 0.1);
+    color: $primary-dark;
+  }
+  
+  &--light-secondary {
+    background-color: rgba($gray-600, 0.1);
+    color: $gray-800;
+  }
+  
+  &--light-success {
+    background-color: rgba($success, 0.1);
+    border-color: $success;
+    color: color.adjust($success, $lightness: -10%);
+  }
+  
+  &--light-warning {
+    background-color: rgba($warning, 0.1);
+    color: color.adjust($warning, $lightness: -10%);
+  }
+  
+  &--light-error {
+    background-color: rgba($error, 0.1);
+    color: color.adjust($error, $lightness: -10%);
+  }
+  
+  &--light-info {
+    background-color: rgba($info, 0.1);
+    color: color.adjust($info, $lightness: -10%);
+  }
+  
+  // Badge sizes
+  &--sm {
+    padding: 0 $spacing-1;
+    font-size: $font-size-xxs;
+  }
+  
+  &--lg {
+    padding: $spacing-1 $spacing-3;
+    font-size: $font-size-sm;
+  }
+  
+  // Pill badge
+  &--pill {
+    border-radius: $border-radius-full;
+  }
+  
+  // Outline badge
+  &--outline {
+    background-color: transparent;
+    
+    &.badge--primary {
+      color: $primary-color;
+      border: 1px solid $primary-color;
+    }
+    
+    &.badge--secondary {
+      color: $gray-600;
+      border: 1px solid $gray-600;
+    }
+    
+    &.badge--success {
+      color: $success;
+      border: 1px solid $success;
+    }
+    
+    &.badge--warning {
+      color: $warning;
+      border: 1px solid $warning;
+    }
+    
+    &.badge--error {
+      color: $error;
+      border: 1px solid $error;
+    }
+    
+    &.badge--info {
+      color: $info;
+      border: 1px solid $info;
+    }
+  }
+  
+  // With icon
+  &__icon {
+    margin-right: $spacing-1;
+    font-size: 0.85em;
+  }
+  
+  // Count/notification badge
+  &--dot {
+    width: 8px;
+    height: 8px;
+    padding: 0;
+    border-radius: 50%;
+  }
+  
+  // Position variants for notification badges
+  &--top-right {
+    position: absolute;
+    top: 0;
+    right: 0;
+    transform: translate(50%, -50%);
+  }
+  
+  &--bottom-right {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    transform: translate(50%, 50%);
+  }
+} 

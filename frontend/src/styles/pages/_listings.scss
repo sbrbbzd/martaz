@@ -1,0 +1,135 @@
+@use '../mixins' as mixins;
+
+.listings-page {
+  padding: var(--spacing-xl) 0;
+  
+  &__header {
+    margin-bottom: var(--spacing-lg);
+    
+    &-title {
+      font-size: var(--font-size-xl);
+      margin-bottom: var(--spacing-sm);
+    }
+    
+    &-description {
+      color: var(--gray-600);
+      margin-bottom: var(--spacing-md);
+    }
+  }
+  
+  &__container {
+    display: grid;
+    grid-template-columns: 250px 1fr;
+    gap: var(--spacing-lg);
+    
+    @include mixins.mobile {
+      grid-template-columns: 1fr;
+    }
+  }
+  
+  &__filters {
+    background-color: white;
+    padding: var(--spacing-md);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-sm);
+    height: fit-content;
+    
+    &-section {
+      margin-bottom: var(--spacing-md);
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
+    
+    &-title {
+      font-size: var(--font-size-md);
+      font-weight: 600;
+      margin-bottom: var(--spacing-sm);
+      padding-bottom: var(--spacing-xs);
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .filter-group {
+      margin-bottom: var(--spacing-sm);
+    }
+    
+    .price-range {
+      display: flex;
+      gap: var(--spacing-xs);
+      
+      input {
+        flex: 1;
+      }
+    }
+    
+    .checkbox-list {
+      max-height: 200px;
+      overflow-y: auto;
+      
+      .form-check {
+        margin-bottom: var(--spacing-xs);
+      }
+    }
+  }
+  
+  &__content {
+    width: 100%;
+  }
+  
+  &__toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+    padding-bottom: var(--spacing-xs);
+    border-bottom: 1px solid var(--border-color);
+    
+    &-count {
+      font-weight: 500;
+    }
+    
+    &-sorting {
+      display: flex;
+      align-items: center;
+      gap: var(--spacing-sm);
+      
+      select {
+        min-width: 120px;
+      }
+    }
+    
+    @include mixins.mobile {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--spacing-sm);
+    }
+  }
+  
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: var(--spacing-md);
+    margin-bottom: var(--spacing-lg);
+    
+    @include mixins.mobile {
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    }
+  }
+  
+  &__empty {
+    padding: var(--spacing-xl);
+    text-align: center;
+    background-color: var(--gray-100);
+    border-radius: var(--border-radius);
+    
+    h3 {
+      margin-bottom: var(--spacing-md);
+    }
+  }
+  
+  &__pagination {
+    display: flex;
+    justify-content: center;
+  }
+} 

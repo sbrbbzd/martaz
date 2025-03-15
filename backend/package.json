@@ -1,0 +1,45 @@
+{
+  "name": "mart-az-backend",
+  "version": "1.0.0",
+  "description": "Backend API for Mart.az - Azerbaijan's classified ads marketplace",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "jest"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@reduxjs/toolkit": "^2.6.1",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "@types/redux-persist": "^4.0.0",
+    "ajv": "^8.12.0",
+    "ajv-formats": "^2.1.1",
+    "bcryptjs": "^2.4.3",
+    "compression": "^1.8.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "express-rate-limit": "^7.5.0",
+    "helmet": "^8.0.0",
+    "joi": "^17.13.3",
+    "jsonwebtoken": "^9.0.2",
+    "morgan": "^1.10.0",
+    "pg": "^8.14.0",
+    "pg-hstore": "^2.3.4",
+    "react": "^19.0.0",
+    "react-icons": "^5.5.0",
+    "redux-persist": "^6.0.0",
+    "sequelize": "^6.37.6",
+    "slugify": "^1.6.6",
+    "uuid": "^9.0.1",
+    "winston": "^3.17.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "nodemon": "^3.0.2",
+    "supertest": "^6.3.3"
+  }
+}

@@ -1,0 +1,216 @@
+@use '../variables' as *;
+@use '../mixins' as *;
+
+.sidebar {
+  width: $sidebar-width;
+  height: 100%;
+  position: fixed;
+  top: $header-height;
+  left: 0;
+  background-color: $white;
+  box-shadow: $shadow-md;
+  z-index: $z-fixed - 1;
+  transition: transform $transition-normal $transition-ease;
+  overflow-y: auto;
+  padding: $spacing-4 0;
+  
+  // Mobile sidebar (hidden by default)
+  @media (max-width: $breakpoint-lg) {
+    transform: translateX(-100%);
+  }
+  
+  // Sidebar open state
+  &--open {
+    @media (max-width: $breakpoint-lg) {
+      transform: translateX(0);
+    }
+  }
+  
+  // Sidebar overlay
+  &__overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba($black, 0.5);
+    z-index: $z-fixed - 2;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity $transition-normal, visibility $transition-normal;
+    
+    &--visible {
+      opacity: 1;
+      visibility: visible;
+    }
+  }
+  
+  // Sidebar sections
+  &__section {
+    margin-bottom: $spacing-4;
+    
+    &-title {
+      font-size: $font-size-xs;
+      text-transform: uppercase;
+      color: $gray-600;
+      font-weight: $font-weight-semibold;
+      padding: $spacing-2 $spacing-4;
+      margin-bottom: $spacing-2;
+    }
+  }
+  
+  // Navigation list
+  &__nav {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  
+  // Navigation item
+  &__item {
+    margin-bottom: $spacing-1;
+  }
+  
+  // Navigation link
+  &__link {
+    display: flex;
+    align-items: center;
+    padding: $spacing-2 $spacing-4;
+    color: $gray-700;
+    font-size: $font-size-sm;
+    transition: all $transition-fast;
+    position: relative;
+    text-decoration: none;
+    
+    &:hover {
+      color: $primary-color;
+      background-color: rgba($primary-color, 0.05);
+      text-decoration: none;
+    }
+    
+    // Active state
+    &--active {
+      color: $primary-color;
+      background-color: rgba($primary-color, 0.1);
+      font-weight: $font-weight-medium;
+      
+      &::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 3px;
+        background-color: $primary-color;
+      }
+    }
+    
+    // With icon
+    &-icon {
+      margin-right: $spacing-3;
+      font-size: $font-size-md;
+      width: 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    // With badge
+    &-badge {
+      margin-left: auto;
+    }
+  }
+  
+  // Divider
+  &__divider {
+    height: 1px;
+    margin: $spacing-3 0;
+    background-color: $gray-200;
+  }
+  
+  // Collapsible menu
+  &__submenu {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height $transition-normal;
+    
+    &--expanded {
+      max-height: 1000px; // Arbitrary large value
+    }
+    
+    .sidebar__link {
+      padding-left: $spacing-8;
+      
+      &::before {
+        left: $spacing-4;
+      }
+    }
+  }
+  
+  // Toggle for collapsible menu
+  &__toggle {
+    &-icon {
+      margin-left: auto;
+      transition: transform $transition-fast;
+    }
+    
+    &--expanded {
+      .sidebar__toggle-icon {
+        transform: rotate(180deg);
+      }
+    }
+  }
+  
+  // User profile section
+  &__user {
+    display: flex;
+    align-items: center;
+    padding: $spacing-3 $spacing-4;
+    border-top: 1px solid $gray-200;
+    margin-top: auto;
+    
+    &-avatar {
+      width: 2.5rem;
+      height: 2.5rem;
+      border-radius: $border-radius-full;
+      overflow: hidden;
+      margin-right: $spacing-3;
+      
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+    }
+    
+    &-info {
+      overflow: hidden;
+    }
+    
+    &-name {
+      font-weight: $font-weight-medium;
+      color: $gray-900;
+      margin-bottom: 0;
+      @include truncate;
+    }
+    
+    &-role {
+      font-size: $font-size-xs;
+      color: $gray-600;
+      @include truncate;
+    }
+  }
+  
+  // Sidebar footer
+  &__footer {
+    padding: $spacing-3 $spacing-4;
+    border-top: 1px solid $gray-200;
+    margin-top: $spacing-4;
+    
+    &-text {
+      font-size: $font-size-xs;
+      color: $gray-600;
+      margin-bottom: 0;
+    }
+  }
+} 

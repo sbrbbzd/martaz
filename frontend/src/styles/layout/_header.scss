@@ -1,0 +1,132 @@
+@use '../mixins' as mixins;
+
+.header {
+  position: sticky;
+  top: 0;
+  background-color: white;
+  box-shadow: var(--shadow-sm);
+  z-index: 100;
+  padding: var(--spacing-sm) 0;
+  
+  &__container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  
+  &__logo {
+    font-size: var(--font-size-xl);
+    font-weight: 700;
+    color: var(--primary-color);
+    
+    img {
+      height: 40px;
+      width: auto;
+    }
+  }
+  
+  &__nav {
+    display: flex;
+    align-items: center;
+    
+    &-item {
+      margin-left: var(--spacing-md);
+      
+      &:first-child {
+        margin-left: 0;
+      }
+    }
+    
+    &-link {
+      color: var(--text-color);
+      font-weight: 500;
+      padding: var(--spacing-xs) var(--spacing-sm);
+      border-radius: var(--border-radius);
+      transition: color 0.3s ease, background-color 0.3s ease;
+      
+      &:hover {
+        color: var(--primary-color);
+        background-color: var(--gray-100);
+      }
+      
+      &.active {
+        color: var(--primary-color);
+        font-weight: 600;
+      }
+    }
+  }
+  
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-sm);
+  }
+  
+  &__search {
+    position: relative;
+    margin-right: var(--spacing-md);
+    
+    input {
+      padding-right: 40px;
+    }
+    
+    button {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--gray-500);
+      cursor: pointer;
+      
+      &:hover {
+        color: var(--primary-color);
+      }
+    }
+  }
+  
+  &__mobile-toggle {
+    display: none;
+    font-size: var(--font-size-xl);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-color);
+    
+    &:hover {
+      color: var(--primary-color);
+    }
+  }
+  
+  // Mobile styles
+  @include mixins.mobile {
+    &__nav {
+      display: none;
+      
+      &.open {
+        display: flex;
+        flex-direction: column;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background-color: white;
+        box-shadow: var(--shadow-md);
+        padding: var(--spacing-md);
+        
+        &-item {
+          margin: var(--spacing-xs) 0;
+        }
+      }
+    }
+    
+    &__search {
+      display: none;
+    }
+    
+    &__mobile-toggle {
+      display: block;
+    }
+  }
+} 

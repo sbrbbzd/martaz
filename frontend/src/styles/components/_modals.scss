@@ -1,0 +1,123 @@
+@use '../mixins' as mixins;
+
+// Modal styles
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+  
+  &.active {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+.modal {
+  background-color: white;
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-lg);
+  width: 100%;
+  max-width: 500px;
+  max-height: 90vh;
+  overflow-y: auto;
+  transform: translateY(-20px);
+  transition: transform 0.3s ease;
+  
+  .modal-overlay.active & {
+    transform: translateY(0);
+  }
+  
+  &.modal-sm {
+    max-width: 300px;
+  }
+  
+  &.modal-lg {
+    max-width: 800px;
+  }
+  
+  &.modal-xl {
+    max-width: 1140px;
+  }
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-md);
+  border-bottom: 1px solid var(--border-color);
+  
+  .modal-title {
+    margin: 0;
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+  }
+  
+  .close-button {
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    color: var(--gray-500);
+    transition: color 0.2s ease;
+    
+    &:hover {
+      color: var(--gray-700);
+    }
+  }
+}
+
+.modal-body {
+  padding: var(--spacing-md);
+}
+
+.modal-footer {
+  padding: var(--spacing-md);
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-sm);
+}
+
+// Animation for modal
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateY(-30px);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+// Responsive adjustments
+@include mixins.mobile {
+  .modal {
+    width: 95%;
+    margin: 0 auto;
+  }
+  
+  .modal-lg, .modal-xl {
+    max-width: 95%;
+  }
+} 

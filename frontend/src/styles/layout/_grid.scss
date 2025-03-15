@@ -1,0 +1,140 @@
+@use '../mixins' as mixins;
+@use 'sass:math';
+
+// Grid system
+.container {
+  width: 100%;
+  padding-right: var(--spacing-md);
+  padding-left: var(--spacing-md);
+  margin-right: auto;
+  margin-left: auto;
+  
+  @include mixins.tablet {
+    max-width: 720px;
+  }
+  
+  @include mixins.desktop {
+    max-width: 1140px;
+  }
+}
+
+.container-fluid {
+  width: 100%;
+  padding-right: var(--spacing-md);
+  padding-left: var(--spacing-md);
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  margin-right: -15px;
+  margin-left: -15px;
+}
+
+// Column sizes
+.col {
+  position: relative;
+  width: 100%;
+  padding-right: 15px;
+  padding-left: 15px;
+  flex-basis: 0;
+  flex-grow: 1;
+  max-width: 100%;
+}
+
+@for $i from 1 through 12 {
+  .col-#{$i} {
+    flex: 0 0 math.percentage(math.div($i, 12));
+    max-width: math.percentage(math.div($i, 12));
+  }
+}
+
+// Responsive columns
+@include mixins.mobile {
+  @for $i from 1 through 12 {
+    .col-sm-#{$i} {
+      flex: 0 0 math.percentage(math.div($i, 12));
+      max-width: math.percentage(math.div($i, 12));
+    }
+  }
+}
+
+@include mixins.tablet {
+  @for $i from 1 through 12 {
+    .col-md-#{$i} {
+      flex: 0 0 math.percentage(math.div($i, 12));
+      max-width: math.percentage(math.div($i, 12));
+    }
+  }
+}
+
+@include mixins.desktop {
+  @for $i from 1 through 12 {
+    .col-lg-#{$i} {
+      flex: 0 0 math.percentage(math.div($i, 12));
+      max-width: math.percentage(math.div($i, 12));
+    }
+  }
+}
+
+// Flexbox utilities
+.d-flex {
+  display: flex;
+}
+
+.flex-row {
+  flex-direction: row;
+}
+
+.flex-column {
+  flex-direction: column;
+}
+
+.justify-content-start {
+  justify-content: flex-start;
+}
+
+.justify-content-center {
+  justify-content: center;
+}
+
+.justify-content-end {
+  justify-content: flex-end;
+}
+
+.justify-content-between {
+  justify-content: space-between;
+}
+
+.justify-content-around {
+  justify-content: space-around;
+}
+
+.align-items-start {
+  align-items: flex-start;
+}
+
+.align-items-center {
+  align-items: center;
+}
+
+.align-items-end {
+  align-items: flex-end;
+}
+
+.flex-wrap {
+  flex-wrap: wrap;
+}
+
+.flex-nowrap {
+  flex-wrap: nowrap;
+}
+
+// Gap utility
+.gap-1 { gap: var(--spacing-xs); }
+.gap-2 { gap: var(--spacing-sm); }
+.gap-3 { gap: var(--spacing-md); }
+.gap-4 { gap: var(--spacing-lg); }
+.gap-5 { gap: var(--spacing-xl); } 

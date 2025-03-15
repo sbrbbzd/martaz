@@ -1,0 +1,209 @@
+@use 'variables' as vars;
+
+// Flexbox utilities
+@mixin flex($direction: row, $justify: flex-start, $align: stretch, $gap: 0) {
+  display: flex;
+  flex-direction: $direction;
+  justify-content: $justify;
+  align-items: $align;
+  @if $gap != 0 {
+    gap: $gap;
+  }
+}
+
+@mixin flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+@mixin flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+// Text utilities
+@mixin truncate($lines: 1) {
+  @if $lines == 1 {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  } @else {
+    display: -webkit-box;
+    -webkit-line-clamp: $lines;
+    -webkit-box-orient: vertical;  
+    overflow: hidden;
+  }
+}
+
+@mixin font($size, $weight: 400, $line-height: normal) {
+  font-size: $size;
+  font-weight: $weight;
+  line-height: $line-height;
+}
+
+// Responsive utilities
+@mixin mobile {
+  @media (max-width: vars.$breakpoint-sm) {
+    @content;
+  }
+}
+
+@mixin tablet {
+  @media (min-width: vars.$breakpoint-sm) and (max-width: vars.$breakpoint-md) {
+    @content;
+  }
+}
+
+@mixin desktop {
+  @media (min-width: vars.$breakpoint-md) {
+    @content;
+  }
+}
+
+@mixin large-desktop {
+  @media (min-width: vars.$breakpoint-lg) {
+    @content;
+  }
+}
+
+@mixin responsive($breakpoint) {
+  @media (min-width: $breakpoint) {
+    @content;
+  }
+}
+
+// Grid utilities
+@mixin grid($columns: 1, $gap: vars.$spacing-4) {
+  display: grid;
+  grid-template-columns: repeat($columns, 1fr);
+  gap: $gap;
+}
+
+// Animation utilities
+@mixin fade-in($duration: 0.3s, $delay: 0s) {
+  animation: fade-in $duration ease-in-out $delay forwards;
+  
+  @keyframes fade-in {
+    0% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+}
+
+@mixin slide-in($direction: 'up', $distance: 20px, $duration: 0.3s, $delay: 0s) {
+  $start-x: 0;
+  $start-y: 0;
+  
+  @if $direction == 'up' {
+    $start-y: $distance;
+  } @else if $direction == 'down' {
+    $start-y: -$distance;
+  } @else if $direction == 'left' {
+    $start-x: $distance;
+  } @else if $direction == 'right' {
+    $start-x: -$distance;
+  }
+  
+  animation: slide-in-#{$direction} $duration ease-out $delay forwards;
+  
+  @keyframes slide-in-#{$direction} {
+    0% {
+      opacity: 0;
+      transform: translate($start-x, $start-y);
+    }
+    100% {
+      opacity: 1;
+      transform: translate(0, 0);
+    }
+  }
+}
+
+// Loading animations
+@mixin skeleton-loading {
+  background: linear-gradient(
+    90deg,
+    vars.$gray-200 0%,
+    vars.$gray-300 50%,
+    vars.$gray-200 100%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+  
+  @keyframes skeleton-loading {
+    0% {
+      background-position: 200% 0;
+    }
+    100% {
+      background-position: -200% 0;
+    }
+  }
+}
+
+@mixin loading-dots($size: 8px, $color: vars.$primary-color, $gap: 4px) {
+  position: relative;
+  min-width: ($size * 3) + ($gap * 2);
+  height: $size;
+  
+  &::before,
+  &::after,
+  & {
+    content: "";
+    position: absolute;
+    width: $size;
+    height: $size;
+    border-radius: 50%;
+    background-color: $color;
+    animation: dots 1.4s infinite ease-in-out both;
+  }
+  
+  &::before {
+    left: -$gap - $size;
+    animation-delay: -0.32s;
+  }
+  
+  & {
+    animation-delay: -0.16s;
+  }
+  
+  &::after {
+    left: $gap + $size;
+    animation-delay: 0s;
+  }
+  
+  @keyframes dots {
+    0%, 80%, 100% {
+      transform: scale(0);
+    }
+    40% {
+      transform: scale(1);
+    }
+  }
+}
+
+// Container
+@mixin container($max-width: vars.$container-max-width, $padding: vars.$spacing-4) {
+  width: 100%;
+  max-width: $max-width;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: $padding;
+  padding-right: $padding;
+}
+
+// Shadow utilities
+@mixin shadow($level: 'md') {
+  @if $level == 'sm' {
+    box-shadow: vars.$shadow-sm;
+  } @else if $level == 'md' {
+    box-shadow: vars.$shadow-md;
+  } @else if $level == 'lg' {
+    box-shadow: vars.$shadow-lg;
+  } @else if $level == 'xl' {
+    box-shadow: vars.$shadow-xl;
+  }
+} 

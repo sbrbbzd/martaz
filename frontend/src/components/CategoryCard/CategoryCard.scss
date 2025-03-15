@@ -1,0 +1,52 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as *;
+
+.category-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: $spacing-4 $spacing-2;
+  height: 100%;
+  transition: all $transition-fast $transition-ease;
+  
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: $shadow-md;
+  }
+  
+  &__link {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+  }
+  
+  &__icon-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: $spacing-3;
+  }
+  
+  &__icon {
+    font-size: 48px;
+    color: $primary-color;
+  }
+  
+  &__custom-icon {
+    border-radius: $border-radius-full;
+  }
+  
+  &__title {
+    font-size: $font-size-md;
+    font-weight: $font-weight-semibold;
+    color: $gray-900;
+    margin: 0 0 $spacing-1;
+  }
+  
+  &__count {
+    font-size: $font-size-sm;
+    color: $gray-600;
+  }
+} 

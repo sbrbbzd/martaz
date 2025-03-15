@@ -1,0 +1,174 @@
+@use '../../../styles/variables' as vars;
+@use '../../../styles/mixins' as mix;
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: vars.$font-weight-medium;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  border-radius: vars.$border-radius;
+  
+  // Sizes
+  &--sm {
+    font-size: vars.$font-size-xs;
+    padding: 2px 6px;
+    
+    .badge__icon {
+      font-size: 12px;
+    }
+    
+    .badge__dot {
+      width: 6px;
+      height: 6px;
+    }
+  }
+  
+  &--md {
+    font-size: vars.$font-size-sm;
+    padding: 3px 8px;
+    
+    .badge__icon {
+      font-size: 14px;
+    }
+    
+    .badge__dot {
+      width: 8px;
+      height: 8px;
+    }
+  }
+  
+  &--lg {
+    font-size: vars.$font-size-md;
+    padding: 4px 10px;
+    
+    .badge__icon {
+      font-size: 16px;
+    }
+    
+    .badge__dot {
+      width: 10px;
+      height: 10px;
+    }
+  }
+  
+  // Variants
+  &--primary {
+    background-color: vars.$primary-color;
+    color: vars.$white;
+  }
+  
+  &--secondary {
+    background-color: vars.$secondary-color;
+    color: vars.$white;
+  }
+  
+  &--accent {
+    background-color: vars.$accent-color;
+    color: vars.$white;
+  }
+  
+  &--success {
+    background-color: vars.$success;
+    color: vars.$white;
+  }
+  
+  &--error {
+    background-color: vars.$error;
+    color: vars.$white;
+  }
+  
+  &--warning {
+    background-color: vars.$warning;
+    color: vars.$gray-900;
+  }
+  
+  &--info {
+    background-color: vars.$info;
+    color: vars.$white;
+  }
+  
+  &--neutral {
+    background-color: vars.$gray-300;
+    color: vars.$gray-800;
+  }
+  
+  // Outline variants
+  &--outline {
+    background-color: transparent;
+    
+    &.badge--primary {
+      border: 1px solid vars.$primary-color;
+      color: vars.$primary-color;
+    }
+    
+    &.badge--secondary {
+      border: 1px solid vars.$secondary-color;
+      color: vars.$secondary-color;
+    }
+    
+    &.badge--accent {
+      border: 1px solid vars.$accent-color;
+      color: vars.$accent-color;
+    }
+    
+    &.badge--success {
+      border: 1px solid vars.$success;
+      color: vars.$success;
+    }
+    
+    &.badge--error {
+      border: 1px solid vars.$error;
+      color: vars.$error;
+    }
+    
+    &.badge--warning {
+      border: 1px solid vars.$warning;
+      color: vars.$warning;
+    }
+    
+    &.badge--info {
+      border: 1px solid vars.$info;
+      color: vars.$info;
+    }
+    
+    &.badge--neutral {
+      border: 1px solid vars.$gray-500;
+      color: vars.$gray-700;
+    }
+  }
+  
+  // Rounded
+  &--rounded {
+    border-radius: vars.$border-radius-full;
+  }
+  
+  // With dot
+  &--dot {
+    padding-left: 6px;
+    
+    .badge__dot {
+      display: inline-block;
+      border-radius: 50%;
+      margin-right: 6px;
+      background-color: currentColor;
+    }
+  }
+  
+  // With icon
+  &--with-icon {
+    .badge__icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-right: 4px;
+    }
+  }
+  
+  // Elements
+  &__text {
+    display: inline-block;
+  }
+} 

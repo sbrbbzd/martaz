@@ -1,0 +1,88 @@
+// Import base styles and utilities
+@use 'reset';
+@use 'variables';
+@use 'mixins';
+@use 'base';
+@use 'utilities';
+
+// Import component styles
+@use 'components/buttons';
+@use 'components/forms';
+@use 'components/alerts';
+@use 'components/badges';
+@use 'components/cards';
+@use 'components/modals';
+@use 'components/dropdowns';
+@use 'components/loaders';
+@use 'components/pagination';
+@use 'components/tooltips';
+
+// Import layout styles
+@use 'layout/header';
+@use 'layout/footer';
+@use 'layout/grid';
+@use 'layout/sidebar';
+
+// Import page-specific styles
+@use 'pages/home';
+@use 'pages/listings';
+@use 'pages/listing-detail';
+@use 'pages/profile';
+@use 'pages/auth';
+
+// Font imports
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap');
+
+// Icon fonts
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.3.0/css/all.min.css');
+
+// Temporary icons (replace with real icons later)
+.icon-electronics, .icon-vehicles, .icon-real-estate, .icon-jobs,
+.icon-create-account, .icon-post-ad, .icon-connect {
+  display: inline-block;
+  width: 48px;
+  height: 48px;
+  background-color: #f0f0f0;
+  border-radius: 50%;
+  position: relative;
+  
+  &::before {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 24px;
+    height: 24px;
+    background-color: #3498db;
+    mask-size: cover;
+  }
+}
+
+.icon-electronics::before {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M4 6h16v12H4z'/%3E%3C/svg%3E");
+}
+
+.icon-vehicles::before {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M18 10h-1V8c0-1.1-.9-2-2-2H9c-1.1 0-2 .9-2 2v2H6c-1.1 0-2 .9-2 2v3h16v-3c0-1.1-.9-2-2-2zm-10 0V8h8v2H8z'/%3E%3C/svg%3E");
+}
+
+.icon-real-estate::before {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 3L4 9v12h16V9l-8-6z'/%3E%3C/svg%3E");
+}
+
+.icon-jobs::before {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M20 6h-4V4c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-8 12H8v-2h4v2zm0-4H8v-2h4v2zm0-4H8V8h4v2zm6 8h-4v-2h4v2zm0-4h-4v-2h4v2zm0-4h-4V8h4v2z'/%3E%3C/svg%3E");
+}
+
+.icon-create-account::before {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E");
+}
+
+.icon-post-ad::before {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M19 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z'/%3E%3C/svg%3E");
+}
+
+.icon-connect::before {
+  mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z'/%3E%3C/svg%3E");
+} 
