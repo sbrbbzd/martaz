@@ -1,27 +1,16 @@
 {
-  "dependencies": {
-    "axios": "^1.8.3",
-    "bcryptjs": "^3.0.2",
-    "cors": "^2.8.5",
-    "crypto": "^1.0.1",
-    "dotenv": "^16.4.7",
-    "express": "^4.21.2",
-    "express-validator": "^7.2.1",
-    "glob": "^11.0.1",
-    "i18next-http-backend": "^3.0.2",
-    "jsonwebtoken": "^9.0.2",
-    "pg": "^8.14.0",
-    "pg-hstore": "^2.3.4",
-    "react-toastify": "^11.0.5",
-    "sequelize": "^6.37.6",
-    "slugify": "^1.6.6",
-    "uuid": "^11.1.0",
-    "winston": "^3.17.0"
-  },
   "scripts": {
-    "start": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\" \"cd image-server && npm start\"",
+    "start": "node index.js",
+    "start:dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\" \"cd image-server && npm start\"",
     "start:image-server": "cd image-server && npm start",
     "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
-    "setup": "concurrently \"cd backend && npm install\" \"cd frontend && npm install\""
+    "setup": "concurrently \"cd backend && npm install\" \"cd frontend && npm install\"",
+    "build": "cd frontend && npm install && npm run build"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "express": "^4.21.2"
   }
 }
