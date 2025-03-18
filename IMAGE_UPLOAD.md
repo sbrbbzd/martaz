@@ -17,7 +17,7 @@ The application uses a dedicated image server for handling image uploads and ser
 
 Located in the `image-server` directory, this is a dedicated Express.js server that:
 
-- Runs on port 3001
+- Runs on port 3000
 - Handles file uploads
 - Serves static images 
 - Stores files in a dedicated directory

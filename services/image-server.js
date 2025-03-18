@@ -21,14 +21,21 @@ function initImageServer(options = {}) {
     maxFiles: 10,
     baseUrl: '/api/images', // Base URL when used in the main app
     standalone: false,
-    port: process.env.IMAGE_SERVER_PORT || 3001,
+    port: process.env.IMAGE_SERVER_PORT || 3000,
+    verbose: false,
     ...options
+  };
+
+  const log = (message) => {
+    if (config.verbose) {
+      console.log(`[ImageServer] ${message}`);
+    }
   };
 
   // Ensure uploads directory exists
   if (!fs.existsSync(config.uploadsDir)) {
     fs.mkdirSync(config.uploadsDir, { recursive: true });
-    console.log(`Created uploads directory: ${config.uploadsDir}`);
+    log(`Created uploads directory: ${config.uploadsDir}`);
   }
 
   // Configure multer for file uploads
@@ -49,125 +56,133 @@ function initImageServer(options = {}) {
       files: config.maxFiles
     },
     fileFilter: (req, file, cb) => {
-      // Only accept image files
-      if (file.mimetype.startsWith('image/')) {
-        cb(null, true);
-      } else {
-        cb(new Error('Only image files are allowed'), false);
+      // Allow only image files
+      if (!file.originalname.match(/\.(jpg|jpeg|png|gif|webp)$/i)) {
+        return cb(new Error('Only image files are allowed!'), false);
       }
+      cb(null, true);
     }
   });
 
-  // Test endpoint
-  router.get('/test', (req, res) => {
+  // Add health check route
+  router.get('/health', (req, res) => {
     try {
-      const files = fs.readdirSync(config.uploadsDir);
-      res.json({
+      // Ensure the uploads directory is accessible
+      const testAccess = fs.accessSync(config.uploadsDir, fs.constants.R_OK | fs.constants.W_OK);
+      
+      // Return status info
+      res.status(200).json({
+        status: 'ok',
         message: 'Image server is running',
-        uploadsDir: config.uploadsDir,
-        files: files
+        directory: config.uploadsDir,
+        writable: true,
+        timestamp: new Date().toISOString()
       });
     } catch (error) {
-      res.status(500).json({ 
-        error: error.message 
+      log(`Health check failed: ${error.message}`);
+      res.status(500).json({
+        status: 'error',
+        message: 'Image server directory is not accessible',
+        error: error.message,
+        directory: config.uploadsDir,
+        timestamp: new Date().toISOString()
       });
     }
   });
 
-  // Upload endpoint
+  // Upload multiple files
   router.post('/upload', upload.array('images', config.maxFiles), (req, res) => {
+    log(`Received upload request with ${req.files?.length || 0} files`);
+    
     try {
       if (!req.files || req.files.length === 0) {
         return res.status(400).json({
-          success: false,
-          message: 'No images provided'
+          status: 'error',
+          message: 'No files uploaded'
         });
       }
 
-      console.log(`Received ${req.files.length} files for upload`);
-      
-      // Return the uploaded file paths
-      const uploadedFiles = req.files.map(file => {
-        const relativePath = '/api/images/' + file.filename;
+      // Create response with file information
+      const files = req.files.map(file => {
+        const relativeUrl = `${config.baseUrl}/${file.filename}`;
+        
         return {
-          originalName: file.originalname,
           filename: file.filename,
-          size: file.size,
+          originalname: file.originalname,
           mimetype: file.mimetype,
-          path: relativePath
+          size: file.size,
+          url: relativeUrl,
+          fullUrl: config.standalone 
+            ? `http://localhost:${config.port}${relativeUrl}` 
+            : relativeUrl
         };
       });
 
+      log(`Successfully uploaded ${files.length} files`);
+      
       res.status(200).json({
-        success: true,
-        message: `Successfully uploaded ${req.files.length} images`,
-        files: uploadedFiles
+        status: 'success',
+        message: `${files.length} file(s) uploaded successfully`,
+        files: files
       });
     } catch (error) {
-      console.error(`[ERROR] Upload failed: ${error.message}`);
+      log(`Upload error: ${error.message}`);
+      
       res.status(500).json({
-        success: false,
-        message: `Upload failed: ${error.message}`
+        status: 'error',
+        message: 'Failed to process uploaded files',
+        error: error.message
       });
     }
   });
 
-  // File check endpoint
-  router.get('/check/:filename', (req, res) => {
-    const filename = req.params.filename;
-    const filePath = path.join(config.uploadsDir, filename);
-    
-    try {
-      if (fs.existsSync(filePath)) {
-        const stats = fs.statSync(filePath);
-        res.json({
-          exists: true,
-          path: filePath,
-          size: stats.size,
-          isFile: stats.isFile(),
-          created: stats.birthtime,
-          modified: stats.mtime
+  // Handle errors in uploads
+  router.use((err, req, res, next) => {
+    if (err instanceof multer.MulterError) {
+      log(`Multer error: ${err.message}`);
+      
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({
+          status: 'error',
+          message: `File too large, max size is ${config.maxFileSize / (1024 * 1024)}MB`
         });
-      } else {
-        res.json({
-          exists: false,
-          path: filePath
+      } else if (err.code === 'LIMIT_FILE_COUNT') {
+        return res.status(413).json({
+          status: 'error',
+          message: `Too many files, max is ${config.maxFiles}`
         });
       }
-    } catch (error) {
-      res.status(500).json({ error: error.message });
     }
+    
+    log(`General upload error: ${err.message}`);
+    
+    res.status(500).json({
+      status: 'error',
+      message: err.message
+    });
   });
 
-  // Enhanced static file serving with custom middleware
+  // Serve static files from the uploads directory
   router.use('/', (req, res, next) => {
-    const filePath = path.join(config.uploadsDir, req.path);
-    console.log(`[DEBUG] Attempting to serve: ${filePath}`);
-    
-    try {
-      if (fs.existsSync(filePath)) {
-        console.log(`[DEBUG] File exists: ${filePath}`);
-        
-        // Add additional headers to prevent caching
-        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-        res.setHeader('Pragma', 'no-cache');
-        res.setHeader('Expires', '0');
-        res.setHeader('Surrogate-Control', 'no-store');
-        
-        next(); // Continue to the static middleware
-      } else {
-        console.log(`[DEBUG] File does not exist: ${filePath}`);
-        res.status(404).json({ 
-          error: 'File not found',
-          requestedPath: req.path,
-          fullPath: filePath
-        });
-      }
-    } catch (error) {
-      console.error(`[ERROR] ${error.message}`);
-      res.status(500).json({ error: error.message });
+    log(`Serving image: ${req.path}`);
+    next();
+  }, express.static(config.uploadsDir, {
+    setHeaders: function(res) {
+      // Set headers to prevent caching issues
+      res.set('Access-Control-Allow-Origin', '*');
+      res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+      res.set('Cross-Origin-Embedder-Policy', 'unsafe-none');
     }
-  }, express.static(config.uploadsDir));
+  }));
+
+  // Add 404 handler for missing images
+  router.use((req, res) => {
+    log(`Image not found: ${req.path}`);
+    res.status(404).json({
+      status: 'error',
+      message: 'Image not found'
+    });
+  });
 
   // Function to start the server in standalone mode
   function startStandalone() {
@@ -188,13 +203,18 @@ function initImageServer(options = {}) {
     app.use(express.json({ limit: '50mb' }));
     app.use(express.urlencoded({ extended: true, limit: '50mb' }));
     
-    // Mount the router at /
-    app.use('/', router);
+    // Mount the router at the base path
+    app.use(config.baseUrl, router);
+    
+    // Add a root redirect
+    app.get('/', (req, res) => {
+      res.redirect(config.baseUrl);
+    });
     
     // Start the server
     app.listen(config.port, () => {
-      console.log(`Image server running in standalone mode at http://localhost:${config.port}`);
-      console.log(`Serving files from: ${config.uploadsDir}`);
+      log(`Image server running in standalone mode at http://localhost:${config.port}${config.baseUrl}`);
+      log(`Serving files from: ${config.uploadsDir}`);
     });
   }
 

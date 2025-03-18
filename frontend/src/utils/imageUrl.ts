@@ -2,54 +2,44 @@
  * Utility functions for handling image URLs
  */
 
+// Constants
+const BASE_IMAGE_URL = 'http://localhost:3000/api/images';
+const PLACEHOLDER_IMAGE = `${BASE_IMAGE_URL}/placeholder.jpg`;
+
 /**
- * Get the full URL for an image
+ * Helper function to get the correct image URL
  * @param url Image URL or path
- * @returns Full URL
+ * @returns Full image URL
  */
-export const getImageUrl = (url?: string): string => {
-  if (!url) return 'http://localhost:3001/images/placeholder.jpg';
-  
-  // For debugging
-  console.log(`Processing image URL: ${url}`);
-  
-  // Absolute URL - return as is
+export function getImageUrl(url?: string | null): string {
+  // Return placeholder for null/undefined/empty URLs
+  if (!url) return PLACEHOLDER_IMAGE;
+
+  // If the URL already starts with http/https, it's already a full URL
   if (url.startsWith('http://') || url.startsWith('https://')) {
     return url;
   }
-  
-  // Handle different types of image paths
-  
-  // 1. tmp path - directly convert to image server URL
+
+  // Handle various path formats
+  if (url.startsWith('/uploads/')) {
+    // Extract the filename from /uploads/filename.jpg
+    const filename = url.substring('/uploads/'.length);
+    return `${BASE_IMAGE_URL}/${filename}`;
+  }
+
   if (url.startsWith('/tmp/')) {
-    const filename = url.substring(5); // Remove /tmp/
-    return `http://localhost:3001/images/${filename}`;
+    // Extract the filename from /tmp/filename.jpg
+    const filename = url.substring('/tmp/'.length);
+    return `${BASE_IMAGE_URL}/${filename}`;
   }
   
-  // 2. custom-uploads path - convert to image server format
-  if (url.startsWith('/custom-uploads/')) {
-    const filename = url.substring(15); // Remove /custom-uploads/
-    return `http://localhost:3001/images/${filename}`;
+  // If it's just a filename or relative path
+  if (!url.startsWith('/')) {
+    return `${BASE_IMAGE_URL}/${url}`;
   }
-  
-  // 3. Just a filename - assume it's in tmp and use image server
-  if (!url.includes('/')) {
-    return `http://localhost:3001/images/${url}`;
-  }
-  
-  // 4. Standard public path from frontend - return as is
-  if (url.startsWith('/images/')) {
-    // Check if this is a relative URL that should point to the image server
-    if (!url.startsWith('/images/http')) {
-      // Extract filename
-      const filename = url.split('/').pop();
-      if (filename) {
-        return `http://localhost:3001/images/${filename}`;
-      }
-    }
-    return url;
-  }
-  
-  // Default - use as is (likely a public asset)
-  return url;
-}; 
+
+  // For paths starting with / but not /uploads/ or /tmp/
+  // Extract the filename if it exists in a path like /some/path/filename.jpg
+  const filename = url.substring(url.lastIndexOf('/') + 1);
+  return `${BASE_IMAGE_URL}/${filename}`;
+} 

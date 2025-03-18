@@ -228,6 +228,16 @@ $z-index-tooltip: 1070;
 $transition-base: all 0.2s ease-in-out;
 $transition-slow: all 0.3s ease-in-out;
 
+// Add RGB variables for colors
+:root {
+  --primary-color: #{$primary-color};
+  --primary-rgb: 52, 152, 219; // RGB for #3498db
+  --secondary-color: #{$secondary-color};
+  --accent-color: #{$accent-color};
+  --dark: #{$gray-900};
+  --gray-600: #{$gray-600};
+}
+
 // Check if these are defined:
 :root {
   // Add any missing variables here

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { getImageUrl } from '../../utils/api';
 import './styles.css'; // We'll create this file next
@@ -6,7 +5,7 @@ import './styles.css'; // We'll create this file next
 // Test images
 const TEST_IMAGES = [
   // Direct URLs
-  'http://localhost:3001/images/placeholder.jpg',
+  'http://localhost:3000/api/images/placeholder.jpg',
   // API URLs
   getImageUrl('placeholder.jpg'),
   getImageUrl('/tmp/test.jpg'),

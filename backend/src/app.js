@@ -25,7 +25,7 @@ function safeRequire(paths) {
     }
   }
   logger.error(`Could not load any of the provided paths: ${paths.join(', ')}`);
-  return {}; // Return empty object as fallback
+  return null; // Return null instead of empty object to detect failures
 }
 
 // Try different possible file paths for each route
@@ -72,6 +72,41 @@ importRoutes = safeRequire([
   './routes/import.js',
   './routes/import'
 ]);
+
+// If any routes failed to load, use built-in route fallbacks
+if (!categoryRoutes) {
+  logger.error('Failed to load category routes, creating a simple fallback router');
+  categoryRoutes = express.Router();
+  
+  // Add a basic endpoint to the fallback router
+  categoryRoutes.get('/', async (req, res) => {
+    try {
+      const { Category } = require('./models');
+      const categories = await Category.findAll();
+      res.json(categories);
+    } catch (error) {
+      logger.error(`Error in fallback category route: ${error.message}`);
+      res.status(500).json({ error: 'Failed to fetch categories' });
+    }
+  });
+}
+
+if (!listingRoutes) {
+  logger.error('Failed to load listing routes, creating a simple fallback router');
+  listingRoutes = express.Router();
+  
+  // Add a basic endpoint to the fallback router
+  listingRoutes.get('/', async (req, res) => {
+    try {
+      const { Listing } = require('./models');
+      const listings = await Listing.findAll({ limit: 20 });
+      res.json(listings);
+    } catch (error) {
+      logger.error(`Error in fallback listing route: ${error.message}`);
+      res.status(500).json({ error: 'Failed to fetch listings' });
+    }
+  });
+}
 
 logger.info('Initializing Express application...');
 
@@ -205,28 +240,121 @@ app.use('/api/images', (req, res, next) => {
   // Check if it's a tmp path request
   if (imagePath.startsWith('/tmp/')) {
     const filename = imagePath.substring(5); // Remove /tmp/
-    // Proxy to the image server
-    return res.redirect(`http://localhost:3001/images/${filename}`);
+    // Proxy to the image server (now on the same port)
+    return res.redirect(`/api/images/${filename}`);
   }
   
   // Handle placeholder image
   if (imagePath === '/placeholder.jpg') {
-    return res.redirect('http://localhost:3001/images/placeholder.jpg');
+    return res.redirect('/api/images/placeholder.jpg');
   }
   
-  // For all other images, proxy to the image server
-  return res.redirect(`http://localhost:3001${imagePath}`);
+  // For all other images, proxy to the local image handler 
+  return next();
 });
 
 // API Routes
 logger.debug('Setting up API routes...');
-app.use('/api', routes);
-app.use('/api/auth', authRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/categories', categoryRoutes);
-app.use('/api/listings', listingRoutes);
-app.use('/api/admin', adminRoutes);
-app.use('/api/import', importRoutes);
+
+// Add a test endpoint to verify basic routing
+app.get('/test-api', (req, res) => {
+  res.json({
+    status: 'success',
+    message: 'Backend API test endpoint is working',
+    path: req.path,
+    originalUrl: req.originalUrl,
+    baseUrl: req.baseUrl,
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Add a middleware to handle the API path prefixing
+app.use((req, res, next) => {
+  // Log all requests for debugging
+  logger.debug(`Received request to backend app: ${req.method} ${req.path}`);
+  
+  // If this request came from the main app as an API request,
+  // the '/api' prefix has already been removed, but route handlers
+  // in this app expect paths that include /api
+  if (req.isApiRequest) {
+    // For the root path, we don't need to add the /api prefix
+    if (req.path === '/') {
+      return next();
+    }
+  }
+  
+  next();
+});
+
+// Mount all routes with logging and consistent error handling
+// Mount the main routes module at the root path
+app.use('/', (req, res, next) => {
+  logger.debug(`Handling backend API request: ${req.method} ${req.path}`);
+  next();
+}, routes);
+
+// Add diagnostic endpoint to check available routes
+app.get('/debug/routes', (req, res) => {
+  // Extract route information
+  const routeInfo = routes.stack
+    .filter(r => r.route && r.route.path)
+    .map(r => ({
+      path: r.route.path,
+      methods: Object.keys(r.route.methods).join(',')
+    }));
+
+  // Find mounted routes
+  const mountedRouteInfo = routes.stack
+    .filter(r => r.name === 'router')
+    .map(r => ({
+      path: r.regexp.toString(),
+      name: r.handle.name || 'unnamed'
+    }));
+    
+  res.json({
+    status: 'ok',
+    routes: {
+      main: routes ? 'loaded' : 'not loaded',
+      count: routes.stack.length,
+      directRoutes: routeInfo,
+      mountedRoutes: mountedRouteInfo
+    },
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Add direct handlers for critical API endpoints
+app.get('/categories', async (req, res, next) => {
+  try {
+    logger.info('Using direct categories handler');
+    const { Category } = require('./models');
+    const categories = await Category.findAll();
+    res.json(categories);
+  } catch (error) {
+    logger.error(`Error in direct category route: ${error.message}`);
+    res.status(500).json({ error: 'Failed to fetch categories' });
+  }
+});
+
+app.get('/listings', async (req, res, next) => {
+  try {
+    logger.info('Using direct listings handler');
+    const { Listing } = require('./models');
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = parseInt(req.query.offset) || 0;
+    
+    const listings = await Listing.findAll({ 
+      limit, 
+      offset,
+      order: [['createdAt', 'DESC']]
+    });
+    
+    res.json(listings);
+  } catch (error) {
+    logger.error(`Error in direct listing route: ${error.message}`);
+    res.status(500).json({ error: 'Failed to fetch listings' });
+  }
+});
 
 // Error handling middleware
 logger.debug('Setting up error handling middleware...');
@@ -234,20 +362,38 @@ app.use(errorHandler);
 
 // Initialize database
 logger.info('Starting database initialization...');
-(async () => {
-  try {
-    // Initialize database and create tables
-    const dbInitialized = await initDatabase();
-    
-    if (dbInitialized) {
-      logger.success('Database initialized successfully');
-    } else {
-      logger.error('Database initialization failed');
+
+// Only initialize the database if this file is run directly (not imported)
+if (require.main === module) {
+  (async () => {
+    try {
+      // Initialize database and create tables
+      const dbInitialized = await initDatabase();
+      
+      if (dbInitialized) {
+        logger.success('Database initialized successfully');
+      } else {
+        logger.error('Database initialization failed');
+      }
+    } catch (error) {
+      logger.error('Error during database initialization:', error);
     }
-  } catch (error) {
-    logger.error('Error during database initialization:', error);
-  }
-})();
+  })();
+} else {
+  // Initialize database when imported from another file
+  (async () => {
+    try {
+      const dbInitialized = await initDatabase();
+      if (dbInitialized) {
+        logger.success('Database initialized successfully from imported module');
+      } else {
+        logger.error('Database initialization failed from imported module');
+      }
+    } catch (error) {
+      logger.error('Error during database initialization from imported module:', error);
+    }
+  })();
+}
 
 // 404 handler
 logger.debug('Setting up 404 handler...');

@@ -8,6 +8,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import AdminProtected from '@components/AdminProtected';
 import AdminFeaturedListingsPage from './pages/AdminPages/FeaturedListingsPage';
 import { clearFailedImageCache } from './utils/helpers';
+import { ensureMaterialIconsLoaded } from './utils/material-icons';
 
 // Lazy-loaded pages for better performance
 const HomePage = React.lazy(() => import('@pages/HomePage'));
@@ -29,6 +30,11 @@ const TestImagePage = React.lazy(() => import('./pages/TestImagePage'));
 const App: React.FC = () => {
   const { t } = useTranslation();
   const [hasFailedImages, setHasFailedImages] = useState(false);
+
+  // Ensure Material Icons are loaded
+  useEffect(() => {
+    ensureMaterialIconsLoaded();
+  }, []);
 
   // Check if there are failed images in localStorage
   useEffect(() => {
@@ -94,8 +100,8 @@ const App: React.FC = () => {
         // Determine the image server URL based on environment
         const isDevelopment = import.meta.env.MODE === 'development';
         const imageServerUrl = isDevelopment 
-          ? 'http://localhost:3001/test'
-          : '/api/images/test';
+          ? 'http://localhost:3000/api/images/health'
+          : '/api/images/health';
           
         console.log(`Checking image server at: ${imageServerUrl}`);
         

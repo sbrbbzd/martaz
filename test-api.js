@@ -1,76 +1,135 @@
+/**
+ * Test script to check if the APIs are working correctly
+ */
 const http = require('http');
 
 // Configuration
-const API_BASE_URL = 'http://localhost:3000/api';
+const PORT = process.env.PORT || 3000;
+const API_BASE_URL = `http://localhost:${PORT}/api`;
+
+// Endpoints to test
 const endpoints = [
-  '/listings/featured?limit=8',
-  '/categories',
-  '/listings?limit=8'
+  { path: '', description: 'API Root' },
+  { path: '/test', description: 'API Test Route' },
+  { path: '/categories', description: 'Categories API' },
+  { path: '/listings', description: 'Listings API' },
+  { path: '/users', description: 'Users API' },
+  { path: '/auth', description: 'Auth API' },
+  { path: '/images/health', description: 'Image Server Health' },
+  { path: '/debug/routes', description: 'Debug Routes Information' }
 ];
 
-// Function to make a GET request
-function makeGetRequest(url) {
+// Helper function to make HTTP requests
+function makeRequest(url, method = 'GET') {
   return new Promise((resolve, reject) => {
-    http.get(url, (res) => {
-      const { statusCode } = res;
-      let rawData = '';
+    console.log(`Making ${method} request to: ${url}`);
+    
+    const req = http.request(url, { method }, (res) => {
+      let data = '';
       
-      res.on('data', (chunk) => { rawData += chunk; });
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+      
       res.on('end', () => {
         try {
-          const parsedData = JSON.parse(rawData);
+          const responseData = data ? JSON.parse(data) : { statusCode: res.statusCode };
           resolve({
-            statusCode,
-            data: parsedData
+            statusCode: res.statusCode,
+            headers: res.headers,
+            data: responseData
           });
         } catch (e) {
-          reject(new Error(`Error parsing JSON: ${e.message}, Raw data: ${rawData}`));
+          resolve({
+            statusCode: res.statusCode,
+            headers: res.headers,
+            data: data,
+            parseError: e.message
+          });
         }
       });
-    }).on('error', (e) => {
-      reject(e);
     });
+    
+    req.on('error', (error) => {
+      reject(error);
+    });
+    
+    req.end();
   });
 }
 
-// Test all endpoints
-async function testEndpoints() {
-  console.log('Testing API endpoints...');
-  
-  for (const endpoint of endpoints) {
-    const url = `${API_BASE_URL}${endpoint}`;
-    console.log(`\nTesting: ${url}`);
+// Test a specific endpoint
+async function testEndpoint(endpoint) {
+  try {
+    const url = API_BASE_URL + endpoint.path;
+    console.log(`\nTesting ${endpoint.description}: ${url}`);
     
-    try {
-      const response = await makeGetRequest(url);
-      console.log(`Status code: ${response.statusCode}`);
+    const response = await makeRequest(url);
+    
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      console.log(`✅ ${endpoint.description} - Status: ${response.statusCode}`);
       
-      if (response.statusCode === 200) {
-        // Log basic info without the full data for brevity
-        const { status, data } = response.data;
-        console.log(`API status: ${status}`);
+      // Print a brief summary of the response data
+      if (typeof response.data === 'object') {
+        // Show the keys in the response
+        console.log(`   Response keys: ${Object.keys(response.data).join(', ')}`);
         
-        if (Array.isArray(data)) {
-          console.log(`Data: Array with ${data.length} items`);
-          if (data.length > 0) {
-            console.log('First item sample:', JSON.stringify(data[0], null, 2).substring(0, 500) + '...');
+        // If it's an array, show the count and first few items
+        if (Array.isArray(response.data)) {
+          console.log(`   Found ${response.data.length} items`);
+          if (response.data.length > 0) {
+            console.log(`   First item keys: ${Object.keys(response.data[0]).join(', ')}`);
           }
-        } else if (data && data.listings && Array.isArray(data.listings)) {
-          console.log(`Data: Paginated with ${data.listings.length} items, total: ${data.total}`);
-          if (data.listings.length > 0) {
-            console.log('First item sample:', JSON.stringify(data.listings[0], null, 2).substring(0, 500) + '...');
-          }
-        } else {
-          console.log('Data structure:', Object.keys(data || {}));
         }
       } else {
-        console.log('Response data:', response.data);
+        console.log(`   Response: ${response.data.substring(0, 100)}...`);
       }
-    } catch (error) {
-      console.error(`Error testing ${url}:`, error.message);
+    } else {
+      console.error(`❌ ${endpoint.description} - Status: ${response.statusCode}`);
+      console.error(`   Error: ${typeof response.data === 'object' ? JSON.stringify(response.data, null, 2) : response.data}`);
     }
+    
+    return response.statusCode >= 200 && response.statusCode < 300;
+  } catch (error) {
+    console.error(`❌ Error testing ${endpoint.description}:`);
+    console.error(`   ${error.message}`);
+    return false;
+  }
+}
+
+// Run all API tests
+async function runTests() {
+  console.log(`Testing API endpoints on ${API_BASE_URL}`);
+  
+  let successCount = 0;
+  let failureCount = 0;
+  
+  for (const endpoint of endpoints) {
+    const success = await testEndpoint(endpoint);
+    if (success) {
+      successCount++;
+    } else {
+      failureCount++;
+    }
+  }
+  
+  console.log('\n=== Test Summary ===');
+  console.log(`Total endpoints tested: ${endpoints.length}`);
+  console.log(`✅ Successful: ${successCount}`);
+  console.log(`❌ Failed: ${failureCount}`);
+  
+  if (failureCount > 0) {
+    console.log('\nPossible issues:');
+    console.log('1. Make sure the application is running (./start-servers.sh)');
+    console.log('2. Check if port 3000 is available');
+    console.log('3. Verify that the API routes are correctly registered');
+    console.log('4. Look at the server logs for errors');
+    console.log('\nDebugging tips:');
+    console.log('1. Check /api/debug/routes for route registration info');
+    console.log('2. Make sure the backend app.js and index.js route paths align');
+    console.log('3. Check for HTTP status errors in the response');
   }
 }
 
 // Run the tests
-testEndpoints(); 
+runTests(); 

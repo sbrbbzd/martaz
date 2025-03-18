@@ -1,12 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-  <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
-  <rect x="9" y="9" width="6" height="6"></rect>
-  <line x1="9" y1="2" x2="9" y2="4"></line>
-  <line x1="15" y1="2" x2="15" y2="4"></line>
-  <line x1="9" y1="20" x2="9" y2="22"></line>
-  <line x1="15" y1="20" x2="15" y2="22"></line>
-  <line x1="20" y1="9" x2="22" y2="9"></line>
-  <line x1="20" y1="14" x2="22" y2="14"></line>
-  <line x1="2" y1="9" x2="4" y2="9"></line>
-  <line x1="2" y1="14" x2="4" y2="14"></line>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="48" height="48" rx="24" fill="#E3F2FD"/>
+  <path d="M35 15H13C11.9 15 11 15.9 11 17V31C11 32.1 11.9 33 13 33H35C36.1 33 37 32.1 37 31V17C37 15.9 36.1 15 35 15ZM35 31H13V17H35V31ZM24 29C26.76 29 29 26.76 29 24C29 21.24 26.76 19 24 19C21.24 19 19 21.24 19 24C19 26.76 21.24 29 24 29Z" fill="#3498DB"/>
 </svg> 

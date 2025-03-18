@@ -9,6 +9,7 @@ import ListingCard from '../../components/ListingCard';
 import Container from '../../components/common/Container';
 import { Button, LinkButton } from '../../components/common/Button';
 import { useGetListingsQuery, useGetCategoriesQuery } from '../../services/api';
+import { getCategoryMaterialIcon } from '../../utils/material-icons';
 import './HomePage.scss';
 
 // Define Category interface
@@ -117,7 +118,13 @@ const HomePage: React.FC = () => {
   const getCategoryIcon = (category: Category) => {
     if (category.icon) return category.icon;
     
-    // Try to find an appropriate icon based on the category slug or name
+    // First check if we have a corresponding material icon
+    const materialIcon = getCategoryMaterialIcon(category);
+    if (materialIcon !== 'category') {
+      return materialIcon;
+    }
+    
+    // If not, try to find an appropriate icon based on the category slug or name
     const slug = category.slug?.toLowerCase() || '';
     const name = category.name?.toLowerCase() || '';
     

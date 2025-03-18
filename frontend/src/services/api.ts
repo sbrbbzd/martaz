@@ -383,12 +383,39 @@ export const api = createApi({
       },
       transformResponse: (response: any) => {
         console.log('Raw listings response:', response);
-        if (response && response.data && Array.isArray(response.data.listings)) {
-          response.data.listings = response.data.listings.map((listing: any) => convertImageUrls(listing));
-        } else {
-          console.error('Unexpected response format:', response);
+        
+        // Handle the different possible response formats
+        if (response && response.data) {
+          if (Array.isArray(response.data)) {
+            // Handle array directly in data field
+            console.log('Response contains array directly in data field');
+            const listings = response.data.map((listing: any) => convertImageUrls(listing));
+            return {
+              data: {
+                listings: listings,
+                total: listings.length,
+                currentPage: 1,
+                totalPages: 1
+              }
+            };
+          } else if (response.data.listings && Array.isArray(response.data.listings)) {
+            // Handle standard format with data.listings
+            console.log('Response contains standard data.listings format');
+            response.data.listings = response.data.listings.map((listing: any) => convertImageUrls(listing));
+            return response;
+          }
         }
-        return response;
+        
+        // Handle unexpected format
+        console.error('Unexpected response format:', response);
+        return {
+          data: {
+            listings: [],
+            total: 0,
+            currentPage: 1,
+            totalPages: 1
+          }
+        };
       },
       async onQueryStarted(arg, { queryFulfilled, dispatch }) {
         try {
@@ -401,8 +428,8 @@ export const api = createApi({
         console.error('Listings API error response:', response);
         return { error: 'Failed to load listings', details: response };
       },
-      providesTags: (result) =>
-        result
+      providesTags: (result) => 
+        result && result.data && result.data.listings
           ? [
               ...result.data.listings.map(({ id }: { id: string }) => ({ type: 'Listing' as const, id })),
               { type: 'Listing', id: 'LIST' },
@@ -1065,13 +1092,13 @@ const convertImageUrls = (data: any) => {
     // If already an absolute URL but pointing to the backend server
     if (url.startsWith('http://localhost:3000/tmp/')) {
       const filename = url.substring('http://localhost:3000/tmp/'.length);
-      return `http://localhost:3001/images/${filename}`;
+      return `http://localhost:3000/api/images/${filename}`;
     }
     
     // If it's a relative /tmp/ path
     if (url.startsWith('/tmp/')) {
       const filename = url.substring(5);
-      return `http://localhost:3001/images/${filename}`;
+      return `http://localhost:3000/api/images/${filename}`;
     }
     
     return url;

@@ -6,7 +6,7 @@ const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 
 const app = express();
-const PORT = 3001;
+const PORT = 3000;
 
 // Enable CORS for all routes
 app.use(cors({

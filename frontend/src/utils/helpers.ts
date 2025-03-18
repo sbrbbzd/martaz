@@ -39,47 +39,36 @@ const saveFailedImagesToStorage = (() => {
   };
 })();
 
-export const getFullImageUrl = (path?: string, fallback: string = ''): string => {
-  if (!path) return fallback;
-  
-  // If the image is already cached as failed, return fallback immediately
-  if (failedImageCache[path]) {
-    return fallback || '/images/placeholder.jpg';
+// Image URL helpers
+const IMAGE_SERVER_BASE_URL = 'http://localhost:3000/api/images';
+
+/**
+ * Convert a relative path to a full image URL
+ */
+export function getImageUrl(path?: string | null): string {
+  if (!path) {
+    return `${IMAGE_SERVER_BASE_URL}/placeholder.jpg`;
   }
   
-  // If already a full URL, return as is
-  if (path.startsWith('http')) return path;
+  // If it's already a full URL, return it
+  if (path.startsWith('http://') || path.startsWith('https://')) {
+    return path;
+  }
   
-  // If a relative path from the public folder, return as is
-  if (path.startsWith('/images/')) return path;
-  
-  // For tmp uploads, use the image server
+  // Handle /tmp/ paths
   if (path.startsWith('/tmp/')) {
-    const filename = path.substring(5); // Remove /tmp/
-    return `http://localhost:3001/images/${filename}`;
+    const filename = path.substring(5);
+    return `${IMAGE_SERVER_BASE_URL}/${filename}`;
   }
   
-  // Handle legacy custom-uploads paths
-  if (path.startsWith('/custom-uploads/')) {
-    const filename = path.replace('/custom-uploads/', '');
-    return `http://localhost:3001/images/${filename}`;
+  // Handle relative paths
+  if (path.startsWith('/')) {
+    return `${IMAGE_SERVER_BASE_URL}${path}`;
   }
   
-  // If uploads from the default directory
-  if (path.startsWith('/uploads/')) {
-    const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-    return `${backendUrl}${path}`;
-  }
-  
-  // If it's just a filename, assume it's in the tmp directory
-  if (!path.startsWith('/')) {
-    return `http://localhost:3001/images/${path}`;
-  }
-  
-  // Otherwise, use the default backend URL
-  const backendUrl = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-  return `${backendUrl}${path}`;
-};
+  // Default case - assume it's a filename
+  return `${IMAGE_SERVER_BASE_URL}/${path}`;
+}
 
 /**
  * Format price with currency symbol and thousands separator
