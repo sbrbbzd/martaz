@@ -12,13 +12,66 @@ const initDatabase = require('./database/init');
 const path = require('path');
 const fs = require('fs');
 
-// Import routes
-const authRoutes = require('./routes/auth');
-const userRoutes = require('./routes/users');
-const categoryRoutes = require('./routes/categories');
-const listingRoutes = require('./routes/listing.routes');
-const adminRoutes = require('./routes/admin');
-const importRoutes = require('./routes/import');
+// Import routes with fallback mechanism
+let authRoutes, userRoutes, categoryRoutes, listingRoutes, adminRoutes, importRoutes;
+
+// Helper function to safely require modules with fallbacks
+function safeRequire(paths) {
+  for (const path of paths) {
+    try {
+      return require(path);
+    } catch (err) {
+      logger.warn(`Failed to load module at ${path}: ${err.message}`);
+    }
+  }
+  logger.error(`Could not load any of the provided paths: ${paths.join(', ')}`);
+  return {}; // Return empty object as fallback
+}
+
+// Try different possible file paths for each route
+authRoutes = safeRequire([
+  './routes/auth.routes.js',
+  './routes/auth.routes',
+  './routes/auth.js',
+  './routes/authRoutes.js',
+  './routes/auth'
+]);
+
+userRoutes = safeRequire([
+  './routes/user.routes.js', 
+  './routes/user.routes',
+  './routes/users.js',
+  './routes/users',
+  './routes/user'
+]);
+
+categoryRoutes = safeRequire([
+  './routes/category.routes.js',
+  './routes/category.routes',
+  './routes/categories.js',
+  './routes/categories',
+  './routes/categoryRoutes.js'
+]);
+
+listingRoutes = safeRequire([
+  './routes/listing.routes.js',
+  './routes/listing.routes',
+  './routes/listings.js',
+  './routes/listings',
+  './routes/listingRoutes.js'
+]);
+
+adminRoutes = safeRequire([
+  './routes/admin.routes.js',
+  './routes/admin.routes',
+  './routes/admin.js',
+  './routes/admin'
+]);
+
+importRoutes = safeRequire([
+  './routes/import.js',
+  './routes/import'
+]);
 
 logger.info('Initializing Express application...');
 

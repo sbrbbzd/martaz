@@ -3,12 +3,13 @@
   "version": "1.0.0",
   "description": "Azerbaijan Online Marketplace",
   "scripts": {
+    "prestart": "node scripts/check-files.js",
     "start": "node scripts/prepare-deployment.js && node index.js",
     "start:dev": "cross-env NODE_ENV=development concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\" \"npm run start:image-server\"",
     "start:image-server": "node services/standalone-image-server.js",
     "dev": "cross-env NODE_ENV=development concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\" \"npm run start:image-server\"",
     "setup": "concurrently \"cd backend && npm install\" \"cd frontend && npm install\"",
-    "build": "npm install && cd backend && npm install && cd ../frontend && npm install && npm run build",
+    "build": "npm install && cd backend && npm install && cd ../frontend && npm install && npm run build && node scripts/verify-build.js",
     "deploy": "cd frontend && npm run deploy",
     "dev:env": "node -e \"require('fs').copyFileSync('.env.local', '.env')\" && echo 'Created .env from .env.local'"
   },
