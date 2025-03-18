@@ -34,6 +34,16 @@ app.use('/api', (req, res, next) => {
 // Mount image server at /api/images
 app.use('/api/images', imageServer.router);
 
+// Add a test endpoint for the image server
+app.get('/api/images/test', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    message: 'Image server is working',
+    uploadsDir: imageServerConfig.uploadsDir,
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Serve static frontend files from the frontend/dist directory
 logger.info(`Serving frontend files from: ${path.join(__dirname, 'frontend/dist')}`);
 app.use(express.static(path.join(__dirname, 'frontend/dist')));

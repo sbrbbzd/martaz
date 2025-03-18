@@ -91,8 +91,16 @@ const App: React.FC = () => {
   useEffect(() => {
     const checkImageServer = async () => {
       try {
+        // Determine the image server URL based on environment
+        const isDevelopment = import.meta.env.MODE === 'development';
+        const imageServerUrl = isDevelopment 
+          ? 'http://localhost:3001/test'
+          : '/api/images/test';
+          
+        console.log(`Checking image server at: ${imageServerUrl}`);
+        
         // Try to fetch the test endpoint
-        const response = await fetch('http://localhost:3001/test', {
+        const response = await fetch(imageServerUrl, {
           method: 'GET',
           headers: {
             'Accept': 'application/json'
@@ -103,11 +111,11 @@ const App: React.FC = () => {
           console.log('Image server is running correctly');
         } else {
           console.error('Image server returned an error:', response.status);
-          alert('Warning: Image server is not responding correctly. Images may not load.');
+          console.warn('Warning: Image server is not responding correctly. Images may not load.');
         }
       } catch (error) {
         console.error('Failed to connect to image server:', error);
-        alert('Warning: Cannot connect to image server. Images may not load.');
+        console.warn('Warning: Cannot connect to image server. Images may not load.');
       }
     };
     
