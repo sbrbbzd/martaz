@@ -12,7 +12,7 @@ services:
   - type: web
     name: mart-az-backend
     env: node
-    buildCommand: cd backend && npm install && npm run render:db:setup
+    buildCommand: cd backend && npm install && npm run emergency:create-tables
     startCommand: cd backend && npm start
     envVars:
       - key: NODE_ENV

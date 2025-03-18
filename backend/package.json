@@ -11,7 +11,8 @@
     "db:sync": "node -e \"require('./src/models/index.js'); require('./src/database/connection').sequelize.sync({ alter: true }).then(() => console.log('Database synchronized successfully')).catch((err) => console.error('Error synchronizing database:', err))\"",
     "db:reset": "node -e \"require('./src/models/index.js'); require('./src/database/connection').sequelize.sync({ force: true }).then(() => console.log('Database reset successfully')).catch((err) => console.error('Error resetting database:', err))\"",
     "db:init": "npm run db:sync && npm run db:seed",
-    "render:db:setup": "NODE_ENV=production RENDER=true node scripts/render-db-setup.js"
+    "render:db:setup": "NODE_ENV=production RENDER=true node scripts/render-db-setup.js",
+    "emergency:create-tables": "NODE_ENV=production RENDER=true node scripts/force-create-tables.js"
   },
   "author": "",
   "license": "ISC",
