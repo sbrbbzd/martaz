@@ -103,9 +103,10 @@ const SearchBox: React.FC<SearchBoxProps> = ({
   return (
     <div className={`search-box search-box--${variant} ${className}`}>
       <div className="search-box__input-wrapper">
-        <div className="search-box__icon">
-          <span className="material-icons">search</span>
-        </div>
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
         
         <input
           ref={inputRef}
@@ -124,7 +125,10 @@ const SearchBox: React.FC<SearchBoxProps> = ({
             onClick={() => setQuery('')}
             aria-label={t('common.clear')}
           >
-            <span className="material-icons">close</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
           </button>
         )}
         
@@ -134,7 +138,10 @@ const SearchBox: React.FC<SearchBoxProps> = ({
           aria-label={t('common.search')}
         >
           {variant === 'header' ? (
-            <span className="material-icons">search</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="11" cy="11" r="8"></circle>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
           ) : (
             t('common.search')
           )}
@@ -173,7 +180,11 @@ const SearchBox: React.FC<SearchBoxProps> = ({
                         className="search-box__item"
                         onClick={() => handleSearchItemClick(term)}
                       >
-                        <span className="material-icons">history</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="23 4 23 10 17 10"></polyline>
+                          <polyline points="1 20 1 14 7 14"></polyline>
+                          <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                        </svg>
                         <span>{term}</span>
                       </button>
                     </li>
@@ -194,7 +205,10 @@ const SearchBox: React.FC<SearchBoxProps> = ({
                         className="search-box__item"
                         onClick={() => handleSearchItemClick(term)}
                       >
-                        <span className="material-icons">trending_up</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"></polyline>
+                          <polyline points="16 7 22 7 22 13"></polyline>
+                        </svg>
                         <span>{term}</span>
                       </button>
                     </li>

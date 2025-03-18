@@ -9,14 +9,18 @@ import { HelmetProvider } from 'react-helmet-async'
 import i18n from './i18n'
 import App from './App'
 import './styles/index.scss'
+import { api } from './services/api'
 
 const rootElement = document.getElementById('root')!;
+
+// Prefetch important data
+store.dispatch(api.endpoints.getCategories.initiate());
 
 ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
     <Provider store={store}>
       <PersistGate loading={null} persistor={persistor}>
-        <BrowserRouter>
+        <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
           <I18nextProvider i18n={i18n}>
             <HelmetProvider>
               <App />

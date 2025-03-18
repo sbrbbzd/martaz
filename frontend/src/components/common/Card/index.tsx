@@ -1,5 +1,6 @@
 import React from 'react';
 import './Card.scss';
+import { getFullImageUrl } from '../../../utils/helpers';
 
 interface CardProps {
   children: React.ReactNode;
@@ -73,7 +74,7 @@ export const CardMedia: React.FC<{
     className={`card__media ${className}`} 
     style={height ? { height: typeof height === 'number' ? `${height}px` : height } : undefined}
   >
-    <img src={src} alt={alt} loading={loading} />
+    <img src={getFullImageUrl(src)} alt={alt} loading={loading} />
   </div>
 );
 

@@ -56,12 +56,12 @@
   
   &__clear {
     position: absolute;
-    right: 100px;
+    right: 115px;
     top: 50%;
     transform: translateY(-50%);
-    background: none;
+    background-color: $gray-200;
     border: none;
-    color: $gray-500;
+    color: $gray-900;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -206,8 +206,6 @@
       border-radius: 0 $border-radius-full $border-radius-full 0;
     }
     
-    .search-box__clear {
-      right: 50px;
-    }
+   
   }
 } 

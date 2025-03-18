@@ -3,117 +3,89 @@
 @use 'sass:color';
 
 .listings-page {
-  padding: $spacing-8 0;
-  background: linear-gradient(135deg, color.adjust($primary-color, $lightness: 35%), color.adjust($secondary-color, $lightness: 35%));
   min-height: 100vh;
-  position: relative;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: url('/images/pattern.svg');
-    background-size: cover;
-    opacity: 0.05;
-    z-index: 0;
-  }
+  background-color: $gray-50;
+  padding-bottom: $spacing-8;
   
   &__container {
-    position: relative;
-    z-index: 1;
     @include mix.container;
+    max-width: 1280px;
+    margin: 0 auto;
   }
   
-  // Page title and search section
-  &__header {
-    margin-bottom: $spacing-8;
-    
-    @include mix.mobile {
-      margin-bottom: $spacing-6;
-    }
-  }
-  
-  &__title-wrapper {
-    padding: $spacing-6;
-    border-radius: $border-radius-2xl;
-    background: rgba($white, 0.7);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba($white, 0.8);
-    box-shadow: 0 8px 32px rgba($black, 0.08);
+  /* Banner Section */
+  &__banner {
+    background: linear-gradient(135deg, $primary-color, color.adjust($primary-color, $lightness: 10%));
+    color: $white;
+    padding: $spacing-8 0;
     margin-bottom: $spacing-6;
+    box-shadow: 0 4px 12px rgba($black, 0.1);
     
     @include mix.mobile {
-      padding: $spacing-4;
-      border-radius: $border-radius-xl;
+      padding: $spacing-6 0;
+      margin-bottom: $spacing-4;
     }
   }
   
-  // Modern title with gradient
+  &__banner-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: $spacing-4;
+    width: 100%;
+    margin: 0 auto;
+    padding: 0;
+  }
+  
   &__title {
-    font-family: $font-family-secondary;
-    font-size: $font-size-4xl;
+    font-size: $font-size-3xl;
     font-weight: $font-weight-bold;
-    margin-bottom: $spacing-4;
-    background: linear-gradient(90deg, $primary-color, $secondary-color);
-    background-clip: text;
-    -webkit-background-clip: text;
-    color: transparent;
-    display: inline-block;
+    margin: 0;
+    text-shadow: 0 2px 4px rgba($black, 0.1);
     
     @include mix.mobile {
       font-size: $font-size-2xl;
-      margin-bottom: $spacing-3;
     }
   }
   
-  // Advanced search bar in its own container
-  &__search-container {
-    padding: $spacing-5;
-    border-radius: $border-radius-xl;
-    background: rgba($white, 0.6);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgba($white, 0.7);
-    box-shadow: 0 4px 16px rgba($black, 0.06);
-    margin-bottom: $spacing-6;
+  /* Search Form */
+  &__search-form {
+    width: 100%;
+    min-width: 80vw;
+    max-width: 1400px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     
     @include mix.mobile {
-      padding: $spacing-4;
-    }
-    
-    h3 {
-      font-size: $font-size-lg;
-      font-weight: $font-weight-semibold;
-      color: $gray-800;
-      margin-bottom: $spacing-3;
+      width: 90%;
+      min-width: auto;
     }
   }
   
-  &__search {
+  &__search-input {
     position: relative;
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
     
     input {
       width: 100%;
-      padding: $spacing-4 $spacing-12 $spacing-4 $spacing-5;
-      border: none;
+      padding: $spacing-3 $spacing-4;
+      padding-right: 50px;
+      border: 1px solid $gray-300;
       border-radius: $border-radius-full;
       font-size: $font-size-md;
-      background: rgba($white, 0.9);
-      box-shadow: 
-        inset 2px 2px 5px rgba($black, 0.05),
-        0 5px 15px rgba($primary-color, 0.1);
-      transition: all 0.3s ease;
+      background-color: $white;
+      transition: all 0.2s ease;
       
       &:focus {
         outline: none;
-        box-shadow: 
-          inset 2px 2px 5px rgba($black, 0.05),
-          0 5px 20px rgba($primary-color, 0.2);
-        background: $white;
+        border-color: $primary-500;
+        box-shadow: 0 0 0 3px rgba($primary-500, 0.2);
       }
       
       &::placeholder {
@@ -123,485 +95,864 @@
     
     button {
       position: absolute;
-      right: 6px;
+      right: 10px;
       top: 50%;
       transform: translateY(-50%);
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, $primary-color, color.adjust($primary-color, $lightness: -10%));
+      background: none;
       border: none;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      color: $gray-500;
       cursor: pointer;
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 10px rgba($primary-color, 0.3);
+      padding: $spacing-2;
+      border-radius: 50%;
+      transition: all 0.2s ease;
       
       &:hover {
-        transform: translateY(-50%) scale(1.05);
-        box-shadow: 0 6px 15px rgba($primary-color, 0.4);
-      }
-      
-      svg {
-        width: 20px;
-        height: 20px;
-        color: $white;
+        color: $primary-500;
+        background-color: rgba($primary-500, 0.1);
       }
     }
   }
   
-  // Category section with clear labeling
-  &__categories-container {
-    padding: $spacing-5;
-    border-radius: $border-radius-xl;
-    background: rgba($white, 0.6);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid rgba($white, 0.7);
-    box-shadow: 0 4px 16px rgba($black, 0.06);
-    margin-bottom: $spacing-6;
+  /* Filter Bar */
+  &__filter-bar {
+    display: none;
     
     @include mix.mobile {
-      padding: $spacing-4;
-    }
-    
-    h3 {
-      font-size: $font-size-lg;
-      font-weight: $font-weight-semibold;
-      color: $gray-800;
-      margin-bottom: $spacing-3;
-    }
-  }
-  
-  &__categories {
-    ul {
       display: flex;
+      align-items: center;
       flex-wrap: wrap;
-      gap: $spacing-3;
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      
-      li {
-        a {
-          display: inline-block;
-          padding: $spacing-2 $spacing-4;
-          border-radius: $border-radius-full;
-          font-size: $font-size-sm;
-          font-weight: $font-weight-medium;
-          text-decoration: none;
-          background: rgba($white, 0.6);
-          border: 1px solid rgba($white, 0.8);
-          color: $gray-700;
-          transition: all 0.2s ease;
-          
-          &:hover, &.active {
-            background: $white;
-            box-shadow: 0 4px 12px rgba($black, 0.08);
-            color: $primary-color;
-            border-color: rgba($primary-color, 0.3);
-          }
-        }
-      }
+      gap: $spacing-2;
+      margin-bottom: $spacing-3;
+      background-color: $white;
+      border-radius: $border-radius-lg;
+      padding: $spacing-3;
+      box-shadow: 0 2px 8px rgba($black, 0.06);
     }
   }
   
-  // Mobile filter toggle
-  &__filter-toggle {
-    width: 100%;
-    padding: $spacing-3 $spacing-4;
-    border-radius: $border-radius-lg;
-    background-color: $white;
-    border: 1px solid rgba($primary-color, 0.2);
-    color: $gray-800;
-    font-weight: $font-weight-medium;
-    font-size: $font-size-md;
+  &__filter-left {
+    display: none;
+    
+    @include mix.mobile {
+      display: flex;
+      width: 100%;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0;
+    }
+  }
+  
+  &__filter-button {
     display: flex;
     align-items: center;
-    justify-content: center;
     gap: $spacing-2;
+    background-color: $gray-100;
+    border: none;
+    border-radius: $border-radius-md;
+    padding: $spacing-2 $spacing-3;
+    font-weight: $font-weight-medium;
+    color: $gray-800;
     cursor: pointer;
     transition: all 0.2s ease;
-    margin-bottom: $spacing-5;
-    box-shadow: 0 4px 10px rgba($black, 0.05);
     
-    @include mix.desktop {
-      display: none;
-    }
-    
-    &:hover {
-      background-color: $primary-color;
-      color: $white;
-      box-shadow: 0 6px 15px rgba($primary-color, 0.2);
+    &:hover, &:focus {
+      background-color: $gray-200;
     }
     
     svg {
-      width: 20px;
-      height: 20px;
+      color: $gray-700;
     }
   }
   
-  // Content layout with proper spacing
+  &__filter-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    background-color: $primary-color;
+    color: $white;
+    border-radius: 50%;
+    font-size: $font-size-xs;
+    font-weight: $font-weight-bold;
+  }
+  
+  &__filter-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-2;
+    width: 100%;
+    
+    @include mix.mobile {
+      flex-direction: column;
+    }
+  }
+  
+  &__filter-item {
+    flex: 1;
+    min-width: 120px;
+    position: relative;
+    
+    @include mix.mobile {
+      width: 100%;
+    }
+  }
+  
+  &__filter-select,
+  &__filter-input {
+    width: 100%;
+    padding: $spacing-2 $spacing-3;
+    border: 1px solid $gray-300;
+    border-radius: $border-radius-md;
+    background-color: $white;
+    font-size: $font-size-sm;
+    color: $gray-800;
+    transition: all 0.2s ease;
+    
+    &:hover {
+      border-color: $gray-400;
+    }
+    
+    &:focus {
+      border-color: $primary-500;
+      box-shadow: 0 0 0 2px rgba($primary-500, 0.2);
+      outline: none;
+    }
+  }
+  
+  &__filter-price {
+    display: flex;
+    align-items: center;
+    gap: $spacing-1;
+    
+    input {
+      flex: 1;
+    }
+  }
+  
+  &__price-separator {
+    color: $gray-500;
+    padding: 0 $spacing-1;
+  }
+  
+  &__filter-actions-inline {
+    display: flex;
+    gap: $spacing-2;
+    align-items: center;
+    
+    @include mix.mobile {
+      margin-top: $spacing-2;
+    }
+  }
+  
+  &__filter-apply-inline,
+  &__filter-clear-inline {
+    padding: $spacing-2 $spacing-3;
+    border-radius: $border-radius-md;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  
+  &__filter-apply-inline {
+    background-color: $primary-500;
+    color: $white;
+    border: none;
+    
+    &:hover {
+      background-color: $primary-600;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba($primary-900, 0.2);
+    }
+    
+    &:active {
+      transform: translateY(0);
+    }
+  }
+  
+  &__filter-clear-inline {
+    background-color: transparent;
+    color: $gray-700;
+    border: 1px solid $gray-300;
+    
+    &:hover {
+      background-color: $gray-100;
+      color: $gray-900;
+      border-color: $gray-400;
+    }
+  }
+  
+  /* Main Content Layout */
   &__content {
     display: grid;
     grid-template-columns: 280px 1fr;
-    gap: $spacing-6;
+    gap: $spacing-5;
+    align-items: start;
+    position: relative;
+    
+    @include mix.tablet {
+      grid-template-columns: 240px 1fr;
+      gap: $spacing-4;
+    }
     
     @include mix.mobile {
       grid-template-columns: 1fr;
-      gap: $spacing-4;
+    }
+    
+    &--no-sidebar {
+      display: block;
     }
   }
-
-  // Sidebar filter panel with clear labeling
-  &__sidebar {
-    background: rgba($white, 0.8);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border-radius: $border-radius-xl;
-    padding: $spacing-5;
-    border: 1px solid rgba($white, 0.8);
-    box-shadow: 0 8px 32px rgba($black, 0.08);
-    align-self: start;
+  
+  /* Filter Panel */
+  &__filter-panel {
+    background-color: $white;
+    border-radius: $border-radius-lg;
+    overflow: hidden;
+    box-shadow: 0 2px 10px rgba($black, 0.06);
+    position: sticky;
+    top: $spacing-4;
+    height: fit-content;
     
     @include mix.mobile {
-      margin-bottom: $spacing-5;
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 100vh;
+      width: 100%;
+      max-width: 320px;
+      z-index: 1000;
+      border-radius: 0;
+      box-shadow: 0 0 20px rgba($black, 0.15);
+      transform: translateX(-100%);
+      transition: transform 0.3s ease;
+      
+      &.is-open {
+        display: block;
+        transform: translateX(0);
+      }
     }
     
-    h3 {
+    .listings-page__content--no-sidebar & {
+      display: none;
+      
+      @include mix.mobile {
+        &.is-open {
+          display: block;
+        }
+      }
+    }
+  }
+  
+  &__overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba($black, 0.5);
+    z-index: 999;
+    display: none;
+    
+    @include mix.mobile {
+      display: block;
+    }
+  }
+  
+  &__filter-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: $spacing-4;
+    border-bottom: 1px solid $gray-100;
+    
+    h2 {
+      margin: 0;
       font-size: $font-size-lg;
       font-weight: $font-weight-semibold;
-      color: $gray-800;
-      margin-bottom: $spacing-4;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding-bottom: $spacing-3;
-      border-bottom: 1px solid rgba($gray-300, 0.5);
-      
-      button {
-        background: transparent;
-        border: none;
-        color: $gray-500;
-        cursor: pointer;
-        padding: $spacing-1;
-        border-radius: $border-radius-full;
-        
-        &:hover {
-          color: $gray-700;
-          background: $gray-100;
-        }
-        
-        svg {
-          width: 18px;
-          height: 18px;
-        }
-      }
+      color: $gray-900;
     }
     
-    // Form inputs with consistent styling
-    input[type="text"], 
-    input[type="number"],
-    select {
-      width: 100%;
-      padding: $spacing-3;
-      margin-bottom: $spacing-4;
-      background: rgba($white, 0.9);
-      border: 1px solid rgba($gray-300, 0.5);
-      border-radius: $border-radius-lg;
-      font-size: $font-size-md;
-      color: $gray-800;
-      box-shadow: 
-        inset 2px 2px 5px rgba($black, 0.03),
-        0 2px 5px rgba($black, 0.02);
-      transition: all 0.2s ease;
-      
-      &:focus {
-        outline: none;
-        border-color: rgba($primary-color, 0.3);
-        background: $white;
-        box-shadow: 
-          inset 2px 2px 5px rgba($black, 0.03),
-          0 5px 15px rgba($primary-color, 0.08);
-      }
-      
-      &::placeholder {
-        color: $gray-400;
-      }
-    }
-    
-    select {
-      appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%236e707f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 10px center;
-      background-size: 16px;
-      padding-right: 36px;
+    button {
+      background: transparent;
+      border: none;
       cursor: pointer;
-    }
-    
-    // Filter sections with clear headers
-    &-section {
-      margin-bottom: $spacing-5;
+      color: $gray-500;
+      padding: $spacing-1;
+      border-radius: $border-radius-sm;
       
-      &:last-of-type {
-        margin-bottom: 0;
-      }
-    }
-    
-    // Price range inputs with better spacing
-    &-price {
-      @extend .listings-page__sidebar-section;
-      
-      h4 {
-        font-size: $font-size-md;
-        font-weight: $font-weight-medium;
-        color: $gray-800;
-        margin-bottom: $spacing-3;
-      }
-      
-      &-inputs {
-        display: flex;
-        gap: $spacing-2;
-        
-        input {
-          width: 100%;
-          margin-bottom: 0;
-        }
-      }
-    }
-    
-    // Condition selector with clear labeling
-    &-condition {
-      @extend .listings-page__sidebar-section;
-      
-      h4 {
-        font-size: $font-size-md;
-        font-weight: $font-weight-medium;
-        color: $gray-800;
-        margin-bottom: $spacing-3;
-      }
-    }
-    
-    // Location filter with proper spacing
-    &-location {
-      @extend .listings-page__sidebar-section;
-      
-      h4 {
-        font-size: $font-size-md;
-        font-weight: $font-weight-medium;
-        color: $gray-800;
-        margin-bottom: $spacing-3;
-      }
-    }
-    
-    // Filter buttons with consistent styling
-    &-buttons {
-      display: flex;
-      flex-wrap: wrap;
-      gap: $spacing-3;
-      margin-top: $spacing-6;
-      padding-top: $spacing-4;
-      border-top: 1px solid rgba($gray-300, 0.5);
-      
-      button {
-        padding: $spacing-3 $spacing-4;
-        border-radius: $border-radius-lg;
-        font-size: $font-size-sm;
-        font-weight: $font-weight-medium;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        display: flex;
-        align-items: center;
-        gap: $spacing-2;
-        
-        svg {
-          width: 16px;
-          height: 16px;
-        }
-        
-        &.apply {
-          background: linear-gradient(135deg, $primary-color, color.adjust($primary-color, $lightness: -10%));
-          color: $white;
-          border: none;
-          flex: 1;
-          justify-content: center;
-          box-shadow: 0 4px 10px rgba($primary-color, 0.2);
-          
-          &:hover {
-            box-shadow: 0 6px 15px rgba($primary-color, 0.3);
-            transform: translateY(-2px);
-          }
-        }
-        
-        &.clear {
-          background: transparent;
-          color: $gray-600;
-          border: 1px solid $gray-300;
-          
-          &:hover {
-            background: $gray-100;
-            color: $gray-800;
-          }
-        }
+      &:hover, &:focus {
+        color: $gray-700;
+        background-color: $gray-100;
       }
     }
   }
   
-  // Main content area with proper spacing
-  &__main {
-    min-height: 300px;
-    background: rgba($white, 0.5);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border-radius: $border-radius-xl;
-    padding: $spacing-5;
-    border: 1px solid rgba($white, 0.7);
+  &__filter-close {
+    display: none;
     
     @include mix.mobile {
-      padding: $spacing-4;
+      display: block;
     }
   }
   
-  // Results and sorting row with improved alignment
-  &__sort {
+  &__filter-body {
+    padding: $spacing-4;
+    max-height: calc(100vh - 180px);
+    overflow-y: auto;
+    
+    @include mix.mobile {
+      max-height: calc(100vh - 120px);
+    }
+  }
+  
+  &__filter-group {
+    margin-bottom: $spacing-5;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+  
+  &__filter-group-title {
+    margin: 0 0 $spacing-3;
+    font-size: $font-size-md;
+    font-weight: $font-weight-medium;
+    color: $gray-800;
+  }
+  
+  &__filter-field {
+    margin-bottom: $spacing-3;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+  
+  &__select {
+    width: 100%;
+    padding: $spacing-3;
+    border-radius: $border-radius-md;
+    border: 1px solid $gray-200;
+    background-color: $white;
+    font-size: $font-size-sm;
+    color: $gray-800;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 16px;
+    padding-right: 32px;
+    
+    &:focus {
+      outline: none;
+      border-color: $primary-color;
+      box-shadow: 0 0 0 1px rgba($primary-color, 0.2);
+    }
+  }
+  
+  &__input {
+    width: 100%;
+    padding: $spacing-3;
+    border-radius: $border-radius-md;
+    border: 1px solid $gray-200;
+    background-color: $white;
+    font-size: $font-size-sm;
+    color: $gray-800;
+    
+    &:focus {
+      outline: none;
+      border-color: $primary-color;
+      box-shadow: 0 0 0 1px rgba($primary-color, 0.2);
+    }
+    
+    &::placeholder {
+      color: $gray-400;
+    }
+  }
+  
+  &__price-range {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: $spacing-2;
+  }
+  
+  &__filter-actions {
+    padding: $spacing-4;
+    border-top: 1px solid $gray-100;
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-2;
+  }
+  
+  &__filter-apply {
+    background-color: $primary-color;
+    color: $white;
+    border: none;
+    border-radius: $border-radius-md;
+    padding: $spacing-3;
+    font-weight: $font-weight-medium;
+    font-size: $font-size-sm;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    
+    &:hover, &:focus {
+      background-color: color.adjust($primary-color, $lightness: -5%);
+    }
+  }
+  
+  &__filter-clear {
+    background-color: transparent;
+    color: $gray-700;
+    border: 1px solid $gray-300;
+    border-radius: $border-radius-md;
+    padding: $spacing-3;
+    font-weight: $font-weight-medium;
+    font-size: $font-size-sm;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    
+    &:hover, &:focus {
+      background-color: $gray-100;
+      border-color: $gray-400;
+    }
+  }
+  
+  /* Results Section */
+  &__results {
+    min-height: 400px;
+    width: 900px;
+  }
+  
+  &__results-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: $spacing-5;
-    padding-bottom: $spacing-4;
-    border-bottom: 1px solid rgba($gray-300, 0.5);
+    padding: $spacing-3 $spacing-4;
+    margin-bottom: $spacing-4;
+    background-color: $white;
+    border-radius: $border-radius-lg;
+    box-shadow: 0 2px 8px rgba($black, 0.06);
+    transition: box-shadow 0.3s ease;
+    
+    &:hover {
+      box-shadow: 0 4px 12px rgba($black, 0.08);
+    }
     
     @include mix.mobile {
       flex-direction: column;
       align-items: flex-start;
       gap: $spacing-3;
+      padding: $spacing-3;
     }
   }
   
-  // Results count pill
-  &__results {
-    display: inline-flex;
-    align-items: center;
-    padding: $spacing-2 $spacing-4;
-    background: rgba($primary-color, 0.1);
-    border-radius: $border-radius-full;
-    font-size: $font-size-sm;
+  &__results-count {
     font-weight: $font-weight-medium;
-    color: $primary-color;
-    
-    svg {
-      width: 16px;
-      height: 16px;
-      margin-right: $spacing-2;
-    }
+    color: $gray-800;
+    margin: 0;
   }
   
-  // Sort options with better spacing
-  &__sort-options {
+  &__results-controls {
     display: flex;
-    gap: $spacing-2;
-    
-    select {
-      padding: $spacing-2 $spacing-4;
-      padding-right: 36px;
-      background-color: rgba($white, 0.7);
-      border: 1px solid rgba($white, 0.8);
-      border-radius: $border-radius-full;
-      color: $gray-800;
-      font-size: $font-size-sm;
-      font-weight: $font-weight-medium;
-      appearance: none;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%236e707f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 8px center;
-      background-size: 16px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      box-shadow: 0 2px 5px rgba($black, 0.05);
-      
-      &:focus {
-        outline: none;
-        border-color: rgba($primary-color, 0.3);
-        background-color: $white;
-      }
-    }
-  }
-  
-  // Grid with proper spacing
-  &__grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: $spacing-6;
-    margin-bottom: $spacing-8;
+    align-items: center;
+    gap: $spacing-4;
     
     @include mix.mobile {
-      grid-template-columns: 1fr;
-      gap: $spacing-5;
+      width: 100%;
+      justify-content: space-between;
     }
   }
   
-  // Empty state with proper spacing
-  &__empty {
-    text-align: center;
-    padding: $spacing-8 $spacing-6;
-    background: rgba($white, 0.7);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border-radius: $border-radius-xl;
-    border: 1px solid rgba($white, 0.8);
-    box-shadow: 0 8px 32px rgba($black, 0.08);
+  /* Grid and List Views */
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: $spacing-4;
     
-    svg {
-      width: 64px;
-      height: 64px;
-      color: rgba($primary-color, 0.5);
-      margin-bottom: $spacing-4;
+    @include mix.mobile {
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: $spacing-3;
     }
     
-    h3 {
+    /* Ensure cards in grid have consistent height */
+    .listing-card {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+  }
+  
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-3;
+  }
+  
+  /* In list view, apply these styles to any .listing-card child elements */
+  &__list .listing-card {
+    display: grid;
+    grid-template-columns: 120px 1fr;
+    gap: $spacing-3;
+    
+    @include mix.mobile {
+      grid-template-columns: 100px 1fr;
+    }
+    
+    .listing-card__image {
+      height: 100%;
+      min-height: 120px;
+      max-height: 2000px;
+      
+    }
+    
+    
+    .listing-card__content {
+      padding: $spacing-2 0;
+    }
+  }
+  
+  /* Loading State */
+  &__loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    gap: $spacing-4;
+    color: $gray-600;
+  }
+  
+  /* Error State */
+  &__error {
+    margin-bottom: $spacing-6;
+  }
+  
+  /* Empty State */
+  &__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: $spacing-6 $spacing-4;
+    background-color: $white;
+    border-radius: $border-radius-lg;
+    box-shadow: 0 2px 8px rgba($black, 0.06);
+    margin: $spacing-4 0;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      box-shadow: 0 4px 16px rgba($black, 0.1);
+      transform: translateY(-2px);
+    }
+    
+    &-icon {
+      margin-bottom: $spacing-4;
+      color: $gray-400;
+      
+      svg {
+        animation: pulse 2s infinite ease-in-out;
+      }
+    }
+    
+    &-title {
       font-size: $font-size-xl;
       font-weight: $font-weight-bold;
-      background: linear-gradient(90deg, $primary-color, $secondary-color);
-      background-clip: text;
-      -webkit-background-clip: text;
-      color: transparent;
-      margin-bottom: $spacing-3;
-      display: inline-block;
+      color: $gray-800;
+      margin-bottom: $spacing-2;
     }
     
-    p {
+    &-text {
       color: $gray-600;
-      margin-bottom: $spacing-6;
-      max-width: 400px;
-      margin-left: auto;
-      margin-right: auto;
+      margin-bottom: $spacing-4;
+      max-width: 500px;
     }
     
-    button {
-      padding: $spacing-3 $spacing-6;
-      background: linear-gradient(135deg, $primary-color, color.adjust($primary-color, $lightness: -10%));
+    &-clear {
+      padding: $spacing-2 $spacing-4;
+      background-color: $primary-500;
       color: $white;
       border: none;
-      border-radius: $border-radius-full;
-      font-size: $font-size-md;
+      border-radius: $border-radius-md;
       font-weight: $font-weight-medium;
       cursor: pointer;
-      transition: all 0.3s ease;
-      box-shadow: 0 4px 15px rgba($primary-color, 0.3);
+      transition: all 0.2s ease;
       
       &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 20px rgba($primary-color, 0.4);
+        background-color: $primary-600;
+        transform: translateY(-1px);
+        box-shadow: 0 2px 4px rgba($primary-900, 0.2);
+      }
+      
+      &:active {
+        transform: translateY(0);
       }
     }
   }
   
-  // Pagination with proper spacing
+  /* Pagination */
   &__pagination {
-    margin-top: $spacing-8;
+    margin-top: $spacing-6;
     display: flex;
     justify-content: center;
+  }
+  
+  /* Results Header Controls */
+  &__sort-section {
+    display: flex;
+    align-items: center;
+    gap: $spacing-2;
+    
+    label {
+      color: $gray-700;
+      font-size: $font-size-sm;
+      white-space: nowrap;
+    }
+    
+    @include mix.mobile {
+      flex-grow: 1;
+    }
+  }
+  
+  &__sort-select {
+    padding: $spacing-2 $spacing-3;
+    border-radius: $border-radius-md;
+    border: 1px solid $gray-200;
+    background-color: $white;
+    color: $gray-800;
+    font-size: $font-size-sm;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    background-size: 16px;
+    padding-right: 32px;
+    
+    &:focus {
+      outline: none;
+      border-color: $primary-color;
+      box-shadow: 0 0 0 1px rgba($primary-color, 0.2);
+    }
+    
+    @include mix.mobile {
+      flex-grow: 1;
+    }
+  }
+  
+  &__view-options {
+    display: flex;
+    gap: $spacing-1;
+  }
+  
+  &__view-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: $border-radius-md;
+    border: 1px solid $gray-300;
+    background-color: $white;
+    color: $gray-500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    
+    &:hover {
+      background-color: $gray-100;
+      color: $gray-800;
+      border-color: $gray-400;
+    }
+    
+    &.active {
+      background-color: $primary-500;
+      color: $white;
+      border-color: $primary-500;
+      
+      &:hover {
+        background-color: $primary-600;
+      }
+    }
+  }
+  
+  /* Desktop Filter Panel */
+  &__desktop-filter-panel {
+    display: none;
+  }
+  
+  /* Desktop Filters */
+  &__desktop-filters {
+    display: flex;
+    width: 100%;
+    margin-bottom: $spacing-4;
+    background-color: $white;
+    border-radius: $border-radius-lg;
+    padding: $spacing-4;
+    box-shadow: 0 2px 8px rgba($black, 0.06);
+    
+    @include mix.mobile {
+      display: none;
+    }
+  }
+  
+  &__filter-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: $spacing-3;
+    width: 100%;
+    
+    @include mix.mobile {
+      display: none;
+    }
+  }
+  
+  /* Filter Chips */
+  &__filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: $spacing-2;
+    margin-bottom: $spacing-3;
+    
+    @include mix.mobile {
+      margin-top: $spacing-2;
+    }
+  }
+  
+  &__filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: $spacing-1;
+    background-color: $gray-100;
+    border: 1px solid $gray-200;
+    border-radius: $border-radius-full;
+    padding: $spacing-1 $spacing-2;
+    font-size: $font-size-sm;
+    color: $gray-800;
+    max-width: 100%;
+    transition: all 0.2s ease;
+    animation: fadeIn 0.3s ease-in-out;
+    
+    &:hover {
+      background-color: $gray-200;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 4px rgba($black, 0.05);
+    }
+    
+    &-label {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    &-remove {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background-color: $gray-300;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      color: $gray-700;
+      flex-shrink: 0;
+      transition: all 0.2s ease;
+      
+      &:hover {
+        background-color: $gray-400;
+        color: $gray-900;
+        transform: scale(1.1);
+      }
+      
+      svg {
+        width: 12px;
+        height: 12px;
+      }
+    }
+  }
+  
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(5px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  &__filter-clear-all {
+    background-color: $gray-200;
+    border: 1px solid $gray-300;
+    color: $gray-800;
+    font-weight: $font-weight-medium;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    
+    &:hover {
+      background-color: $gray-300;
+      border-color: $gray-400;
+    }
+  }
+  
+  /* Skeleton Loading */
+  &__skeleton {
+    background-color: $white;
+    border-radius: $border-radius-lg;
+    box-shadow: 0 2px 8px rgba($black, 0.06);
+    overflow: hidden;
+    height: 100%;
+    animation: pulse 1.5s infinite ease-in-out;
+    
+    &-image {
+      width: 100%;
+      height: 200px;
+      background-color: $gray-200;
+    }
+    
+    &-content {
+      padding: $spacing-3;
+    }
+    
+    &-title {
+      height: 24px;
+      width: 80%;
+      background-color: $gray-200;
+      margin-bottom: $spacing-2;
+      border-radius: $border-radius-sm;
+    }
+    
+    &-price {
+      height: 32px;
+      width: 50%;
+      background-color: $gray-200;
+      margin-bottom: $spacing-2;
+      border-radius: $border-radius-sm;
+    }
+    
+    &-meta {
+      height: 16px;
+      width: 70%;
+      background-color: $gray-200;
+      border-radius: $border-radius-sm;
+    }
+  }
+  
+  @keyframes pulse {
+    0% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.6;
+    }
+    100% {
+      opacity: 1;
+    }
   }
 } 

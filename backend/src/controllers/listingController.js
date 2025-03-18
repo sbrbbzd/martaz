@@ -7,6 +7,22 @@ const uuid = require('uuid');
 const ApiError = require('../utils/ApiError');
 
 /**
+ * Helper function to safely compare user IDs regardless of their type
+ * @param {string|object} id1 - First user ID
+ * @param {string|object} id2 - Second user ID
+ * @returns {boolean} - true if IDs match, false otherwise
+ */
+const areIdsEqual = (id1, id2) => {
+  if (!id1 || !id2) return false;
+  
+  // Convert both to strings for comparison
+  const strId1 = String(id1).trim();
+  const strId2 = String(id2).trim();
+  
+  return strId1 === strId2;
+};
+
+/**
  * Get all listings with pagination and filters
  */
 exports.getAllListings = async (req, res, next) => {
@@ -16,7 +32,9 @@ exports.getAllListings = async (req, res, next) => {
       limit = 12,
       sort = 'createdAt',
       order = 'DESC',
-      category,
+      category, // Keep for backward compatibility
+      categoryId,
+      categorySlug,
       minPrice,
       maxPrice,
       condition,
@@ -28,8 +46,43 @@ exports.getAllListings = async (req, res, next) => {
     // Build filter conditions
     const where = { status: 'active' };
     
-    if (category) {
-      where.categoryId = category;
+    // Handle category filtering by ID or slug
+    if (categoryId) {
+      where.categoryId = categoryId;
+    } else if (categorySlug) {
+      // Find the category by slug first
+      const category = await Category.findOne({ where: { slug: categorySlug } });
+      if (category) {
+        where.categoryId = category.id;
+      } else {
+        // If category slug is invalid, return empty results
+        return res.json({
+          success: true,
+          data: {
+            listings: [],
+            pagination: {
+              total: 0,
+              page: parseInt(page, 10),
+              totalPages: 0,
+              hasMore: false
+            }
+          }
+        });
+      }
+    } else if (category) {
+      // Backward compatibility - try to determine if category is ID or slug
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(category);
+      
+      if (isUuid) {
+        // If it looks like a UUID, use as ID
+        where.categoryId = category;
+      } else {
+        // Otherwise treat as slug
+        const categoryBySlug = await Category.findOne({ where: { slug: category } });
+        if (categoryBySlug) {
+          where.categoryId = categoryBySlug.id;
+        }
+      }
     }
     
     if (minPrice) {
@@ -86,7 +139,10 @@ exports.getAllListings = async (req, res, next) => {
           as: 'category',
           attributes: ['id', 'name', 'slug']
         }
-      ]
+      ],
+      attributes: { 
+        exclude: ['featuredUntil']
+      }
     });
 
     const totalPages = Math.ceil(count / limitNum);
@@ -112,6 +168,11 @@ exports.getAllListings = async (req, res, next) => {
 };
 
 /**
+ * Alias for getAllListings for backward compatibility
+ */
+exports.getListings = exports.getAllListings;
+
+/**
  * Get listing by ID or slug
  */
 exports.getListingById = async (req, res, next) => {
@@ -119,7 +180,7 @@ exports.getListingById = async (req, res, next) => {
     const { idOrSlug } = req.params;
     
     // Determine if the parameter is an ID or slug
-    const isUUID = uuid.validate(idOrSlug);
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrSlug);
     
     // Build where condition based on the parameter type
     const where = isUUID ? { id: idOrSlug } : { slug: idOrSlug };
@@ -142,7 +203,10 @@ exports.getListingById = async (req, res, next) => {
           as: 'category',
           attributes: ['id', 'name', 'slug', 'parentId']
         }
-      ]
+      ],
+      attributes: {
+        exclude: ['featuredUntil']
+      }
     });
 
     if (!listing) {
@@ -166,6 +230,11 @@ exports.getListingById = async (req, res, next) => {
     next(error);
   }
 };
+
+/**
+ * Alias for getListingById for backward compatibility
+ */
+exports.getListing = exports.getListingById;
 
 /**
  * Create a new listing
@@ -243,21 +312,39 @@ exports.updateListing = async (req, res, next) => {
   try {
     const { id } = req.params;
     
+    console.log('========== UPDATE LISTING DEBUG ==========');
+    console.log('Listing ID:', id);
+    console.log('Request user:', JSON.stringify(req.user));
+    
     // Find the listing
     const listing = await Listing.findByPk(id);
     
     if (!listing) {
+      console.log('Listing not found');
       throw new NotFoundError('Listing not found');
     }
     
+    console.log('Listing found:', JSON.stringify(listing));
+    console.log('Listing.userId:', listing.userId, 'type:', typeof listing.userId);
+    console.log('req.user.id:', req.user.id, 'type:', typeof req.user.id);
+    
+    // Use the helper function for ID comparison
+    const isOwner = areIdsEqual(listing.userId, req.user.id);
+    const isAdmin = req.user.role === 'admin';
+    
+    console.log('Is owner:', isOwner, 'Is admin:', isAdmin);
+    
     // Check if user is authorized to update this listing
-    if (listing.userId !== req.user.id && req.user.role !== 'admin') {
+    if (!isOwner && !isAdmin) {
+      console.log('AUTHORIZATION FAILED');
       return res.status(403).json({
         success: false,
         message: 'You are not authorized to update this listing'
       });
     }
 
+    console.log('Authorization passed, proceeding with update');
+    
     const {
       title,
       description,
@@ -346,8 +433,17 @@ exports.deleteListing = async (req, res, next) => {
       throw new NotFoundError('Listing not found');
     }
     
+    // Debug log and fix for ID comparison
+    console.log('Delete authorization check:');
+    console.log('Listing userId:', listing.userId, 'type:', typeof listing.userId);
+    console.log('Request user id:', req.user.id, 'type:', typeof req.user.id);
+    
+    // Use our helper function for consistent ID comparison
+    const isOwner = areIdsEqual(listing.userId, req.user.id);
+    const isAdmin = req.user.role === 'admin';
+    
     // Check if user is authorized to delete this listing
-    if (listing.userId !== req.user.id && req.user.role !== 'admin') {
+    if (!isOwner && !isAdmin) {
       return res.status(403).json({
         success: false,
         message: 'You are not authorized to delete this listing'
@@ -408,7 +504,10 @@ exports.getUserListings = async (req, res, next) => {
           as: 'category',
           attributes: ['id', 'name', 'slug']
         }
-      ]
+      ],
+      attributes: {
+        exclude: ['featuredUntil']
+      }
     });
 
     const totalPages = Math.ceil(count / limitNum);
@@ -447,8 +546,16 @@ exports.markAsSold = async (req, res, next) => {
       throw new NotFoundError('Listing not found');
     }
     
+    // Debug log and fix for ID comparison
+    console.log('Mark as sold authorization check:');
+    console.log('Listing userId:', listing.userId, 'type:', typeof listing.userId);
+    console.log('Request user id:', req.user.id, 'type:', typeof req.user.id);
+    
+    // Use our helper function for consistent ID comparison
+    const isOwner = areIdsEqual(listing.userId, req.user.id);
+    
     // Check if user is authorized to update this listing
-    if (listing.userId !== req.user.id) {
+    if (!isOwner) {
       return res.status(403).json({
         success: false,
         message: 'You are not authorized to update this listing'
@@ -571,7 +678,10 @@ exports.searchListings = async (req, res, next) => {
           as: 'category',
           attributes: ['id', 'name', 'slug']
         }
-      ]
+      ],
+      attributes: {
+        exclude: ['featuredUntil']
+      }
     });
 
     const totalPages = Math.ceil(count / limitNum);
@@ -623,7 +733,10 @@ exports.getFeaturedListings = async (req, res, next) => {
           as: 'category',
           attributes: ['id', 'name', 'slug']
         }
-      ]
+      ],
+      attributes: {
+        exclude: ['featuredUntil']
+      }
     });
 
     res.json({
@@ -634,229 +747,6 @@ exports.getFeaturedListings = async (req, res, next) => {
     });
   } catch (error) {
     logger.error('Get featured listings error:', error);
-    next(error);
-  }
-};
-
-/**
- * Get all listings with pagination and filtering
- */
-exports.getListings = async (req, res, next) => {
-  try {
-    const {
-      page = 1,
-      limit = 10,
-      sort = 'createdAt',
-      order = 'DESC',
-      category,
-      condition,
-      minPrice,
-      maxPrice,
-      location,
-      status = 'active',
-      search,
-      userId
-    } = req.query;
-
-    const offset = (page - 1) * limit;
-    
-    // Build where clause for filtering
-    const where = {
-      status: status === 'all' && req.user?.role === 'admin' ? { [Op.ne]: 'deleted' } : status
-    };
-    
-    // Add filters if provided
-    if (category) where.categoryId = category;
-    if (condition) where.condition = condition;
-    if (location) where.location = { [Op.iLike]: `%${location}%` };
-    if (userId) where.userId = userId;
-    
-    // Price range
-    if (minPrice || maxPrice) {
-      where.price = {};
-      if (minPrice) where.price[Op.gte] = parseFloat(minPrice);
-      if (maxPrice) where.price[Op.lte] = parseFloat(maxPrice);
-    }
-    
-    // Search term
-    if (search) {
-      where[Op.or] = [
-        { title: { [Op.iLike]: `%${search}%` } },
-        { description: { [Op.iLike]: `%${search}%` } }
-      ];
-    }
-    
-    // Get listings with count
-    const { count, rows } = await Listing.findAndCountAll({
-      where,
-      limit: parseInt(limit),
-      offset: parseInt(offset),
-      order: [[sort, order]],
-      include: [
-        {
-          model: User,
-          as: 'user',
-          attributes: ['id', 'firstName', 'lastName', 'profileImage']
-        },
-        {
-          model: Category,
-          as: 'category',
-          attributes: ['id', 'name', 'slug']
-        }
-      ]
-    });
-    
-    // Calculate pagination info
-    const totalPages = Math.ceil(count / limit);
-    
-    res.status(200).json({
-      status: 'success',
-      count,
-      totalPages,
-      currentPage: parseInt(page),
-      results: rows
-    });
-  } catch (error) {
-    logger.error('Error fetching listings:', error);
-    next(error);
-  }
-};
-
-/**
- * Get listing by ID or slug
- */
-exports.getListing = async (req, res, next) => {
-  try {
-    const { idOrSlug } = req.params;
-    
-    // Determine if parameter is ID or slug
-    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrSlug);
-    
-    const where = isUUID 
-      ? { id: idOrSlug }
-      : { slug: idOrSlug };
-    
-    // Add status check if not admin
-    if (!req.user || req.user.role !== 'admin') {
-      where.status = 'active';
-    }
-    
-    const listing = await Listing.findOne({
-      where,
-      include: [
-        {
-          model: User,
-          as: 'user',
-          attributes: ['id', 'firstName', 'lastName', 'profileImage', 'createdAt']
-        },
-        {
-          model: Category,
-          as: 'category',
-          attributes: ['id', 'name', 'slug', 'parentId']
-        }
-      ]
-    });
-    
-    if (!listing) {
-      return next(new ApiError('Listing not found', 404));
-    }
-    
-    // Increment views counter
-    if (req.query.track !== 'false') {
-      await listing.increment('views');
-    }
-    
-    res.status(200).json({
-      status: 'success',
-      data: listing
-    });
-  } catch (error) {
-    logger.error('Error fetching listing:', error);
-    next(error);
-  }
-};
-
-/**
- * Create a new listing
- */
-exports.createListing = async (req, res, next) => {
-  try {
-    // Get current user ID from authenticated request
-    const userId = req.user.id;
-    
-    // Create the listing
-    const listing = await Listing.create({
-      ...req.body,
-      userId,
-      status: 'pending' // New listings start as pending
-    });
-    
-    res.status(201).json({
-      status: 'success',
-      data: listing
-    });
-  } catch (error) {
-    logger.error('Error creating listing:', error);
-    next(error);
-  }
-};
-
-/**
- * Update a listing
- */
-exports.updateListing = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const listing = await Listing.findByPk(id);
-    
-    if (!listing) {
-      return next(new ApiError('Listing not found', 404));
-    }
-    
-    // Check if user owns the listing or is admin
-    if (listing.userId !== req.user.id && req.user.role !== 'admin') {
-      return next(new ApiError('You are not authorized to update this listing', 403));
-    }
-    
-    // Update listing
-    await listing.update(req.body);
-    
-    res.status(200).json({
-      status: 'success',
-      data: listing
-    });
-  } catch (error) {
-    logger.error('Error updating listing:', error);
-    next(error);
-  }
-};
-
-/**
- * Delete a listing
- */
-exports.deleteListing = async (req, res, next) => {
-  try {
-    const { id } = req.params;
-    const listing = await Listing.findByPk(id);
-    
-    if (!listing) {
-      return next(new ApiError('Listing not found', 404));
-    }
-    
-    // Check if user owns the listing or is admin
-    if (listing.userId !== req.user.id && req.user.role !== 'admin') {
-      return next(new ApiError('You are not authorized to delete this listing', 403));
-    }
-    
-    // Soft delete by changing status
-    await listing.update({ status: 'deleted' });
-    
-    res.status(200).json({
-      status: 'success',
-      message: 'Listing deleted successfully'
-    });
-  } catch (error) {
-    logger.error('Error deleting listing:', error);
     next(error);
   }
 };
@@ -897,13 +787,22 @@ exports.changeListingStatus = async (req, res, next) => {
       return next(new ApiError('Listing not found', 404));
     }
     
+    // Debug log and fix for ID comparison
+    console.log('Change status authorization check:');
+    console.log('Listing userId:', listing.userId, 'type:', typeof listing.userId);
+    console.log('Request user id:', req.user.id, 'type:', typeof req.user.id);
+    
+    // Use our helper function for consistent ID comparison
+    const isOwner = areIdsEqual(listing.userId, req.user.id);
+    const isAdmin = req.user.role === 'admin';
+    
     // Check if user is admin or owns the listing
-    if (req.user.role !== 'admin' && listing.userId !== req.user.id) {
+    if (!isAdmin && !isOwner) {
       return next(new ApiError('You are not authorized to change this listing status', 403));
     }
     
     // Only admin can activate a pending listing
-    if (status === 'active' && listing.status === 'pending' && req.user.role !== 'admin') {
+    if (status === 'active' && listing.status === 'pending' && !isAdmin) {
       return next(new ApiError('Only admins can approve pending listings', 403));
     }
     
@@ -997,7 +896,10 @@ exports.getFeaturedListings = async (req, res, next) => {
           as: 'category',
           attributes: ['id', 'name', 'slug']
         }
-      ]
+      ],
+      attributes: {
+        exclude: ['featuredUntil']
+      }
     });
     
     res.status(200).json({
@@ -1009,4 +911,187 @@ exports.getFeaturedListings = async (req, res, next) => {
     logger.error('Error fetching featured listings:', error);
     next(error);
   }
-}; 
+};
+
+/**
+ * Feature a listing for a specific duration
+ * @param {Object} req - Express request object
+ * @param {Object} res - Express response object
+ * @param {Function} next - Express next middleware function
+ */
+exports.makeListingFeatured = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { duration } = req.body;
+    
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Listing ID is required'
+      });
+    }
+    
+    if (!duration || !['day', 'week', 'month'].includes(duration)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Valid duration is required (day, week, or month)'
+      });
+    }
+    
+    // Find the listing
+    const listing = await Listing.findByPk(id);
+    
+    if (!listing) {
+      return res.status(404).json({
+        success: false,
+        message: 'Listing not found'
+      });
+    }
+    
+    // Check if user is authorized (must be the owner or admin)
+    if (listing.userId !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not authorized to feature this listing'
+      });
+    }
+    
+    // Calculate feature end date based on duration
+    const now = new Date();
+    let featuredUntil = new Date(now);
+    
+    switch(duration) {
+      case 'day':
+        featuredUntil.setDate(now.getDate() + 1);
+        break;
+      case 'week':
+        featuredUntil.setDate(now.getDate() + 7);
+        break;
+      case 'month':
+        featuredUntil.setMonth(now.getMonth() + 1);
+        break;
+      default:
+        featuredUntil.setDate(now.getDate() + 1);
+    }
+    
+    // Update the listing
+    await listing.update({
+      isFeatured: true
+    });
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Listing successfully featured',
+      data: {
+        listing: {
+          ...listing.toJSON(),
+          isFeatured: true
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error featuring listing:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to feature listing',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get all featured listings
+ */
+exports.getFeaturedListings = async (req, res, next) => {
+  try {
+    const { page = 1, limit = 10 } = req.query;
+    
+    // Calculate pagination
+    const pageNum = parseInt(page, 10);
+    const limitNum = parseInt(limit, 10);
+    const offset = (pageNum - 1) * limitNum;
+
+    // Get featured listings that haven't expired
+    const { count, rows } = await Listing.findAndCountAll({
+      where: {
+        isFeatured: true,
+        status: 'active' // Only show active listings
+      },
+      order: [['createdAt', 'DESC']], // Changed from featuredUntil to createdAt
+      limit: limitNum,
+      offset,
+      include: [
+        {
+          model: User,
+          as: 'user',
+          attributes: ['id', 'firstName', 'lastName', 'profileImage']
+        },
+        {
+          model: Category,
+          as: 'category',
+          attributes: ['id', 'name', 'slug']
+        }
+      ],
+      attributes: {
+        exclude: ['featuredUntil']
+      }
+    });
+
+    const totalPages = Math.ceil(count / limitNum);
+
+    // Return results
+    res.json({
+      success: true,
+      data: {
+        listings: rows,
+        pagination: {
+          total: count,
+          page: pageNum,
+          totalPages,
+          limit: limitNum,
+          hasMore: pageNum < totalPages
+        }
+      }
+    });
+  } catch (error) {
+    logger.error('Get featured listings error:', error);
+    next(error);
+  }
+};
+
+/**
+ * Check for expired featured listings and update them
+ * This should be called by a scheduled job/cron
+ */
+exports.checkFeaturedExpiration = async () => {
+  try {
+    // Find all featured listings
+    const expiredListings = await Listing.findAll({
+      where: {
+        isFeatured: true
+      },
+      attributes: {
+        exclude: ['featuredUntil']
+      }
+    });
+    
+    // Update all listings
+    if (expiredListings.length > 0) {
+      const updates = expiredListings.map(listing => 
+        listing.update({ isFeatured: false })
+      );
+      
+      await Promise.all(updates);
+      
+      logger.info(`Updated ${expiredListings.length} expired featured listings`);
+      return expiredListings.length;
+    }
+    
+    return 0;
+  } catch (error) {
+    logger.error('Error checking expired featured listings:', error);
+    throw error;
+  }
+};
+
+module.exports = exports; 

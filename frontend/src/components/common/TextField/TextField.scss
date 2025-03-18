@@ -1,0 +1,118 @@
+@use '../../../styles/variables' as *;
+@use '../../../styles/mixins' as mix;
+
+.text-field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: $spacing-3;
+  
+  &--full-width {
+    width: 100%;
+  }
+  
+  &__label {
+    font-size: $font-size-sm;
+    font-weight: 500;
+    color: $gray-700;
+    margin-bottom: $spacing-2;
+  }
+  
+  &__required {
+    color: $error;
+    margin-left: $spacing-1;
+  }
+  
+  &__input-container {
+    display: flex;
+    align-items: center;
+    position: relative;
+    width: 100%;
+  }
+  
+  &__input {
+    flex: 1;
+    padding: $spacing-3;
+    font-size: $font-size-md;
+    color: $gray-900;
+    background-color: $white;
+    border: 1px solid $gray-300;
+    border-radius: $border-radius-md;
+    transition: all $transition-fast;
+    width: 100%;
+    
+    &:focus {
+      outline: none;
+      border-color: $primary-color;
+      box-shadow: 0 0 0 2px rgba($primary-color, 0.1);
+    }
+    
+    &::placeholder {
+      color: $gray-500;
+    }
+    
+    &:disabled {
+      background-color: $gray-100;
+      cursor: not-allowed;
+    }
+  }
+  
+  &--focused &__input {
+    border-color: $primary-color;
+    box-shadow: 0 0 0 2px rgba($primary-color, 0.1);
+  }
+  
+  &--error &__input {
+    border-color: $error;
+    
+    &:focus {
+      box-shadow: 0 0 0 2px rgba($error, 0.1);
+    }
+  }
+  
+  &__prefix,
+  &__suffix {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: $gray-500;
+    position: absolute;
+    z-index: 1;
+  }
+  
+  &__prefix {
+    left: $spacing-3;
+    
+    & + .text-field__input {
+      padding-left: $spacing-8;
+    }
+  }
+  
+  &__suffix {
+    right: $spacing-3;
+    
+    .text-field__input + & {
+      padding-right: $spacing-8;
+    }
+  }
+  
+  &__helper {
+    font-size: $font-size-xs;
+    margin-top: $spacing-1;
+    color: $gray-600;
+    
+    &--error {
+      color: $error;
+    }
+  }
+  
+  &--filled {
+    .text-field__input {
+      background-color: $gray-100;
+      border-color: transparent;
+      
+      &:focus {
+        background-color: $white;
+      }
+    }
+  }
+} 

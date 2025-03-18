@@ -1,14 +1,19 @@
 const express = require('express');
 const router = express.Router();
-const { auth } = require('../middleware/auth');
-const { isAdmin } = require('../middleware/admin');
+const { auth, adminAuth } = require('../middleware/auth');
 const adminController = require('../controllers/admin.controller');
 
 // All routes require authentication and admin privileges
-router.use(auth(), isAdmin());
+router.use(auth());
+router.use(adminAuth);
 
 // Dashboard statistics
 router.get('/dashboard', adminController.getDashboardStats);
+router.get('/dashboard/data', adminController.getAdminDashboardData);
+
+// Listing approval/rejection
+router.put('/listings/:id/approve', adminController.approveListing);
+router.put('/listings/:id/reject', adminController.rejectListing);
 
 // User management
 router.get('/users', adminController.getUsers);

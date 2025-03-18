@@ -140,4 +140,36 @@ const authService = {
   }
 };
 
+// Function to extract auth token from storage or response
+export const getAuthToken = (): string | null => {
+  return localStorage.getItem('authToken') || sessionStorage.getItem('authToken');
+};
+
+// Helper function to debug token and user info
+export const debugAuthState = () => {
+  const token = getAuthToken();
+  const authState = localStorage.getItem('authState');
+  
+  console.log('==== AUTH DEBUG ====');
+  console.log('Token exists:', !!token);
+  console.log('Auth state exists:', !!authState);
+  
+  if (authState) {
+    try {
+      const parsed = JSON.parse(authState);
+      console.log('User in auth state:', parsed.user ? `ID: ${parsed.user.id}` : 'No user');
+      console.log('Token in auth state:', !!parsed.token);
+      
+      return {
+        token: parsed.token,
+        user: parsed.user
+      };
+    } catch (e) {
+      console.error('Error parsing auth state:', e);
+    }
+  }
+  
+  return null;
+};
+
 export default authService; 

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Updated Image Server Test</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    h1 { color: #333; }
+    .test-container { margin-bottom: 30px; border: 1px solid #eee; padding: 15px; border-radius: 8px; }
+    img { max-width: 300px; display: block; margin: 10px 0; }
+    .success { color: green; font-weight: bold; }
+    .error { color: red; font-weight: bold; }
+    .info { margin: 5px 0; font-family: monospace; }
+  </style>
+</head>
+<body>
+  <h1>Updated Image Server Test - Fixed Substring</h1>
+  
+  <div class="test-container">
+    <h3>Using Full Filename</h3>
+    <div class="info">URL: http://localhost:3001/images/aa351932-f491-4602-9147-ac6ede85701b.png</div>
+    <img 
+      src="http://localhost:3001/images/aa351932-f491-4602-9147-ac6ede85701b.png" 
+      alt="Test Image" 
+      onload="this.insertAdjacentHTML('afterend', '<div class=\'success\'>✓ Image loaded successfully</div>')" 
+      onerror="this.insertAdjacentHTML('afterend', '<div class=\'error\'>✗ Failed to load image</div>')"
+    />
+  </div>
+  
+  <div class="test-container">
+    <h3>Image from /tmp Path After Processing</h3>
+    <div class="info">Original path: /tmp/aa351932-f491-4602-9147-ac6ede85701b.png</div>
+    <div class="info">substring(4) result: "/aa351932-f491-4602-9147-ac6ede85701b.png"</div>
+    <div class="info">substring(5) result: "aa351932-f491-4602-9147-ac6ede85701b.png" ✓ CORRECT</div>
+    <br>
+    <div class="info">URL with substring(5): http://localhost:3001/images/aa351932-f491-4602-9147-ac6ede85701b.png</div>
+    <img 
+      src="http://localhost:3001/images/aa351932-f491-4602-9147-ac6ede85701b.png" 
+      alt="Test Image with substring(5)" 
+      onload="this.insertAdjacentHTML('afterend', '<div class=\'success\'>✓ Image loaded with correct substring</div>')" 
+      onerror="this.insertAdjacentHTML('afterend', '<div class=\'error\'>✗ Failed to load image</div>')"
+    />
+  </div>
+  
+  <script>
+    console.log('Testing image loading with fixed URL structure...');
+  </script>
+</body>
+</html> 

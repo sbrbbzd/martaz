@@ -1,0 +1,112 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as mix;
+
+.my-listings-page {
+  padding: $spacing-8 0;
+  min-height: 100vh;
+  background-color: $gray-50;
+  
+  &__container {
+    @include mix.container;
+    max-width: 1280px;
+  }
+  
+  &__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: $spacing-6;
+    
+    h1 {
+      font-size: $font-size-2xl;
+      color: $gray-900;
+      margin: 0;
+    }
+    
+    @include mix.mobile {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: $spacing-4;
+    }
+  }
+  
+  &__actions {
+    display: flex;
+    gap: $spacing-3;
+    
+    @include mix.mobile {
+      width: 100%;
+      justify-content: space-between;
+    }
+  }
+  
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: $spacing-6;
+    
+    @include mix.mobile {
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+      gap: $spacing-4;
+    }
+  }
+  
+  &__load-more {
+    margin-top: $spacing-8;
+    text-align: center;
+  }
+  
+  &__loading, &__error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    
+    p {
+      margin-top: $spacing-4;
+      color: $gray-600;
+    }
+  }
+  
+  &__error {
+    background-color: $white;
+    border-radius: $border-radius-lg;
+    padding: $spacing-6;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba($black, 0.05);
+    
+    button {
+      margin-top: $spacing-4;
+    }
+  }
+  
+  &__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: $white;
+    border-radius: $border-radius-lg;
+    padding: $spacing-8 $spacing-6;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba($black, 0.05);
+    min-height: 300px;
+    
+    h3 {
+      font-size: $font-size-xl;
+      color: $gray-900;
+      margin-bottom: $spacing-2;
+    }
+    
+    p {
+      color: $gray-600;
+      margin-bottom: $spacing-6;
+      max-width: 500px;
+    }
+    
+    button {
+      min-width: 200px;
+    }
+  }
+} 

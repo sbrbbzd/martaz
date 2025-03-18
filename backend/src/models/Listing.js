@@ -78,6 +78,10 @@ module.exports = (sequelize) => {
       type: DataTypes.BOOLEAN,
       defaultValue: false
     },
+    featuredUntil: {
+      type: DataTypes.DATE,
+      allowNull: true
+    },
     isPromoted: {
       type: DataTypes.BOOLEAN,
       defaultValue: false
@@ -115,7 +119,7 @@ module.exports = (sequelize) => {
     },
     categoryId: {
       type: DataTypes.UUID,
-      allowNull: false
+      allowNull: true
     }
   }, {
     sequelize,

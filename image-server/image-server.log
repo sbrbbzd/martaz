@@ -1,0 +1,87 @@
+Image server running at http://localhost:3001
+Serving files from: /Users/sabirbabazade/Mart.az/tmp
+Error: Only image files are allowed
+    at fileFilter (/Users/sabirbabazade/Mart.az/image-server/server.js:55:10)
+    at wrappedFileFilter (/Users/sabirbabazade/Mart.az/image-server/node_modules/multer/index.js:44:7)
+    at Multipart.<anonymous> (/Users/sabirbabazade/Mart.az/image-server/node_modules/multer/lib/make-middleware.js:107:7)
+    at Multipart.emit (node:events:507:28)
+    at HeaderParser.cb (/Users/sabirbabazade/Mart.az/image-server/node_modules/busboy/lib/types/multipart.js:358:14)
+    at HeaderParser.push (/Users/sabirbabazade/Mart.az/image-server/node_modules/busboy/lib/types/multipart.js:162:20)
+    at SBMH.ssCb [as _cb] (/Users/sabirbabazade/Mart.az/image-server/node_modules/busboy/lib/types/multipart.js:394:37)
+    at feed (/Users/sabirbabazade/Mart.az/image-server/node_modules/streamsearch/lib/sbmh.js:219:14)
+    at SBMH.push (/Users/sabirbabazade/Mart.az/image-server/node_modules/streamsearch/lib/sbmh.js:104:16)
+    at Multipart._write (/Users/sabirbabazade/Mart.az/image-server/node_modules/busboy/lib/types/multipart.js:567:19)
+[DEBUG] Attempting to serve: /Users/sabirbabazade/Mart.az/tmp/1d740ba3-b958-4447-993a-50a47b82f9a1.png
+[DEBUG] File exists: /Users/sabirbabazade/Mart.az/tmp/1d740ba3-b958-4447-993a-50a47b82f9a1.png
+[DEBUG] Attempting to serve: /Users/sabirbabazade/Mart.az/tmp/63e61a84-9beb-44ed-9412-83759a125d4f.JPG
+[DEBUG] File exists: /Users/sabirbabazade/Mart.az/tmp/63e61a84-9beb-44ed-9412-83759a125d4f.JPG
+[DEBUG] Attempting to serve: /Users/sabirbabazade/Mart.az/tmp/1aa218f3-b264-4973-be49-a5e42694aab9.png
+[DEBUG] File exists: /Users/sabirbabazade/Mart.az/tmp/1aa218f3-b264-4973-be49-a5e42694aab9.png
+[DEBUG] Attempting to serve: /Users/sabirbabazade/Mart.az/tmp/9ede04fd-f015-46a8-b2f6-1a22fb9f47c4.png
+[DEBUG] File exists: /Users/sabirbabazade/Mart.az/tmp/9ede04fd-f015-46a8-b2f6-1a22fb9f47c4.png
+[DEBUG] Attempting to serve: /Users/sabirbabazade/Mart.az/tmp/aa351932-f491-4602-9147-ac6ede85701b.png
+[DEBUG] File exists: /Users/sabirbabazade/Mart.az/tmp/aa351932-f491-4602-9147-ac6ede85701b.png
+[DEBUG] Attempting to serve: /Users/sabirbabazade/Mart.az/tmp/21ad092b-54f7-4a88-9ea6-cfa701eecef0.png
+[DEBUG] File exists: /Users/sabirbabazade/Mart.az/tmp/21ad092b-54f7-4a88-9ea6-cfa701eecef0.png
+[DEBUG] Attempting to serve: /Users/sabirbabazade/Mart.az/tmp/aaa6b314-8270-42b3-a6b2-0823b97ee66d.png
+[DEBUG] File exists: /Users/sabirbabazade/Mart.az/tmp/aaa6b314-8270-42b3-a6b2-0823b97ee66d.png
+[DEBUG] Attempting to serve: /Users/sabirbabazade/Mart.az/tmp/b6016e1f-f8c6-4a84-954c-f98049d508ac.png
+[DEBUG] File exists: /Users/sabirbabazade/Mart.az/tmp/b6016e1f-f8c6-4a84-954c-f98049d508ac.png
+[DEBUG] Attempting to serve: /Users/sabirbabazade/Mart.az/tmp/51f33265-84bd-4948-b20c-51184debf322.png
+[DEBUG] File exists: /Users/sabirbabazade/Mart.az/tmp/51f33265-84bd-4948-b20c-51184debf322.png
+[DEBUG] Attempting to serve: /Users/sabirbabazade/Mart.az/tmp/1d740ba3-b958-4447-993a-50a47b82f9a1.png
+[DEBUG] File exists: /Users/sabirbabazade/Mart.az/tmp/1d740ba3-b958-4447-993a-50a47b82f9a1.png
+[DEBUG] Attempting to serve: /Users/sabirbabazade/Mart.az/tmp/63e61a84-9beb-44ed-9412-83759a125d4f.JPG
+[DEBUG] File exists: /Users/sabirbabazade/Mart.az/tmp/63e61a84-9beb-44ed-9412-83759a125d4f.JPG
+[DEBUG] Attempting to serve: /Users/sabirbabazade/Mart.az/tmp/1aa218f3-b264-4973-be49-a5e42694aab9.png
+[DEBUG] File exists: /Users/sabirbabazade/Mart.az/tmp/1aa218f3-b264-4973-be49-a5e42694aab9.png
+[DEBUG] Attempting to serve: /Users/sabirbabazade/Mart.az/tmp/9ede04fd-f015-46a8-b2f6-1a22fb9f47c4.png
+[DEBUG] File exists: /Users/sabirbabazade/Mart.az/tmp/9ede04fd-f015-46a8-b2f6-1a22fb9f47c4.png
+[DEBUG] Attempting to serve: /Users/sabirbabazade/Mart.az/tmp/aa351932-f491-4602-9147-ac6ede85701b.png
+[DEBUG] File exists: /Users/sabirbabazade/Mart.az/tmp/aa351932-f491-4602-9147-ac6ede85701b.png
+[DEBUG] Attempting to serve: /Users/sabirbabazade/Mart.az/tmp/21ad092b-54f7-4a88-9ea6-cfa701eecef0.png
+[DEBUG] File exists: /Users/sabirbabazade/Mart.az/tmp/21ad092b-54f7-4a88-9ea6-cfa701eecef0.png
+[DEBUG] Attempting to serve: /Users/sabirbabazade/Mart.az/tmp/aaa6b314-8270-42b3-a6b2-0823b97ee66d.png
+[DEBUG] File exists: /Users/sabirbabazade/Mart.az/tmp/aaa6b314-8270-42b3-a6b2-0823b97ee66d.png
+[DEBUG] Attempting to serve: /Users/sabirbabazade/Mart.az/tmp/b6016e1f-f8c6-4a84-954c-f98049d508ac.png
+[DEBUG] File exists: /Users/sabirbabazade/Mart.az/tmp/b6016e1f-f8c6-4a84-954c-f98049d508ac.png
+[DEBUG] Attempting to serve: /Users/sabirbabazade/Mart.az/tmp/51f33265-84bd-4948-b20c-51184debf322.png
+[DEBUG] File exists: /Users/sabirbabazade/Mart.az/tmp/51f33265-84bd-4948-b20c-51184debf322.png
+[DEBUG] Attempting to serve: /Users/sabirbabazade/Mart.az/tmp/1d740ba3-b958-4447-993a-50a47b82f9a1.png
+[DEBUG] File exists: /Users/sabirbabazade/Mart.az/tmp/1d740ba3-b958-4447-993a-50a47b82f9a1.png
+[DEBUG] Attempting to serve: /Users/sabirbabazade/Mart.az/tmp/63e61a84-9beb-44ed-9412-83759a125d4f.JPG
+[DEBUG] File exists: /Users/sabirbabazade/Mart.az/tmp/63e61a84-9beb-44ed-9412-83759a125d4f.JPG
+[DEBUG] Attempting to serve: /Users/sabirbabazade/Mart.az/tmp/1aa218f3-b264-4973-be49-a5e42694aab9.png
+[DEBUG] File exists: /Users/sabirbabazade/Mart.az/tmp/1aa218f3-b264-4973-be49-a5e42694aab9.png
+[DEBUG] Attempting to serve: /Users/sabirbabazade/Mart.az/tmp/9ede04fd-f015-46a8-b2f6-1a22fb9f47c4.png
+[DEBUG] File exists: /Users/sabirbabazade/Mart.az/tmp/9ede04fd-f015-46a8-b2f6-1a22fb9f47c4.png
+[DEBUG] Attempting to serve: /Users/sabirbabazade/Mart.az/tmp/aa351932-f491-4602-9147-ac6ede85701b.png
+[DEBUG] File exists: /Users/sabirbabazade/Mart.az/tmp/aa351932-f491-4602-9147-ac6ede85701b.png
+[DEBUG] Attempting to serve: /Users/sabirbabazade/Mart.az/tmp/21ad092b-54f7-4a88-9ea6-cfa701eecef0.png
+[DEBUG] File exists: /Users/sabirbabazade/Mart.az/tmp/21ad092b-54f7-4a88-9ea6-cfa701eecef0.png
+[DEBUG] Attempting to serve: /Users/sabirbabazade/Mart.az/tmp/aaa6b314-8270-42b3-a6b2-0823b97ee66d.png
+[DEBUG] File exists: /Users/sabirbabazade/Mart.az/tmp/aaa6b314-8270-42b3-a6b2-0823b97ee66d.png
+[DEBUG] Attempting to serve: /Users/sabirbabazade/Mart.az/tmp/b6016e1f-f8c6-4a84-954c-f98049d508ac.png
+[DEBUG] File exists: /Users/sabirbabazade/Mart.az/tmp/b6016e1f-f8c6-4a84-954c-f98049d508ac.png
+[DEBUG] Attempting to serve: /Users/sabirbabazade/Mart.az/tmp/51f33265-84bd-4948-b20c-51184debf322.png
+[DEBUG] File exists: /Users/sabirbabazade/Mart.az/tmp/51f33265-84bd-4948-b20c-51184debf322.png
+[DEBUG] Attempting to serve: /Users/sabirbabazade/Mart.az/tmp/1d740ba3-b958-4447-993a-50a47b82f9a1.png
+[DEBUG] File exists: /Users/sabirbabazade/Mart.az/tmp/1d740ba3-b958-4447-993a-50a47b82f9a1.png
+[DEBUG] Attempting to serve: /Users/sabirbabazade/Mart.az/tmp/1d740ba3-b958-4447-993a-50a47b82f9a1.png
+[DEBUG] File exists: /Users/sabirbabazade/Mart.az/tmp/1d740ba3-b958-4447-993a-50a47b82f9a1.png
+[DEBUG] Attempting to serve: /Users/sabirbabazade/Mart.az/tmp/63e61a84-9beb-44ed-9412-83759a125d4f.JPG
+[DEBUG] File exists: /Users/sabirbabazade/Mart.az/tmp/63e61a84-9beb-44ed-9412-83759a125d4f.JPG
+[DEBUG] Attempting to serve: /Users/sabirbabazade/Mart.az/tmp/1aa218f3-b264-4973-be49-a5e42694aab9.png
+[DEBUG] File exists: /Users/sabirbabazade/Mart.az/tmp/1aa218f3-b264-4973-be49-a5e42694aab9.png
+[DEBUG] Attempting to serve: /Users/sabirbabazade/Mart.az/tmp/9ede04fd-f015-46a8-b2f6-1a22fb9f47c4.png
+[DEBUG] File exists: /Users/sabirbabazade/Mart.az/tmp/9ede04fd-f015-46a8-b2f6-1a22fb9f47c4.png
+[DEBUG] Attempting to serve: /Users/sabirbabazade/Mart.az/tmp/aa351932-f491-4602-9147-ac6ede85701b.png
+[DEBUG] File exists: /Users/sabirbabazade/Mart.az/tmp/aa351932-f491-4602-9147-ac6ede85701b.png
+[DEBUG] Attempting to serve: /Users/sabirbabazade/Mart.az/tmp/21ad092b-54f7-4a88-9ea6-cfa701eecef0.png
+[DEBUG] File exists: /Users/sabirbabazade/Mart.az/tmp/21ad092b-54f7-4a88-9ea6-cfa701eecef0.png
+[DEBUG] Attempting to serve: /Users/sabirbabazade/Mart.az/tmp/aaa6b314-8270-42b3-a6b2-0823b97ee66d.png
+[DEBUG] File exists: /Users/sabirbabazade/Mart.az/tmp/aaa6b314-8270-42b3-a6b2-0823b97ee66d.png
+[DEBUG] Attempting to serve: /Users/sabirbabazade/Mart.az/tmp/b6016e1f-f8c6-4a84-954c-f98049d508ac.png
+[DEBUG] File exists: /Users/sabirbabazade/Mart.az/tmp/b6016e1f-f8c6-4a84-954c-f98049d508ac.png
+[DEBUG] Attempting to serve: /Users/sabirbabazade/Mart.az/tmp/51f33265-84bd-4948-b20c-51184debf322.png
+[DEBUG] File exists: /Users/sabirbabazade/Mart.az/tmp/51f33265-84bd-4948-b20c-51184debf322.png

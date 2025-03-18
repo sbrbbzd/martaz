@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Listing Detail Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            overflow: auto;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .listing-container {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .listing-image {
+            max-width: 300px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Listing Detail Test</h1>
+    
+    <div id="status">Loading...</div>
+    
+    <div id="response-data">
+        <h2>API Response</h2>
+        <pre id="raw-response"></pre>
+    </div>
+    
+    <div id="listing-container" class="listing-container" style="display: none;">
+        <h2>Rendered Listing</h2>
+        <div id="listing-title"></div>
+        <div id="listing-price"></div>
+        <div id="listing-image"></div>
+        <div id="listing-description"></div>
+    </div>
+    
+    <script>
+        const LISTING_ID = '159aa9bb-fe0b-42e4-a2c5-cdc81ec4873e';
+        
+        async function fetchListing() {
+            try {
+                const response = await fetch(`http://localhost:3000/api/listings/${LISTING_ID}`);
+                const data = await response.json();
+                
+                // Display raw response
+                document.getElementById('raw-response').textContent = JSON.stringify(data, null, 2);
+                
+                // Check if response has the expected structure
+                if (data.success && data.data && data.data.listing) {
+                    document.getElementById('status').innerHTML = '<span class="success">✅ Data loaded successfully</span>';
+                    
+                    const listing = data.data.listing;
+                    
+                    // Show the listing container
+                    document.getElementById('listing-container').style.display = 'block';
+                    
+                    // Set listing details
+                    document.getElementById('listing-title').innerHTML = `<h3>${listing.title}</h3>`;
+                    document.getElementById('listing-price').innerHTML = `<strong>Price:</strong> ${listing.price} ${listing.currency}`;
+                    
+                    // Display the first image if available
+                    if (listing.images && listing.images.length > 0) {
+                        const imgUrl = getImageUrl(listing.featuredImage || listing.images[0]);
+                        document.getElementById('listing-image').innerHTML = `<img src="${imgUrl}" class="listing-image" alt="${listing.title}">`;
+                    }
+                    
+                    // Set description
+                    document.getElementById('listing-description').innerHTML = `<p>${listing.description}</p>`;
+                } else {
+                    document.getElementById('status').innerHTML = '<span class="error">❌ Response structure is not as expected</span>';
+                }
+            } catch (error) {
+                document.getElementById('status').innerHTML = `<span class="error">❌ Error: ${error.message}</span>`;
+                console.error('Error fetching listing:', error);
+            }
+        }
+        
+        function getImageUrl(url) {
+            if (!url) return '/images/placeholder.jpg';
+            
+            // If already a full URL, return as is
+            if (url.startsWith('http://') || url.startsWith('https://')) {
+                return url;
+            }
+            
+            // tmp path - use the image server
+            if (url.startsWith('/tmp/')) {
+                return `http://localhost:3001/images/${url.substring(5)}`;
+            }
+            
+            // Default fallback
+            return url;
+        }
+        
+        // Fetch the listing when the page loads
+        fetchListing();
+    </script>
+</body>
+</html> 

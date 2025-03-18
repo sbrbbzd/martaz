@@ -7,14 +7,8 @@ const authRoutes = require('./auth.routes');
 const userRoutes = require('./user.routes');
 const listingRoutes = require('./listing.routes');
 const categoryRoutes = require('./category.routes');
-
-// Import admin routes if they exist
-let adminRoutes;
-try {
-  adminRoutes = require('./admin.routes');
-} catch (error) {
-  logger.warn('Admin routes not found');
-}
+const adminRoutes = require('./admin.routes');
+const importRoutes = require('./import');
 
 // API health check
 router.get('/', (req, res) => {
@@ -30,8 +24,7 @@ router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/listings', listingRoutes);
 router.use('/categories', categoryRoutes);
-
-// Mount admin routes if they exist
-if (adminRoutes) router.use('/admin', adminRoutes);
+router.use('/admin', adminRoutes);
+router.use('/import', importRoutes);
 
 module.exports = router; 

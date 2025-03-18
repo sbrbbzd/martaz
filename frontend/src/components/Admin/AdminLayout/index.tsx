@@ -5,19 +5,25 @@ import { useTranslation } from 'react-i18next';
 import { RootState } from '../../../store';
 import LoadingSpinner from '../../common/LoadingSpinner';
 import {
-  FaHome,
-  FaTachometerAlt,
-  FaUsers,
-  FaList,
-  FaFolderOpen,
-  FaFlag,
-  FaComments,
-  FaCog,
-  FaBars,
-  FaSignOutAlt,
-  FaChevronDown,
-  FaChevronRight
-} from 'react-icons/fa';
+  FiHome,
+  FiGrid,
+  FiUsers,
+  FiList,
+  FiFolder,
+  FiFlag,
+  FiMessageSquare,
+  FiSettings,
+  FiMenu,
+  FiLogOut,
+  FiChevronDown,
+  FiChevronRight,
+  FiBarChart2,
+  FiPackage,
+  FiShoppingBag,
+  FiDollarSign,
+  FiActivity
+} from 'react-icons/fi';
+import './styles.scss';
 
 interface AdminLayoutProps {
   children: React.ReactNode;
@@ -33,43 +39,38 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const [menuExpanded, setMenuExpanded] = useState<{[key: string]: boolean}>({
     listings: location.pathname.includes('/admin/listings'),
     users: location.pathname.includes('/admin/users'),
-    categories: location.pathname.includes('/admin/categories')
+    categories: location.pathname.includes('/admin/categories'),
+    reports: location.pathname.includes('/admin/reports')
   });
   const [authorized, setAuthorized] = useState<boolean | null>(null);
   
   // Check if user is admin on mount with improved loading handling
   useEffect(() => {
-    console.log('AdminLayout - Auth state:', { user, authLoading, isAuthenticated });
-    
     // Don't redirect if still loading the auth state
     if (authLoading) {
-      console.log('AdminLayout - Auth is still loading, waiting...');
       return;
     }
     
     // If we're authenticated and have user data
     if (isAuthenticated && user) {
       if (user.role === 'admin') {
-        console.log('AdminLayout - User is admin, allowing access');
         setAuthorized(true);
       } else {
-        console.log('AdminLayout - User is not admin, redirecting to home');
         setAuthorized(false);
         navigate('/');
       }
     } else if (!authLoading) {
       // Only redirect if we've finished loading and the user is not authenticated
-      console.log('AdminLayout - User is not authenticated, redirecting to login');
       setAuthorized(false);
       navigate('/login');
     }
   }, [user, authLoading, isAuthenticated, navigate]);
   
-  const toggleSidebarFunction = () => {
+  const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
   
-  const toggleMenuFunction = (menu: string) => {
+  const toggleMenu = (menu: string) => {
     setMenuExpanded(prev => ({
       ...prev,
       [menu]: !prev[menu]
@@ -79,13 +80,17 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const isActive = (path: string) => {
     return location.pathname === path;
   };
+
+  const isActiveOrSubActive = (path: string) => {
+    return location.pathname.startsWith(path);
+  };
   
   // Show loading state until authorization is determined
   if (authLoading || authorized === null) {
     return (
       <div className="admin-loading">
         <LoadingSpinner />
-        <p>Loading Admin Dashboard...</p>
+        <p>{t('admin.loading.dashboard', 'Loading Admin Dashboard...')}</p>
       </div>
     );
   }
@@ -103,8 +108,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             <img src="/logo.png" alt="Mart.az" />
             {sidebarOpen && <span>Admin Panel</span>}
           </Link>
-          <button className="toggle-sidebar" onClick={toggleSidebarFunction}>
-            <FaBars />
+          <button className="toggle-sidebar" onClick={toggleSidebar} aria-label="Toggle sidebar">
+            <FiMenu />
           </button>
         </div>
         
@@ -113,28 +118,30 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             <ul className="nav-list">
               <li className="nav-item">
                 <Link to="/" className="nav-link">
-                  <FaHome />
-                  {sidebarOpen && <span>{t('admin.sidebar.mainSite')}</span>}
+                  <FiHome />
+                  {sidebarOpen && <span>{t('common.home', 'Home')}</span>}
                 </Link>
               </li>
               
               <li className={`nav-item ${isActive('/admin') ? 'active' : ''}`}>
                 <Link to="/admin" className="nav-link">
-                  <FaTachometerAlt />
-                  {sidebarOpen && <span>{t('admin.sidebar.dashboard')}</span>}
+                  <FiGrid />
+                  {sidebarOpen && <span>{t('admin.dashboard.title', 'Dashboard')}</span>}
                 </Link>
               </li>
               
-              <li className={`nav-item ${location.pathname.includes('/admin/listings') ? 'active' : ''}`}>
+              <li className={`nav-item ${isActiveOrSubActive('/admin/listings') ? 'active' : ''}`}>
                 <div 
                   className="nav-link has-submenu"
-                  onClick={() => toggleMenuFunction('listings')}
+                  onClick={() => toggleMenu('listings')}
                 >
-                  <FaList />
+                  <FiPackage />
                   {sidebarOpen && (
                     <>
-                      <span>{t('admin.sidebar.listings')}</span>
-                      {menuExpanded.listings ? <FaChevronDown /> : <FaChevronRight />}
+                      <span>{t('admin.sidebar.listings', 'Listings')}</span>
+                      <span className="submenu-icon">
+                        {menuExpanded.listings ? <FiChevronDown /> : <FiChevronRight />}
+                      </span>
                     </>
                   )}
                 </div>
@@ -142,28 +149,45 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                 {sidebarOpen && menuExpanded.listings && (
                   <ul className="submenu">
                     <li className={isActive('/admin/listings') ? 'active' : ''}>
-                      <Link to="/admin/listings">{t('admin.sidebar.allListings')}</Link>
+                      <Link to="/admin/listings">
+                        <span className="submenu-dot"></span>
+                        {t('admin.all', 'All Listings')}
+                      </Link>
                     </li>
                     <li className={isActive('/admin/listings/pending') ? 'active' : ''}>
-                      <Link to="/admin/listings/pending">{t('admin.sidebar.pendingListings')}</Link>
+                      <Link to="/admin/listings/pending">
+                        <span className="submenu-dot"></span>
+                        {t('admin.pending_listings', 'Pending Listings')}
+                      </Link>
                     </li>
                     <li className={isActive('/admin/listings/reported') ? 'active' : ''}>
-                      <Link to="/admin/listings/reported">{t('admin.sidebar.reportedListings')}</Link>
+                      <Link to="/admin/listings/reported">
+                        <span className="submenu-dot"></span>
+                        {t('admin.reported_listings', 'Reported Listings')}
+                      </Link>
+                    </li>
+                    <li className={isActive('/admin/listings/featured') ? 'active' : ''}>
+                      <Link to="/admin/listings/featured">
+                        <span className="submenu-dot"></span>
+                        {t('admin.featured_listings', 'Featured Listings')}
+                      </Link>
                     </li>
                   </ul>
                 )}
               </li>
               
-              <li className={`nav-item ${location.pathname.includes('/admin/users') ? 'active' : ''}`}>
+              <li className={`nav-item ${isActiveOrSubActive('/admin/users') ? 'active' : ''}`}>
                 <div 
                   className="nav-link has-submenu"
-                  onClick={() => toggleMenuFunction('users')}
+                  onClick={() => toggleMenu('users')}
                 >
-                  <FaUsers />
+                  <FiUsers />
                   {sidebarOpen && (
                     <>
-                      <span>{t('admin.sidebar.users')}</span>
-                      {menuExpanded.users ? <FaChevronDown /> : <FaChevronRight />}
+                      <span>{t('admin.sidebar.users', 'Users')}</span>
+                      <span className="submenu-icon">
+                        {menuExpanded.users ? <FiChevronDown /> : <FiChevronRight />}
+                      </span>
                     </>
                   )}
                 </div>
@@ -171,25 +195,39 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                 {sidebarOpen && menuExpanded.users && (
                   <ul className="submenu">
                     <li className={isActive('/admin/users') ? 'active' : ''}>
-                      <Link to="/admin/users">{t('admin.sidebar.allUsers')}</Link>
+                      <Link to="/admin/users">
+                        <span className="submenu-dot"></span>
+                        {t('admin.all_users', 'All Users')}
+                      </Link>
                     </li>
                     <li className={isActive('/admin/users/admins') ? 'active' : ''}>
-                      <Link to="/admin/users/admins">{t('admin.sidebar.admins')}</Link>
+                      <Link to="/admin/users/admins">
+                        <span className="submenu-dot"></span>
+                        {t('admin.admins', 'Administrators')}
+                      </Link>
+                    </li>
+                    <li className={isActive('/admin/users/banned') ? 'active' : ''}>
+                      <Link to="/admin/users/banned">
+                        <span className="submenu-dot"></span>
+                        {t('admin.banned_users', 'Banned Users')}
+                      </Link>
                     </li>
                   </ul>
                 )}
               </li>
               
-              <li className={`nav-item ${location.pathname.includes('/admin/categories') ? 'active' : ''}`}>
+              <li className={`nav-item ${isActiveOrSubActive('/admin/categories') ? 'active' : ''}`}>
                 <div 
                   className="nav-link has-submenu"
-                  onClick={() => toggleMenuFunction('categories')}
+                  onClick={() => toggleMenu('categories')}
                 >
-                  <FaFolderOpen />
+                  <FiFolder />
                   {sidebarOpen && (
                     <>
-                      <span>{t('admin.sidebar.categories')}</span>
-                      {menuExpanded.categories ? <FaChevronDown /> : <FaChevronRight />}
+                      <span>{t('admin.sidebar.categories', 'Categories')}</span>
+                      <span className="submenu-icon">
+                        {menuExpanded.categories ? <FiChevronDown /> : <FiChevronRight />}
+                      </span>
                     </>
                   )}
                 </div>
@@ -197,33 +235,72 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                 {sidebarOpen && menuExpanded.categories && (
                   <ul className="submenu">
                     <li className={isActive('/admin/categories') ? 'active' : ''}>
-                      <Link to="/admin/categories">{t('admin.sidebar.manageCategories')}</Link>
+                      <Link to="/admin/categories">
+                        <span className="submenu-dot"></span>
+                        {t('admin.manage_categories', 'Manage Categories')}
+                      </Link>
                     </li>
                     <li className={isActive('/admin/categories/attributes') ? 'active' : ''}>
-                      <Link to="/admin/categories/attributes">{t('admin.sidebar.categoryAttributes')}</Link>
+                      <Link to="/admin/categories/attributes">
+                        <span className="submenu-dot"></span>
+                        {t('admin.category_attributes', 'Category Attributes')}
+                      </Link>
                     </li>
                   </ul>
                 )}
               </li>
               
-              <li className={`nav-item ${isActive('/admin/reports') ? 'active' : ''}`}>
-                <Link to="/admin/reports" className="nav-link">
-                  <FaFlag />
-                  {sidebarOpen && <span>{t('admin.sidebar.reports')}</span>}
-                </Link>
+              <li className={`nav-item ${isActiveOrSubActive('/admin/reports') ? 'active' : ''}`}>
+                <div 
+                  className="nav-link has-submenu"
+                  onClick={() => toggleMenu('reports')}
+                >
+                  <FiBarChart2 />
+                  {sidebarOpen && (
+                    <>
+                      <span>{t('admin.sidebar.reports', 'Reports')}</span>
+                      <span className="submenu-icon">
+                        {menuExpanded.reports ? <FiChevronDown /> : <FiChevronRight />}
+                      </span>
+                    </>
+                  )}
+                </div>
+                
+                {sidebarOpen && menuExpanded.reports && (
+                  <ul className="submenu">
+                    <li className={isActive('/admin/reports/users') ? 'active' : ''}>
+                      <Link to="/admin/reports/users">
+                        <span className="submenu-dot"></span>
+                        {t('admin.user_reports', 'User Reports')}
+                      </Link>
+                    </li>
+                    <li className={isActive('/admin/reports/listings') ? 'active' : ''}>
+                      <Link to="/admin/reports/listings">
+                        <span className="submenu-dot"></span>
+                        {t('admin.listing_reports', 'Listing Reports')}
+                      </Link>
+                    </li>
+                    <li className={isActive('/admin/reports/sales') ? 'active' : ''}>
+                      <Link to="/admin/reports/sales">
+                        <span className="submenu-dot"></span>
+                        {t('admin.sales_reports', 'Sales Reports')}
+                      </Link>
+                    </li>
+                  </ul>
+                )}
               </li>
               
               <li className={`nav-item ${isActive('/admin/messages') ? 'active' : ''}`}>
                 <Link to="/admin/messages" className="nav-link">
-                  <FaComments />
-                  {sidebarOpen && <span>{t('admin.sidebar.messages')}</span>}
+                  <FiMessageSquare />
+                  {sidebarOpen && <span>{t('admin.sidebar.messages', 'Messages')}</span>}
                 </Link>
               </li>
               
               <li className={`nav-item ${isActive('/admin/settings') ? 'active' : ''}`}>
                 <Link to="/admin/settings" className="nav-link">
-                  <FaCog />
-                  {sidebarOpen && <span>{t('admin.sidebar.settings')}</span>}
+                  <FiSettings />
+                  {sidebarOpen && <span>{t('admin.sidebar.settings', 'Settings')}</span>}
                 </Link>
               </li>
             </ul>
@@ -231,14 +308,25 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         </div>
         
         <div className="sidebar-footer">
-          <div className="admin-info">
-            {sidebarOpen && (
-              <div className="admin-details">
-                <div className="admin-name">{user?.firstName} {user?.lastName}</div>
-                <div className="admin-role">{t('admin.sidebar.adminRole')}</div>
+          {user && (
+            <div className="admin-info">
+              <div className="admin-avatar">
+                {user.profileImage ? (
+                  <img src={user.profileImage} alt={`${user.firstName} ${user.lastName}`} />
+                ) : (
+                  <div className="avatar-placeholder">
+                    {user.firstName?.[0]}{user.lastName?.[0]}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
+              {sidebarOpen && (
+                <div className="admin-details">
+                  <div className="admin-name">{user.firstName} {user.lastName}</div>
+                  <div className="admin-role">{t('admin.sidebar.adminRole', 'Administrator')}</div>
+                </div>
+              )}
+            </div>
+          )}
           
           <button 
             className="logout-button"
@@ -247,14 +335,38 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               navigate('/login');
             }}
           >
-            <FaSignOutAlt />
-            {sidebarOpen && <span>{t('admin.sidebar.logout')}</span>}
+            <FiLogOut />
+            {sidebarOpen && <span>{t('admin.sidebar.logout', 'Logout')}</span>}
           </button>
         </div>
       </aside>
       
-      <main className="admin-main">
-        {children}
+      <main className="admin-content">
+        <header className="admin-header">
+          <div className="header-left">
+            <button className="mobile-menu-toggle" onClick={toggleSidebar}>
+              <FiMenu />
+            </button>
+            <h1 className="page-title">
+              {location.pathname === '/admin' && t('admin.dashboard.title', 'Dashboard')}
+              {location.pathname.includes('/admin/listings') && t('admin.sidebar.listings', 'Listings')}
+              {location.pathname.includes('/admin/users') && t('admin.sidebar.users', 'Users')}
+              {location.pathname.includes('/admin/categories') && t('admin.sidebar.categories', 'Categories')}
+              {location.pathname.includes('/admin/reports') && t('admin.sidebar.reports', 'Reports')}
+              {location.pathname.includes('/admin/messages') && t('admin.sidebar.messages', 'Messages')}
+              {location.pathname.includes('/admin/settings') && t('admin.sidebar.settings', 'Settings')}
+            </h1>
+          </div>
+          <div className="header-right">
+            <div className="header-actions">
+              {/* Add header actions here if needed */}
+            </div>
+          </div>
+        </header>
+        
+        <div className="admin-content-wrapper">
+          {children}
+        </div>
       </main>
     </div>
   );

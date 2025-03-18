@@ -1,3 +1,5 @@
+@use 'sass:color';
+
 // Colors
 $primary-color: #4a6cf7; // Modern blue
 $primary-light: #7790f9;
@@ -6,6 +8,17 @@ $secondary-color: #ff9f1c; // Warm orange
 $secondary-light: #ffbe5c;
 $secondary-dark: #e08200;
 $accent-color: #32d989; // Fresh green
+
+// Primary color variants (for consistent naming)
+$primary-500: $primary-color;
+$primary-600: $primary-dark;
+$primary-400: $primary-light;
+$primary-700: color.adjust($primary-color, $lightness: -20%);
+$primary-800: color.adjust($primary-color, $lightness: -25%);
+$primary-900: #1a3399; // Darker shade for shadows
+$primary-300: color.adjust($primary-color, $lightness: 15%);
+$primary-200: color.adjust($primary-color, $lightness: 25%);
+$primary-100: color.adjust($primary-color, $lightness: 35%);
 
 // Neutrals
 $black: #0c0e16;
@@ -23,9 +36,15 @@ $white: #ffffff;
 
 // Status colors
 $success: #38cb89;
+$success-dark: color.adjust($success, $lightness: -15%);
 $warning: #ffb648;
+$warning-dark: color.adjust($warning, $lightness: -15%);
 $error: #ff5724;
+$error-dark: color.adjust($error, $lightness: -15%);
+$danger: #ff5724; // Alias for error
+$danger-dark: $error-dark;
 $info: #3bc1f6;
+$info-dark: color.adjust($info, $lightness: -15%);
 
 // Typography
 $font-family-primary: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;

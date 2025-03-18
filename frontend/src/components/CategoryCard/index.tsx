@@ -10,9 +10,10 @@ interface CategoryCardProps {
   count?: number;
   icon: string;
   onClick?: () => void;
+  slug?: string;
 }
 
-const CategoryCard: React.FC<CategoryCardProps> = ({ id, name, count = 0, icon, onClick }) => {
+const CategoryCard: React.FC<CategoryCardProps> = ({ id, name, count = 0, icon, onClick, slug }) => {
   const { t } = useTranslation();
   const isCustomIcon = icon.includes('.svg');
 
@@ -20,8 +21,10 @@ const CategoryCard: React.FC<CategoryCardProps> = ({ id, name, count = 0, icon, 
     if (onClick) onClick();
   };
 
+  const categorySlug = slug || id;
+
   return (
-    <Link to={`/listings?category=${id}`} className="category-card__link" onClick={handleClick}>
+    <Link to={`/${categorySlug}`} className="category-card__link" onClick={handleClick}>
       <Card variant="default" className="category-card">
         <div className="category-card__icon-wrapper">
           {isCustomIcon ? (

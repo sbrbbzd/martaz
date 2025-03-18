@@ -117,14 +117,7 @@ const Header: React.FC = () => {
                   {t('common.listings')}
                 </Link>
               </li>
-              <li className="header__menu-item">
-                <Link 
-                  to="/categories" 
-                  className={`header__menu-link ${location.pathname === '/categories' ? 'header__menu-link--active' : ''}`}
-                >
-                  {t('common.categories')}
-                </Link>
-              </li>
+            
             </ul>
             
             {/* Mobile language */}

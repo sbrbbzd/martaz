@@ -40,7 +40,17 @@ const listingSchema = {
     feature: Joi.boolean(),
     promote: Joi.boolean(),
     days: Joi.number().integer().min(1).max(90).default(7)
-  }).or('feature', 'promote')
+  }).or('feature', 'promote'),
+  
+  // Schema for featuring a listing
+  feature: Joi.object({
+    duration: Joi.string().valid('day', 'week', 'month').required()
+      .messages({
+        'string.empty': 'Duration is required',
+        'any.required': 'Duration is required',
+        'any.only': 'Duration must be one of: day, week, month'
+      })
+  })
 };
 
 module.exports = { listingSchema }; 

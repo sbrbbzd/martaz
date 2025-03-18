@@ -5,9 +5,10 @@ import path from 'path';
 // https://vitejs.dev/config/
 export default defineConfig({
   root: '.',
+  base: '/martaz/',
   plugins: [react()],
   server: {
-    port: 8080,
+    port: 5173,
     proxy: {
       '/api': {
         target: 'http://localhost:3000',
@@ -36,7 +37,7 @@ export default defineConfig({
     }
   },
   build: {
-    outDir: 'build',
+    outDir: 'dist',
     sourcemap: true,
     // Üretim yapılandırması
     manifest: true,

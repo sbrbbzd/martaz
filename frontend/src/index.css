@@ -1,0 +1,57 @@
+/* Add styling for the image reload banner */
+.image-reload-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  background-color: #ff9800;
+  color: white;
+  padding: 8px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.image-reload-banner p {
+  margin: 0;
+}
+
+.image-reload-button {
+  background-color: white;
+  color: #ff9800;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.image-reload-button:hover {
+  background-color: #f5f5f5;
+}
+
+/* Style for the retry button in listing detail page */
+.listing-detail-page__retry-button {
+  margin-bottom: 10px;
+  background-color: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 14px;
+  color: #333;
+}
+
+.listing-detail-page__retry-button:hover {
+  background-color: #e0e0e0;
+}
+
+.listing-detail-page__retry-button svg {
+  margin-right: 6px;
+} 

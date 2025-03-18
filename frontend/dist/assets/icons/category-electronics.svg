@@ -1,7 +1,12 @@
-<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="48" height="48" rx="24" fill="#EFF6FF"/>
-  <path d="M34 14H14C12.8954 14 12 14.8954 12 16V32C12 33.1046 12.8954 34 14 34H34C35.1046 34 36 33.1046 36 32V16C36 14.8954 35.1046 14 34 14Z" fill="#93C5FD"/>
-  <path d="M34 16H14V28H34V16Z" fill="#3B82F6"/>
-  <path d="M21 31H27" stroke="#1D4ED8" stroke-width="2" stroke-linecap="round"/>
-  <path d="M18 24L21 20L24 25L27 22L30 26" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+  <rect x="9" y="9" width="6" height="6"></rect>
+  <line x1="9" y1="2" x2="9" y2="4"></line>
+  <line x1="15" y1="2" x2="15" y2="4"></line>
+  <line x1="9" y1="20" x2="9" y2="22"></line>
+  <line x1="15" y1="20" x2="15" y2="22"></line>
+  <line x1="20" y1="9" x2="22" y2="9"></line>
+  <line x1="20" y1="14" x2="22" y2="14"></line>
+  <line x1="2" y1="9" x2="4" y2="9"></line>
+  <line x1="2" y1="14" x2="4" y2="14"></line>
 </svg> 

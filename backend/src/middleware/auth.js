@@ -9,32 +9,45 @@ const { AuthenticationError, ForbiddenError, ApiError } = require('../utils/erro
  */
 const auth = () => async (req, res, next) => {
   try {
+    console.log('=== AUTH MIDDLEWARE START ===');
+    
     // Get token from header
     const token = req.headers.authorization?.replace('Bearer ', '');
+    console.log('Token present:', !!token);
 
     if (!token) {
+      console.log('No token provided, rejecting request');
       throw new ApiError(401, 'No token provided');
     }
 
     // Verify token
+    console.log('Verifying token...');
     const decoded = jwt.verify(token, config.jwt.secret);
+    console.log('Token verified. User ID in token:', decoded.id);
 
     // Get user from database
     const user = await User.findByPk(decoded.id);
+    console.log('User found in database:', !!user);
 
     if (!user) {
+      console.log('User not found in database');
       throw new ApiError(401, 'User not found');
     }
 
     // Check if user is active
+    console.log('User status:', user.status);
     if (user.status !== 'active') {
+      console.log('User account not active');
       throw new ForbiddenError('Account is not active');
     }
 
     // Attach user to request object
     req.user = user;
+    console.log('User attached to request. ID:', user.id);
+    console.log('=== AUTH MIDDLEWARE END ===');
     next();
   } catch (error) {
+    console.log('Auth middleware error:', error.message);
     if (error.name === 'JsonWebTokenError') {
       next(new ApiError(401, 'Invalid token'));
     } else if (error.name === 'TokenExpiredError') {
@@ -49,7 +62,7 @@ const auth = () => async (req, res, next) => {
  * Admin authorization middleware
  * Checks if the authenticated user is an admin
  */
-exports.adminAuth = async (req, res, next) => {
+const adminAuth = async (req, res, next) => {
   try {
     // First authenticate the user
     await auth()(req, res, () => {});
@@ -69,7 +82,7 @@ exports.adminAuth = async (req, res, next) => {
  * Super admin authorization middleware
  * Checks if the authenticated user is a super admin
  */
-exports.superAdminAuth = async (req, res, next) => {
+const superAdminAuth = async (req, res, next) => {
   try {
     // First authenticate the user
     await auth()(req, res, () => {});
@@ -86,5 +99,7 @@ exports.superAdminAuth = async (req, res, next) => {
 };
 
 module.exports = {
-  auth
+  auth,
+  adminAuth,
+  superAdminAuth
 }; 

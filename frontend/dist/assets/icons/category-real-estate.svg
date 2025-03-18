@@ -1,9 +1,4 @@
-<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <rect width="48" height="48" rx="24" fill="#FDF2F8"/>
-  <path d="M24 11L11 19V36H37V19L24 11Z" fill="#FBCFE8"/>
-  <path d="M19 25V36H29V25H19Z" fill="#DB2777"/>
-  <path d="M32 25V31H37V25H32Z" fill="#DB2777"/>
-  <path d="M11 25V31H16V25H11Z" fill="#DB2777"/>
-  <path d="M22 36V32C22 30.8954 22.8954 30 24 30C25.1046 30 26 30.8954 26 32V36" stroke="#9D174D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M11 19L24 11L37 19" stroke="#9D174D" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+  <polyline points="9 22 9 12 15 12 15 22"></polyline>
 </svg> 

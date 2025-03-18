@@ -1,0 +1,84 @@
+@use '../../styles/variables' as *;
+@use '../../styles/mixins' as mix;
+
+.import-dialog {
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: $spacing-4;
+  }
+  
+  &__field {
+    margin-bottom: $spacing-3;
+  }
+  
+  &__note {
+    padding: $spacing-3;
+    background-color: $gray-100;
+    border-radius: $border-radius-md;
+    margin-top: $spacing-3;
+    
+    p {
+      color: $gray-700;
+      font-size: $font-size-sm;
+      margin: 0;
+    }
+  }
+  
+  &__success, &__error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: $spacing-4;
+    
+    &-icon {
+      margin-bottom: $spacing-3;
+      
+      svg {
+        color: $success;
+      }
+    }
+    
+    h3 {
+      font-size: $font-size-lg;
+      margin-bottom: $spacing-2;
+      color: $gray-900;
+    }
+    
+    p {
+      color: $gray-700;
+      margin-bottom: $spacing-3;
+    }
+  }
+  
+  &__error {
+    &-icon svg {
+      color: $error;
+    }
+    
+    &-details {
+      padding: $spacing-3;
+      background-color: $gray-100;
+      border-radius: $border-radius-md;
+      font-size: $font-size-sm;
+      margin-top: $spacing-3;
+      text-align: left;
+      max-height: 100px;
+      overflow-y: auto;
+      width: 100%;
+      color: $gray-800;
+      border-left: 3px solid $error;
+    }
+  }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+} 

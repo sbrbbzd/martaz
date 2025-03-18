@@ -1,0 +1,364 @@
+const { Listing, Category, User } = require('../models');
+const { ApiError } = require('../utils/errors');
+const { uploadToS3 } = require('../utils/s3');
+
+exports.getListings = async (req, res, next) => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      sort = 'createdAt',
+      order = 'DESC',
+      status = 'active'
+    } = req.query;
+
+    const listings = await Listing.findAndCountAll({
+      where: { status },
+      include: [
+        { model: Category, as: 'category', attributes: ['id', 'name', 'slug'] },
+        { model: User, as: 'user', attributes: ['id', 'firstName', 'lastName'] }
+      ],
+      limit: parseInt(limit),
+      offset: (page - 1) * limit,
+      order: [[sort, order]]
+    });
+
+    res.json({
+      success: true,
+      data: {
+        listings: listings.rows,
+        total: listings.count,
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(listings.count / limit)
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.getListing = async (req, res, next) => {
+  try {
+    const idOrSlug = req.params.idOrSlug;
+    
+    // Check if it looks like a UUID
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(idOrSlug);
+    
+    // Build where condition based on parameter type
+    const where = isUUID ? { id: idOrSlug } : { slug: idOrSlug };
+    
+    const listing = await Listing.findOne({
+      where,
+      include: [
+        { model: Category, as: 'category' },
+        { model: User, as: 'user', attributes: ['id', 'firstName', 'lastName'] }
+      ]
+    });
+
+    if (!listing) {
+      throw new ApiError(404, 'Listing not found');
+    }
+
+    // Increment views
+    await listing.increment('views');
+
+    res.json({
+      success: true,
+      data: listing
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.createListing = async (req, res, next) => {
+  try {
+    console.log('createListing called');
+    console.log('Request body:', JSON.stringify(req.body, null, 2));
+    console.log('User:', req.user ? req.user.id : 'No user found');
+    
+    // Check if user is authenticated
+    if (!req.user || !req.user.id) {
+      console.error('Authentication error: No user found in request');
+      return res.status(401).json({
+        success: false,
+        message: 'User not authenticated or session expired'
+      });
+    }
+    
+    // Validate required fields
+    const requiredFields = ['title', 'description', 'price', 'location', 'categoryId'];
+    const missingFields = requiredFields.filter(field => !req.body[field]);
+    
+    if (missingFields.length > 0) {
+      console.error('Validation error: Missing required fields', missingFields);
+      return res.status(400).json({
+        success: false,
+        message: `Missing required fields: ${missingFields.join(', ')}`
+      });
+    }
+    
+    const listing = await Listing.create({
+      ...req.body,
+      userId: req.user.id,
+      status: 'pending',
+      expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
+    });
+    
+    console.log('Listing created successfully:', listing.id);
+
+    res.status(201).json({
+      success: true,
+      data: listing
+    });
+  } catch (error) {
+    console.error('Error creating listing:', error);
+    // Log detailed error information
+    if (error.name) console.error('Error name:', error.name);
+    if (error.message) console.error('Error message:', error.message);
+    if (error.stack) console.error('Error stack:', error.stack);
+    if (error.errors) console.error('Validation errors:', JSON.stringify(error.errors, null, 2));
+    
+    // Handle specific error types
+    if (error.name === 'SequelizeValidationError' || error.name === 'SequelizeUniqueConstraintError') {
+      return res.status(400).json({
+        success: false,
+        message: error.errors.map(e => e.message).join(', ')
+      });
+    }
+    
+    next(error);
+  }
+};
+
+exports.updateListing = async (req, res, next) => {
+  try {
+    const listing = await Listing.findByPk(req.params.id);
+
+    if (!listing) {
+      throw new ApiError(404, 'Listing not found');
+    }
+
+    if (listing.userId !== req.user.id && req.user.role !== 'admin') {
+      throw new ApiError(403, 'Not authorized to update this listing');
+    }
+
+    await listing.update(req.body);
+
+    res.json({
+      success: true,
+      data: listing
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.deleteListing = async (req, res, next) => {
+  try {
+    const listing = await Listing.findByPk(req.params.id);
+
+    if (!listing) {
+      throw new ApiError(404, 'Listing not found');
+    }
+
+    if (listing.userId !== req.user.id && req.user.role !== 'admin') {
+      throw new ApiError(403, 'Not authorized to delete this listing');
+    }
+
+    await listing.update({ status: 'deleted' });
+
+    res.json({
+      success: true,
+      message: 'Listing deleted successfully'
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+exports.uploadImages = async (req, res, next) => {
+  try {
+    console.log('Upload images request received with content type:', req.headers['content-type']);
+    console.log('Request has files object:', !!req.files);
+    console.log('Request files length:', req.files ? req.files.length : 0);
+    
+    // Also check req.file in case multer is using single upload
+    if (!req.files && req.file) {
+      console.log('Found single file in req.file instead of req.files');
+      req.files = [req.file];
+    }
+    
+    const listing = await Listing.findByPk(req.params.id);
+
+    if (!listing) {
+      console.error(`Listing with ID ${req.params.id} not found`);
+      throw new ApiError(404, 'Listing not found');
+    }
+
+    if (listing.userId !== req.user.id && req.user.role !== 'admin') {
+      console.error(`User ${req.user.id} not authorized to update listing ${listing.id}`);
+      throw new ApiError(403, 'Not authorized to update this listing');
+    }
+
+    // Check if we have files from multer
+    if (!req.files || req.files.length === 0) {
+      console.error('No files found in request');
+      console.error('Request keys:', Object.keys(req));
+      
+      // If files are in the request body (fallback for base64)
+      if (req.body && req.body.images && Array.isArray(req.body.images)) {
+        console.log('Found images in request body, trying to process as base64');
+        const uploadedImages = await Promise.all(
+          req.body.images.map(image => uploadBase64ToS3(image))
+        );
+        
+        // Add new images to existing ones
+        const currentImages = listing.images || [];
+        const updatedImages = [...currentImages, ...uploadedImages];
+        
+        // Update the listing with new images
+        await listing.update({
+          images: updatedImages,
+          featuredImage: listing.featuredImage || uploadedImages[0]
+        });
+        
+        return res.json({
+          status: 'success',
+          data: {
+            listing: {
+              id: listing.id,
+              images: updatedImages,
+              featuredImage: listing.featuredImage || uploadedImages[0]
+            }
+          }
+        });
+      } else {
+        throw new ApiError(400, 'No images provided');
+      }
+    }
+
+    console.log(`Received ${req.files.length} files for upload`);
+    console.log('File details:', req.files.map(f => ({ 
+      name: f.originalname, 
+      size: f.size, 
+      mimetype: f.mimetype 
+    })));
+
+    // Upload each file to local storage and get the URLs
+    const uploadPromises = req.files.map(file => {
+      try {
+        return uploadToS3(file); // This function now only uses local storage
+      } catch (err) {
+        console.error(`Error uploading file ${file.originalname}:`, err);
+        throw new ApiError(500, `Error uploading file ${file.originalname}: ${err.message}`);
+      }
+    });
+    
+    const uploadedImages = await Promise.all(uploadPromises);
+
+    console.log('Successfully uploaded images:', uploadedImages);
+    
+    // Add server URL to relative paths if needed
+    const fullPathImages = uploadedImages.map(path => {
+      // If it's already a full URL, return as is
+      if (path.startsWith('http')) return path;
+      
+      // Otherwise, prepend the server URL
+      const serverUrl = `${req.protocol}://${req.get('host')}`;
+      return `${serverUrl}${path}`;
+    });
+
+    console.log('Full path images:', fullPathImages);
+
+    // Get current images or empty array
+    const currentImages = listing.images || [];
+    
+    // Add new images to existing ones
+    const updatedImages = [...currentImages, ...fullPathImages];
+    
+    // Update the listing with new images
+    await listing.update({
+      images: updatedImages,
+      featuredImage: listing.featuredImage || fullPathImages[0]
+    });
+
+    res.json({
+      status: 'success',
+      data: {
+        listing: {
+          id: listing.id,
+          images: updatedImages,
+          featuredImage: listing.featuredImage || fullPathImages[0]
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error in uploadImages controller:', error);
+    next(error);
+  }
+};
+
+exports.getListingsByCategory = async (req, res, next) => {
+  try {
+    const {
+      page = 1,
+      limit = 10,
+      sort = 'createdAt',
+      order = 'DESC'
+    } = req.query;
+
+    const listings = await Listing.findAndCountAll({
+      where: {
+        categoryId: req.params.categoryId,
+        status: 'active'
+      },
+      include: [
+        { model: Category, as: 'category' },
+        { model: User, as: 'user', attributes: ['id', 'firstName', 'lastName'] }
+      ],
+      limit: parseInt(limit),
+      offset: (page - 1) * limit,
+      order: [[sort, order]]
+    });
+
+    res.json({
+      success: true,
+      data: {
+        listings: listings.rows,
+        total: listings.count,
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(listings.count / limit)
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Get featured listings
+exports.getFeaturedListings = async (req, res, next) => {
+  try {
+    const { limit = 8 } = req.query;
+    
+    const featuredListings = await Listing.findAll({
+      where: { 
+        status: 'active',
+        isPromoted: true
+      },
+      include: [
+        { model: Category, as: 'category', attributes: ['id', 'name', 'slug'] },
+        { model: User, as: 'user', attributes: ['id', 'firstName', 'lastName', 'profileImage'] }
+      ],
+      limit: parseInt(limit),
+      order: [['updatedAt', 'DESC']]
+    });
+
+    res.json({
+      status: 'success',
+      data: featuredListings
+    });
+  } catch (error) {
+    next(error);
+  }
+}; 

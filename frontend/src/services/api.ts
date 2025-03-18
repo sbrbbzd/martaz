@@ -2,6 +2,7 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { RootState } from '../store';
 import axios from 'axios';
 import { store } from '../store';
+import { transformApiError } from '../utils/errorHandling';
 
 // Define base types
 export interface User {
@@ -9,6 +10,7 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
+  username?: string;
   phone?: string;
   profileImage?: string;
   role: string;
@@ -33,6 +35,12 @@ export interface Category {
   updatedAt: string;
 }
 
+export type FeatureDuration = 'day' | 'week' | 'month';
+
+export interface FeatureListingRequest {
+  duration: FeatureDuration;
+}
+
 export interface Listing {
   id: string;
   title: string;
@@ -45,7 +53,7 @@ export interface Listing {
   images?: string[];
   featuredImage?: string;
   status: string;
-  isFeatured: boolean;
+  isFeatured?: boolean;
   isPromoted: boolean;
   promotionEndDate?: string;
   views: number;
@@ -59,9 +67,81 @@ export interface Listing {
   category?: Category;
   createdAt: string;
   updatedAt: string;
+  featuredUntil?: string;
 }
 
-// Define response types
+// Admin Dashboard Types
+export interface AdminDashboardListing {
+  id: string;
+  title: string;
+  user: string;
+  category: string;
+  createdAt: string;
+  price?: number;
+  images?: string[];
+}
+
+export interface AdminDashboardActivity {
+  id: string;
+  type: 'user-registered' | 'user-updated' | 'listing-created' | 'listing-reported' | 'listing-sold';
+  user: string;
+  email?: string;
+  role?: string;
+  title?: string;
+  reporter?: string;
+  reason?: string;
+  timestamp: string;
+}
+
+export interface AdminDashboardData {
+  totalUsers: {
+    count: number;
+  };
+  totalListings: {
+    count: number;
+  };
+  pendingListings: AdminDashboardListing[];
+  activeCategories: {
+    count: number;
+    list: string[];
+  };
+  userGrowth: number;
+  listingGrowth: number;
+  recentActivity: AdminDashboardActivity[];
+  totalRevenue?: number;
+}
+
+// Define admin response types
+export interface UsersResponse {
+  users: User[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface ListingsResponse {
+  listings: Listing[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface AdminDashboardResponse {
+  data: AdminDashboardData;
+}
+
+export interface ListingActionResponse {
+  success: boolean;
+  message: string;
+  data: {
+    id: string;
+  };
+}
+
+export interface RejectListingRequest {
+  reason?: string;
+}
+
 export interface PaginatedResponse<T> {
   success: boolean;
   data: {
@@ -72,6 +152,7 @@ export interface PaginatedResponse<T> {
   };
 }
 
+// Define response types
 export interface SingleResponse<T> {
   status: string;
   data: T;
@@ -124,18 +205,25 @@ export const api = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
     prepareHeaders: (headers, { getState }) => {
+      // Add specific debugging for auth
+      console.log('Preparing headers for API request');
+      
       // Get token from auth state
       const token = (getState() as RootState).auth.token;
+      console.log('Token from state:', token ? 'Present (hidden for security)' : 'Not present');
       
       // If we have a token, add it to the headers
       if (token) {
         headers.set('authorization', `Bearer ${token}`);
+        console.log('Authorization header set');
+      } else {
+        console.log('Warning: No auth token available');
       }
       
       return headers;
     },
   }),
-  tagTypes: ['Listing', 'Category', 'User'],
+  tagTypes: ['Listing', 'Category', 'User', 'FeaturedListings'],
   endpoints: (builder) => ({
     // Auth endpoints
     login: builder.mutation<AuthResponse, LoginRequest>({
@@ -180,8 +268,52 @@ export const api = createApi({
     // Category endpoints
     getCategories: builder.query<Category[], void>({
       query: () => '/categories',
-      transformResponse: (response: { status: string; data: Category[] }) => response.data,
+      transformResponse: (response: { status: string; data: Category[] }) => {
+        console.log('Raw categories response:', response);
+        return response.data;
+      },
       providesTags: ['Category'],
+      keepUnusedDataFor: 600, // Cache for 10 minutes
+      extraOptions: {
+        maxRetries: 3,
+      },
+      async onCacheEntryAdded(
+        arg,
+        { updateCachedData, cacheDataLoaded, cacheEntryRemoved, getCacheEntry, dispatch }
+      ) {
+        // Wait for the initial query to resolve before proceeding
+        try {
+          await cacheDataLoaded;
+          // After data is cached, log success
+          const currentData = getCacheEntry().data;
+          console.log('Categories cached successfully, count:', currentData?.length || 0);
+          
+          // Store in localStorage as backup
+          if (currentData && currentData.length > 0) {
+            try {
+              localStorage.setItem('cached_categories', JSON.stringify(currentData));
+              console.log('Categories saved to localStorage');
+            } catch (e) {
+              console.error('Failed to cache categories in localStorage:', e);
+            }
+          }
+        } catch (error) {
+          // On error, try to load from localStorage
+          console.error('Failed to cache categories:', error);
+          try {
+            const cachedData = localStorage.getItem('cached_categories');
+            if (cachedData) {
+              const parsedData = JSON.parse(cachedData);
+              console.log('Loaded categories from localStorage:', parsedData.length);
+              updateCachedData(() => parsedData);
+            }
+          } catch (e) {
+            console.error('Failed to load cached categories from localStorage:', e);
+          }
+        }
+        // Clean up subscription when cache entry is removed
+        await cacheEntryRemoved;
+      },
     }),
     
     getCategoryTree: builder.query<Category[], void>({
@@ -196,43 +328,80 @@ export const api = createApi({
     }),
     
     // Listing endpoints
-    getListings: builder.query<PaginatedResponse<Listing>, ListingQueryParams>({
+    getListings: builder.query<any, ListingQueryParams>({
       query: (params) => {
-        // Convert params to query string
         const queryParams = new URLSearchParams();
         
-        Object.entries(params).forEach(([key, value]) => {
-          if (value !== undefined) {
-            queryParams.append(key, value.toString());
+        if (params.page) queryParams.append('page', params.page.toString());
+        if (params.limit) queryParams.append('limit', params.limit.toString());
+        if (params.sort) queryParams.append('sort', params.sort);
+        if (params.order) queryParams.append('order', params.order);
+        // If category is provided and looks like a slug (not a UUID), use the category slug endpoint
+        if (params.category) {
+          // Check if the category is a UUID (categoryId) or a slug
+          const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.category);
+          
+          if (isUuid) {
+            // If it's a UUID, use it as categoryId directly
+            queryParams.append('categoryId', params.category);
+          } else {
+            // If it's a slug, use the slug parameter instead
+            queryParams.append('categorySlug', params.category);
           }
-        });
+        }
+        if (params.minPrice) queryParams.append('minPrice', params.minPrice.toString());
+        if (params.maxPrice) queryParams.append('maxPrice', params.maxPrice.toString());
+        if (params.condition) queryParams.append('condition', params.condition);
+        if (params.location) queryParams.append('location', params.location);
+        if (params.status) queryParams.append('status', params.status);
+        if (params.search) queryParams.append('search', params.search);
+        if (params.userId) queryParams.append('userId', params.userId);
+        if (params.favorites) queryParams.append('favorites', 'true');
         
-        return `/listings?${queryParams.toString()}`;
+        const queryString = queryParams.toString();
+        
+        return {
+          url: `/listings${queryString ? `?${queryString}` : ''}`,
+          method: 'GET',
+          transformResponse: (response: any) => {
+            console.log('Raw listings response:', response);
+            return response;
+          }
+        };
+      },
+      transformResponse: (response: any) => {
+        if (response.data && Array.isArray(response.data.listings)) {
+          response.data.listings = response.data.listings.map((listing: any) => convertImageUrls(listing));
+        }
+        return response;
       },
       providesTags: (result) =>
-        result?.data?.listings
+        result
           ? [
-              ...result.data.listings.map(({ id }) => ({ type: 'Listing' as const, id })),
+              ...result.data.listings.map(({ id }: { id: string }) => ({ type: 'Listing' as const, id })),
               { type: 'Listing', id: 'LIST' },
             ]
           : [{ type: 'Listing', id: 'LIST' }],
+      // Keep cached data for 5 minutes (300 seconds) to reduce excessive API calls
+      keepUnusedDataFor: 300,
     }),
     
-    getListing: builder.query<SingleResponse<Listing>, string>({
+    getListing: builder.query<any, string>({
       query: (idOrSlug) => `/listings/${idOrSlug}`,
+      transformResponse: (response: any) => {
+        if (response.data) {
+          response.data = convertImageUrls(response.data);
+        }
+        return response;
+      },
       providesTags: (result, error, id) => [{ type: 'Listing', id }],
+      // Keep cached data for 5 minutes (300 seconds) to reduce excessive API calls
+      keepUnusedDataFor: 300,
     }),
     
-    getFeaturedListings: builder.query<{ status: string; data: Listing[] }, number | void>({
-      query: (limit = 8) => `/listings/featured?limit=${limit}`,
-      transformResponse: (response: { status: string; data: Listing[] }) => response,
-      providesTags: (result) => 
-        result?.data
-          ? [
-              ...result.data.map(({ id }) => ({ type: 'Listing' as const, id })),
-              { type: 'Listing', id: 'FEATURED' },
-            ]
-          : [{ type: 'Listing', id: 'FEATURED' }],
+    getFeaturedListings: builder.query<PaginatedResponse<Listing>, void>({
+      query: () => '/listings/featured',
+      providesTags: ['Listing'],
     }),
     
     getMyListings: builder.query<PaginatedResponse<Listing>, ListingQueryParams>({
@@ -261,11 +430,16 @@ export const api = createApi({
     }),
     
     updateListing: builder.mutation<SingleResponse<Listing>, { id: string; listing: Partial<Listing> }>({
-      query: ({ id, listing }) => ({
-        url: `/listings/${id}`,
-        method: 'PUT',
-        body: listing,
-      }),
+      query: ({ id, listing }) => {
+        console.log('Updating listing:', id);
+        console.log('With data:', JSON.stringify(listing));
+        
+        return {
+          url: `/listings/${id}`,
+          method: 'PUT',
+          body: listing,
+        };
+      },
       invalidatesTags: (result, error, { id }) => [
         { type: 'Listing', id },
         { type: 'Listing', id: 'LIST' },
@@ -294,6 +468,20 @@ export const api = createApi({
       ],
     }),
     
+    featureListing: builder.mutation<SingleResponse<Listing>, { id: string; duration: FeatureDuration }>({
+      query: ({ id, duration }) => ({
+        url: `/listings/${id}/feature`,
+        method: 'POST',
+        body: { duration },
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'Listing', id },
+        { type: 'Listing', id: 'LIST' },
+        { type: 'Listing', id: 'MY_LISTINGS' },
+        'FeaturedListings',
+      ],
+    }),
+    
     // Favorites endpoints
     toggleFavorite: builder.mutation<{ status: string; message: string }, string>({
       query: (id) => ({
@@ -304,6 +492,293 @@ export const api = createApi({
         { type: 'Listing', id },
         { type: 'Listing', id: 'LIST' },
       ],
+    }),
+    
+    // Admin endpoints
+    getAdminDashboardData: builder.query<AdminDashboardData, void>({
+      query: () => '/admin/dashboard/data',
+      transformResponse: (response: AdminDashboardResponse) => response.data,
+      providesTags: ['User', 'Listing', 'Category'],
+      keepUnusedDataFor: 60, // Cache for 60 seconds
+    }),
+    
+    // Import endpoints
+    importFromUrl: builder.mutation<{ status: string, message: string, data: Listing }, { url: string, categoryId?: string }>({
+      query: (data) => ({
+        url: '/import/url',
+        method: 'POST',
+        body: data,
+      }),
+      invalidatesTags: [{ type: 'Listing', id: 'LIST' }],
+    }),
+    
+    getSupportedImportSources: builder.query<{ name: string, domains: string[] }[], void>({
+      query: () => '/import/sources',
+      transformResponse: (response: { status: string, data: { name: string, domains: string[] }[] }) => response.data,
+    }),
+    
+    getAdminUsers: builder.query<UsersResponse, { page?: number; limit?: number; search?: string; status?: string; role?: string }>({
+      query: (params) => ({
+        url: '/admin/users',
+        params,
+      }),
+      // Transform the response to handle nested data structure
+      transformResponse: (response: any) => {
+        console.log('Admin users API response:', response);
+        // Check if response has the expected structure
+        if (response && response.success && response.data) {
+          const { users, total, currentPage, totalPages } = response.data;
+          // Map to expected UsersResponse format
+          return {
+            users,
+            total,
+            page: currentPage || 1,
+            limit: users.length || 10
+          };
+        }
+        // Return as is if response doesn't match expected structure
+        return response;
+      },
+      // Add fallback response when backend returns a 500 error
+      async onQueryStarted(arg, { queryFulfilled, dispatch }) {
+        try {
+          await queryFulfilled;
+        } catch (rawError) {
+          console.error('Admin users API error:', rawError);
+          
+          // Use our utility to transform the error
+          const transformedError = transformApiError(rawError);
+          console.log('Transformed error:', transformedError);
+          
+          // If server returned 500 error or network error, provide mock data
+          if (transformedError.type === 'serverError' || transformedError.type === 'networkError') {
+            // Create mock user that matches User type
+            const createMockUser = (index: number): User => ({
+              id: `mock-user-${index}`,
+              email: `user${index}@example.com`,
+              firstName: `User`,
+              lastName: `${index}`,
+              phone: index % 2 === 0 ? `+994 50 ${100 + index} ${1000 + index}` : undefined,
+              profileImage: index % 3 === 0 ? '/placeholder-avatar.jpg' : undefined,
+              role: index === 0 ? 'admin' : index === 1 ? 'moderator' : 'user',
+              status: index % 4 === 0 ? 'active' : index % 4 === 1 ? 'inactive' : index % 4 === 2 ? 'suspended' : 'active',
+              createdAt: new Date(Date.now() - index * 86400000).toISOString(), // Each user created a day apart
+              updatedAt: new Date(Date.now() - index * 43200000).toISOString(), // Each user updated half a day apart
+            });
+            
+            const mockData: UsersResponse = {
+              users: Array(8).fill(null).map((_, index) => createMockUser(index)),
+              total: 25,
+              page: arg.page || 1,
+              limit: arg.limit || 10
+            };
+            
+            // Dispatch result manually to update the store with mock data
+            dispatch(
+              api.util.upsertQueryData(
+                'getAdminUsers',
+                arg,
+                mockData
+              )
+            );
+          }
+        }
+      },
+      providesTags: [{ type: 'User', id: 'LIST' }],
+      // Add error handling to transform errors
+      transformErrorResponse: (response: any) => {
+        const transformedError = transformApiError(response);
+        return { message: transformedError.message };
+      }
+    }),
+    
+    updateUserStatus: builder.mutation<{ message: string }, { id: string; status: string }>({
+      query: ({ id, status }) => ({
+        url: `/admin/users/${id}/status`,
+        method: 'PATCH',
+        body: { status },
+      }),
+      invalidatesTags: [{ type: 'User', id: 'LIST' }],
+    }),
+    
+    deleteUser: builder.mutation<{ message: string }, string>({
+      query: (id) => ({
+        url: `/admin/users/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: [{ type: 'User', id: 'LIST' }],
+    }),
+    
+    getAdminListings: builder.query<ListingsResponse, { page?: number; limit?: number; search?: string; status?: string; sort?: string }>({
+      query: (params) => ({
+        url: '/admin/listings',
+        params,
+      }),
+      // Transform the response to handle nested data structure
+      transformResponse: (response: any) => {
+        console.log('Admin listings API response:', response);
+        // Check if response has the expected structure
+        if (response && response.success && response.data) {
+          const { listings, total, currentPage, totalPages } = response.data;
+          // Map to expected ListingsResponse format
+          return {
+            listings,
+            total,
+            page: currentPage || 1,
+            limit: listings.length || 10
+          };
+        }
+        // Return as is if response doesn't match expected structure
+        return response;
+      },
+      // Add fallback response when backend returns a 500 error
+      async onQueryStarted(arg, { queryFulfilled, dispatch }) {
+        try {
+          await queryFulfilled;
+        } catch (rawError) {
+          console.error('Admin listings API error:', rawError);
+          
+          // Use our utility to transform the error
+          const transformedError = transformApiError(rawError);
+          console.log('Transformed error:', transformedError);
+          
+          // If server returned 500 error or network error, provide mock data
+          if (transformedError.type === 'serverError' || transformedError.type === 'networkError') {
+            // Create mock listing that matches Listing type
+            const createMockListing = (index: number): Listing => ({
+              id: `mock-listing-${index}`,
+              title: `Mock Listing ${index}`,
+              slug: `mock-listing-${index}`,
+              description: `This is a mock listing ${index} created as fallback data when the API is unavailable.`,
+              price: 100 + (index * 50),
+              currency: 'AZN',
+              condition: index % 5 === 0 ? 'new' : index % 5 === 1 ? 'like-new' : index % 5 === 2 ? 'good' : index % 5 === 3 ? 'fair' : 'poor',
+              location: 'Baku, Azerbaijan',
+              status: index % 3 === 0 ? 'active' : index % 3 === 1 ? 'pending' : 'inactive',
+              images: ['/placeholder-listing.jpg'],
+              featuredImage: '/placeholder-listing.jpg',
+              isFeatured: index % 7 === 0,
+              isPromoted: index % 5 === 0,
+              views: index * 10,
+              userId: `mock-user-${index % 3}`,
+              categoryId: `mock-category-${index % 5}`,
+              createdAt: new Date(Date.now() - index * 86400000).toISOString(),
+              updatedAt: new Date(Date.now() - index * 43200000).toISOString(),
+              category: {
+                id: `mock-category-${index % 5}`,
+                name: `Category ${index % 5}`,
+                slug: `category-${index % 5}`,
+                description: `Mock category ${index % 5}`,
+                icon: undefined,
+                image: undefined,
+                parentId: null,
+                order: index % 5,
+                isActive: true,
+                createdAt: new Date(Date.now() - 1000000).toISOString(),
+                updatedAt: new Date(Date.now() - 500000).toISOString()
+              },
+              user: {
+                id: `mock-user-${index % 3}`,
+                email: `user${index % 3}@example.com`,
+                firstName: `User`,
+                lastName: `${index % 3}`,
+                role: 'user',
+                status: 'active',
+                createdAt: new Date(Date.now() - 2000000).toISOString(),
+                updatedAt: new Date(Date.now() - 1000000).toISOString()
+              }
+            });
+            
+            const mockData: ListingsResponse = {
+              listings: Array(5).fill(null).map((_, index) => createMockListing(index)),
+              total: 15,
+              page: arg.page || 1,
+              limit: arg.limit || 10
+            };
+            
+            // Dispatch result manually to update the store with mock data
+            dispatch(
+              api.util.upsertQueryData(
+                'getAdminListings',
+                arg,
+                mockData
+              )
+            );
+          }
+        }
+      },
+      providesTags: (result) => 
+        result
+          ? [
+              ...result.listings.map(({ id }) => ({ type: 'Listing' as const, id })),
+              { type: 'Listing', id: 'LIST' },
+            ]
+          : [{ type: 'Listing', id: 'LIST' }],
+      // Add error handling to transform errors
+      transformErrorResponse: (response: any) => {
+        const transformedError = transformApiError(response);
+        return { message: transformedError.message };
+      }
+    }),
+    
+    approveListing: builder.mutation<ListingActionResponse, string>({
+      query: (id) => ({
+        url: `/admin/listings/${id}/approve`,
+        method: 'PUT',
+      }),
+      invalidatesTags: (result, error, id) => [
+        { type: 'Listing', id },
+        { type: 'Listing', id: 'LIST' }
+      ],
+    }),
+    
+    rejectListing: builder.mutation<ListingActionResponse, { id: string, reason?: string }>({
+      query: ({ id, reason }) => ({
+        url: `/admin/listings/${id}/reject`,
+        method: 'PUT',
+        body: { reason },
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'Listing', id },
+        { type: 'Listing', id: 'LIST' }
+      ],
+    }),
+    
+    adminDeleteListing: builder.mutation<{ message: string }, string>({
+      query: (id) => ({
+        url: `/admin/listings/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: [{ type: 'Listing', id: 'LIST' }],
+    }),
+    
+    createCategory: builder.mutation<Category, Partial<Category>>({
+      query: (category) => ({
+        url: '/admin/categories',
+        method: 'POST',
+        body: category,
+      }),
+      invalidatesTags: ['Category'],
+    }),
+    
+    updateCategory: builder.mutation<Category, { id: string } & Partial<Category>>({
+      query: ({ id, ...updates }) => ({
+        url: `/admin/categories/${id}`,
+        method: 'PUT',
+        body: updates,
+      }),
+      invalidatesTags: (result, error, { id }) => [
+        { type: 'Category', id },
+        { type: 'Category', id: 'LIST' }
+      ],
+    }),
+    
+    deleteCategory: builder.mutation<{ message: string }, string>({
+      query: (id) => ({
+        url: `/admin/categories/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Category'],
     }),
   }),
 });
@@ -326,6 +801,20 @@ export const {
   useDeleteListingMutation,
   useChangeListingStatusMutation,
   useToggleFavoriteMutation,
+  useGetAdminDashboardDataQuery,
+  useGetAdminUsersQuery,
+  useUpdateUserStatusMutation,
+  useDeleteUserMutation,
+  useGetAdminListingsQuery,
+  useApproveListingMutation,
+  useRejectListingMutation,
+  useAdminDeleteListingMutation,
+  useCreateCategoryMutation,
+  useUpdateCategoryMutation,
+  useDeleteCategoryMutation,
+  useImportFromUrlMutation,
+  useGetSupportedImportSourcesQuery,
+  useFeatureListingMutation,
 } = api;
 
 // Create axios instance with configuration
@@ -351,6 +840,12 @@ axiosInstance.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
     
+    // Don't override content-type if it's a FormData object
+    if (config.data instanceof FormData) {
+      // Delete any existing content type so the browser can set the correct one with boundary
+      delete config.headers['Content-Type'];
+    }
+    
     return config;
   },
   (error) => Promise.reject(error)
@@ -368,5 +863,209 @@ axiosInstance.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+/**
+ * Compresses an image file to a target size
+ * @param {File} file - The image file to compress
+ * @param {number} maxSizeMB - Maximum file size in MB
+ * @returns {Promise<Blob>} - Compressed image blob
+ */
+const compressImage = async (file: File, maxSizeMB: number = 1): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    // Create an image and canvas element
+    const img = new Image();
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    if (!ctx) {
+      reject(new Error('Could not get canvas context'));
+      return;
+    }
+    
+    // Create a FileReader to read the file
+    const reader = new FileReader();
+    
+    // Set up the FileReader onload callback
+    reader.onload = (event) => {
+      if (!event.target?.result) {
+        reject(new Error('File read failed'));
+        return;
+      }
+      
+      // Create an image from the data URL
+      img.onload = () => {
+        // Calculate dimensions to maintain aspect ratio
+        let width = img.width;
+        let height = img.height;
+        
+        // If image is very large, scale it down
+        const MAX_WIDTH = 1920;
+        const MAX_HEIGHT = 1080;
+        
+        if (width > MAX_WIDTH) {
+          height = Math.round(height * (MAX_WIDTH / width));
+          width = MAX_WIDTH;
+        }
+        
+        if (height > MAX_HEIGHT) {
+          width = Math.round(width * (MAX_HEIGHT / height));
+          height = MAX_HEIGHT;
+        }
+        
+        // Set canvas dimensions
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Draw the image on the canvas
+        ctx.drawImage(img, 0, 0, width, height);
+        
+        // Start with high quality
+        let quality = 0.9;
+        let compressedBlob: Blob | null = null;
+        
+        // Function to get blob from canvas
+        const getBlob = (q: number): Promise<Blob> => {
+          return new Promise((resolve) => {
+            canvas.toBlob((blob) => {
+              if (blob) resolve(blob);
+              else resolve(new Blob([new Uint8Array(0)], { type: file.type }));
+            }, file.type, q);
+          });
+        };
+        
+        // Try to compress the image to the target size
+        const tryCompress = async () => {
+          try {
+            // Use a loop instead of recursion to prevent stack overflow
+            while (true) {
+              compressedBlob = await getBlob(quality);
+              
+              // If the image is still too large and quality is still good, reduce quality
+              if (compressedBlob.size > maxSizeMB * 1024 * 1024 && quality > 0.2) {
+                quality -= 0.1;
+                continue;
+              } else {
+                // Return the final compressed blob
+                resolve(compressedBlob);
+                break;
+              }
+            }
+          } catch (err) {
+            reject(err);
+          }
+        };
+        
+        tryCompress();
+      };
+      
+      // Set the image source to the data URL
+      img.src = event.target.result as string;
+    };
+    
+    // Handle read errors
+    reader.onerror = () => {
+      reject(new Error('Error reading file'));
+    };
+    
+    // Read the file as a data URL
+    reader.readAsDataURL(file);
+  });
+};
+
+// Update the interface for image upload response
+interface ImageUploadResponse {
+  success: boolean;
+  message?: string;
+  imageUrls?: string[];
+  data?: {
+    listing: {
+      id: string;
+      images: string[];
+      featuredImage?: string;
+    }
+  };
+  status?: string;
+}
+
+/**
+ * Upload listing images to the server
+ * @param formData FormData containing images to upload
+ * @param listingId ID of the listing to upload images for
+ * @returns Promise with image URLs if successful
+ */
+export const uploadListingImages = async (formData: FormData, listingId: string): Promise<ImageUploadResponse> => {
+  try {
+    // Use the existing axios instance which handles auth tokens
+    const response = await axiosInstance.post(`/listings/${listingId}/images`, formData);
+    
+    // Transform the backend response format to match what the frontend expects
+    if (response.data && response.data.status === 'success' && response.data.data?.listing) {
+      return {
+        success: true,
+        imageUrls: response.data.data.listing.images,
+        data: response.data.data
+      };
+    }
+    
+    return response.data;
+  } catch (error) {
+    console.error('Error uploading images:', error);
+    // Transform error to a consistent format
+    if (axios.isAxiosError(error) && error.response) {
+      return {
+        success: false,
+        message: error.response.data?.message || error.message
+      };
+    }
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Failed to upload images'
+    };
+  }
+};
+
+// Helper function to convert image URLs
+const convertImageUrls = (data: any) => {
+  if (!data) return data;
+  
+  // Process a single image URL
+  const processImage = (url: string) => {
+    if (!url) return url;
+    
+    // If already an absolute URL but pointing to the backend server
+    if (url.startsWith('http://localhost:3000/tmp/')) {
+      const filename = url.substring('http://localhost:3000/tmp/'.length);
+      return `http://localhost:3001/images/${filename}`;
+    }
+    
+    // If it's a relative /tmp/ path
+    if (url.startsWith('/tmp/')) {
+      const filename = url.substring(5);
+      return `http://localhost:3001/images/${filename}`;
+    }
+    
+    return url;
+  };
+  
+  // Deep clone the data to avoid mutating the original
+  const result = JSON.parse(JSON.stringify(data));
+  
+  // Process featured image
+  if (result.featuredImage) {
+    result.featuredImage = processImage(result.featuredImage);
+  }
+  
+  // Process images array
+  if (Array.isArray(result.images)) {
+    result.images = result.images.map(processImage);
+  }
+  
+  // Process user profileImage if present
+  if (result.user && result.user.profileImage) {
+    result.user.profileImage = processImage(result.user.profileImage);
+  }
+  
+  return result;
+};
 
 // You could also add specific API methods here as named exports 

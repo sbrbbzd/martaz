@@ -149,11 +149,148 @@ const ProfilePage: React.FC = () => {
     }
   };
   
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setSelectedImage(file);
-      setImagePreview(URL.createObjectURL(file));
+  const convertToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+  
+  const compressProfileImage = async (file: File, maxSizeMB: number = 0.5): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) {
+        reject(new Error('Could not get canvas context'));
+        return;
+      }
+      
+      const reader = new FileReader();
+      
+      reader.onload = (event) => {
+        if (!event.target || !event.target.result) {
+          reject(new Error('File read failed'));
+          return;
+        }
+        
+        img.onload = () => {
+          // Calculate dimensions to maintain aspect ratio
+          let width = img.width;
+          let height = img.height;
+          
+          // Set maximum dimensions for profile image (smaller than regular images)
+          const MAX_WIDTH = 800;
+          const MAX_HEIGHT = 800;
+          
+          if (width > MAX_WIDTH) {
+            height = Math.round(height * (MAX_WIDTH / width));
+            width = MAX_WIDTH;
+          }
+          
+          if (height > MAX_HEIGHT) {
+            width = Math.round(width * (MAX_HEIGHT / height));
+            height = MAX_HEIGHT;
+          }
+          
+          // Set canvas dimensions
+          canvas.width = width;
+          canvas.height = height;
+          
+          // Draw the image on the canvas
+          ctx.drawImage(img, 0, 0, width, height);
+          
+          // Start with high quality
+          let quality = 0.8; // Lower starting quality for profile images
+          
+          // Function to get blob from canvas
+          const getBlob = (q: number): Promise<Blob> => {
+            return new Promise((resolve) => {
+              canvas.toBlob((blob) => {
+                if (blob) resolve(blob);
+                else resolve(new Blob([new Uint8Array(0)], { type: file.type }));
+              }, 'image/jpeg', q); // Always convert to JPEG for profile
+            });
+          };
+          
+          // Try to compress
+          const tryCompress = async () => {
+            try {
+              // Use a loop instead of recursion to prevent stack overflow
+              while (true) {
+                const compressedBlob = await getBlob(quality);
+                
+                if (compressedBlob.size > maxSizeMB * 1024 * 1024 && quality > 0.2) {
+                  quality -= 0.1;
+                  continue;
+                } else {
+                  resolve(compressedBlob);
+                  break;
+                }
+              }
+            } catch (err) {
+              reject(err);
+            }
+          };
+          
+          tryCompress();
+        };
+        
+        img.src = event.target.result as string;
+      };
+      
+      reader.onerror = () => {
+        reject(new Error('Error reading file'));
+      };
+      
+      reader.readAsDataURL(file);
+    });
+  };
+  
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      
+      // Size validation
+      if (file.size > 5 * 1024 * 1024) { // 5MB
+        toast.error(t('profile.imageTooLarge'));
+        return;
+      }
+      
+      // Type validation
+      if (!file.type.startsWith('image/')) {
+        toast.error(t('profile.invalidImageType'));
+        return;
+      }
+      
+      // Create preview
+      const preview = URL.createObjectURL(file);
+      setImagePreview(preview);
+      
+      try {
+        // Compress the image first
+        const compressedBlob = await compressProfileImage(file, 0.5);
+        console.log(`Original size: ${file.size / 1024}KB, Compressed size: ${compressedBlob.size / 1024}KB`);
+        
+        // Convert compressed image to base64
+        const base64 = await convertToBase64(new File([compressedBlob], file.name, { type: 'image/jpeg' }));
+        const base64Data = base64.split(',')[1]; // Remove data:image/xxx;base64, prefix
+        
+        // Create form data with base64 string
+        const formData = new FormData();
+        formData.append('imageData', base64Data);
+        formData.append('mimeType', 'image/jpeg');
+        formData.append('fileName', file.name);
+        
+        // Update profile image
+        dispatch(updateProfileImage(formData));
+      } catch (error) {
+        console.error('Error uploading profile image:', error);
+        toast.error(t('profile.imageUploadError'));
+      }
     }
   };
   

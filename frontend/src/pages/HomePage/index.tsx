@@ -1,133 +1,90 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import SearchBox from '../../components/common/SearchBox';
 import CategoryCard from '../../components/CategoryCard';
 import ListingCard from '../../components/ListingCard';
 import Container from '../../components/common/Container';
 import { Button, LinkButton } from '../../components/common/Button';
+import { useGetListingsQuery, useGetCategoriesQuery } from '../../services/api';
 import './HomePage.scss';
+
+// Define Category interface
+interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  icon?: string;
+  image?: string;
+  parentId?: string | null;
+}
 
 const HomePage: React.FC = () => {
   const { t } = useTranslation();
-  const [categories, setCategories] = useState([
-    { 
-      id: 'electronics', 
-      name: t('electronics'), 
-      icon: '/assets/icons/category-electronics.svg',
-      count: 134 
-    },
-    { 
-      id: 'vehicles', 
-      name: t('vehicles'), 
-      icon: '/assets/icons/category-vehicles.svg', 
-      count: 87 
-    },
-    { 
-      id: 'real-estate', 
-      name: t('realEstate'), 
-      icon: '/assets/icons/category-real-estate.svg', 
-      count: 56 
-    },
-    { 
-      id: 'jobs', 
-      name: t('jobs'), 
-      icon: '/assets/icons/category-jobs.svg', 
-      count: 42 
-    },
-    { 
-      id: 'furniture', 
-      name: t('furniture'), 
-      icon: '/assets/icons/category-furniture.svg', 
-      count: 78 
-    },
-    { 
-      id: 'services', 
-      name: t('services'), 
-      icon: '/assets/icons/category-services.svg', 
-      count: 63 
-    }
-  ]);
-  
-  const [featuredListings, setFeaturedListings] = useState([
-    {
-      id: 1,
-      title: 'iPhone 13 Pro Max 256GB',
-      price: 1700,
-      location: 'Baku, Azerbaijan',
-      imageUrl: 'https://source.unsplash.com/random/300x200?iphone',
-      category: t('electronics'),
-      categoryIcon: 'smartphone',
-      isFeatured: true,
-      createdAt: new Date(Date.now() - 86400000).toISOString() // 1 day ago
-    },
-    {
-      id: 2,
-      title: 'Modern Apartment in City Center',
-      price: 1200,
-      location: 'Baku, Azerbaijan',
-      imageUrl: 'https://source.unsplash.com/random/300x200?apartment',
-      category: t('realEstate'),
-      categoryIcon: 'apartment',
-      isFeatured: true,
-      createdAt: new Date(Date.now() - 172800000).toISOString() // 2 days ago
-    },
-    {
-      id: 3,
-      title: 'Brand New Gaming Laptop',
-      price: 2500,
-      location: 'Ganja, Azerbaijan',
-      imageUrl: 'https://source.unsplash.com/random/300x200?laptop',
-      category: t('electronics'),
-      categoryIcon: 'laptop',
-      isFeatured: true,
-      isNew: true,
-      createdAt: new Date(Date.now() - 259200000).toISOString() // 3 days ago
-    },
-    {
-      id: 4,
-      title: 'Toyota Camry 2020',
-      price: 35000,
-      location: 'Baku, Azerbaijan',
-      imageUrl: 'https://source.unsplash.com/random/300x200?toyota',
-      category: t('vehicles'),
-      categoryIcon: 'directions_car',
-      isFeatured: true,
-      createdAt: new Date(Date.now() - 345600000).toISOString() // 4 days ago
-    },
-    {
-      id: 5,
-      title: 'Luxury Sofa Set',
-      price: 1500,
-      location: 'Sumgait, Azerbaijan',
-      imageUrl: 'https://source.unsplash.com/random/300x200?sofa',
-      category: t('furniture'),
-      categoryIcon: 'chair',
-      isFeatured: true,
-      createdAt: new Date(Date.now() - 432000000).toISOString() // 5 days ago
-    },
-    {
-      id: 6,
-      title: 'Professional Photography Services',
-      price: 200,
-      location: 'Baku, Azerbaijan',
-      imageUrl: 'https://source.unsplash.com/random/300x200?photography',
-      category: t('services'),
-      categoryIcon: 'camera',
-      isFeatured: true,
-      createdAt: new Date(Date.now() - 518400000).toISOString() // 6 days ago
-    }
-  ]);
-  
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('all');
+  const [forceRender, setForceRender] = useState(0);
   const trendingSearches = ['iPhone', 'Laptop', 'Apartment', 'Toyota', 'Sofa'];
 
+  // Fetch real data from the API - use regular listings instead of featured
+  const { data: listingsData, isLoading: isListingsLoading, isError: isListingsError } = 
+    useGetListingsQuery({ limit: 8 });
+  
+  const { data: categoriesData, isLoading: isCategoriesLoading, isError: isCategoriesError, refetch: refetchCategories } = 
+    useGetCategoriesQuery(undefined, { 
+      refetchOnMountOrArgChange: true,
+      refetchOnReconnect: true,
+      refetchOnFocus: true
+    });
+  
+  // Use the fetched data or default to empty arrays
+  const listings = listingsData?.data?.listings || [];
+  const categories = categoriesData || [];
+
+  // Debug logs
+  console.log('Listings Data:', listingsData);
+  console.log('Listings:', listings);
+  console.log('Categories Data:', categoriesData);
+  console.log('Categories Loading:', isCategoriesLoading);
+  console.log('Force render count:', forceRender);
+
   useEffect(() => {
-    // Fetch featured listings or other data needed for the home page
+    // Scroll to top when component mounts
     window.scrollTo(0, 0);
-  }, []);
+    
+    // Force refetch categories on mount
+    refetchCategories();
+    
+    // Force a re-render after a short delay on initial mount
+    const timer = setTimeout(() => {
+      setForceRender(prev => prev + 1);
+    }, 300);
+
+    // Second timer as a backup
+    const backupTimer = setTimeout(() => {
+      if (!categoriesData && !isCategoriesLoading) {
+        console.log('Backup timer triggered - refetching categories');
+        refetchCategories();
+      }
+      setForceRender(prev => prev + 1);
+    }, 1000);
+    
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(backupTimer);
+    };
+  }, [refetchCategories]);
+  
+  // Effect to handle categories data
+  useEffect(() => {
+    if (categoriesData) {
+      console.log('Categories data loaded:', categoriesData.length);
+      // Force a re-render when data arrives
+      setForceRender(prev => prev + 1);
+    }
+  }, [categoriesData]);
 
   // Animation variants
   const fadeIn = {
@@ -148,15 +105,157 @@ const HomePage: React.FC = () => {
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
     
-    // In a real app, you would fetch different listings based on the tab
-    // For now, we'll just simulate it
-    if (tab === 'latest') {
-      setFeaturedListings(prev => [...prev].sort((a, b) => 
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      ));
-    } else if (tab === 'popular') {
-      setFeaturedListings(prev => [...prev].sort((a, b) => b.price - a.price));
+    // In a real implementation, we could load different data based on the tab
+    // For now, we'll just sort the existing data
+  };
+
+  const handleCategoryClick = (slug: string) => {
+    navigate(`/listings?category=${slug}`);
+  };
+
+  // Helper function to get appropriate icon for a category
+  const getCategoryIcon = (category: Category) => {
+    if (category.icon) return category.icon;
+    
+    // Try to find an appropriate icon based on the category slug or name
+    const slug = category.slug?.toLowerCase() || '';
+    const name = category.name?.toLowerCase() || '';
+    
+    // Common category types
+    if (slug.includes('electronics') || name.includes('electronics')) 
+      return '/assets/icons/category-electronics.svg';
+    if (slug.includes('vehicle') || name.includes('vehicle') || slug.includes('car') || name.includes('car')) 
+      return '/assets/icons/category-vehicles.svg';
+    if (slug.includes('real') || name.includes('real') || slug.includes('estate') || name.includes('estate') || 
+        slug.includes('property') || name.includes('property') || slug.includes('home') || name.includes('home'))
+      return '/assets/icons/category-real-estate.svg';
+    if (slug.includes('job') || name.includes('job') || slug.includes('work') || name.includes('work'))
+      return '/assets/icons/category-jobs.svg';
+    if (slug.includes('furniture') || name.includes('furniture'))
+      return '/assets/icons/category-furniture.svg';
+    if (slug.includes('service') || name.includes('service'))
+      return '/assets/icons/category-services.svg';
+      
+    // Default icon if no matches found
+    return '/assets/icons/category-default.svg';
+  };
+
+  // For categories display
+  const renderCategories = () => {
+    console.log('Rendering categories, loading:', isCategoriesLoading, 'forceRender:', forceRender);
+    
+    // Check localStorage for cached categories if data isn't available
+    const useCachedData = !categoriesData && !isCategoriesLoading;
+    let cachedCategories: Category[] = [];
+    
+    if (useCachedData) {
+      try {
+        const cachedData = localStorage.getItem('cached_categories');
+        if (cachedData) {
+          cachedCategories = JSON.parse(cachedData);
+          console.log('Using cached categories from localStorage:', cachedCategories.length);
+        }
+      } catch (e) {
+        console.error('Failed to parse cached categories:', e);
+      }
     }
+    
+    // If we're loading and don't have cached data, show skeletons
+    if (isCategoriesLoading && (!cachedCategories || cachedCategories.length === 0)) {
+      return Array(6).fill(0).map((_, index) => (
+        <motion.div key={`skeleton-${index}`} variants={fadeIn}>
+          <div className="category-skeleton">
+            <div className="category-skeleton__icon"></div>
+            <div className="category-skeleton__name"></div>
+            <div className="category-skeleton__count"></div>
+          </div>
+        </motion.div>
+      ));
+    }
+    
+    // If there's an error and no cached data, show error message
+    if (isCategoriesError && (!cachedCategories || cachedCategories.length === 0)) {
+      return <div className="error-message">{t('errorLoadingCategories')}</div>;
+    }
+    
+    // Use categories from API or fallback to cached categories
+    const categoriesToUse = (categories && categories.length > 0) ? categories : cachedCategories;
+    
+    if (!categoriesToUse || categoriesToUse.length === 0) {
+      console.log('No categories available to display');
+      return <div className="info-message">{t('noCategoriesAvailable')}</div>;
+    }
+    
+    // Filter to get only parent categories (those with no parentId)
+    const parentCategories = categoriesToUse.filter(category => !category.parentId);
+    console.log('Parent Categories:', parentCategories);
+    
+    if (parentCategories.length === 0) {
+      console.log('No parent categories to display');
+      return <div className="info-message">{t('noCategoriesAvailable')}</div>;
+    }
+    
+    return parentCategories.slice(0, 6).map((category) => (
+      <motion.div key={category.id} variants={fadeIn}>
+        <CategoryCard
+          id={category.id}
+          name={category.name}
+          icon={getCategoryIcon(category)}
+          count={0} // Default count since API might not provide this
+          slug={category.slug}
+          onClick={() => handleCategoryClick(category.slug)}
+        />
+      </motion.div>
+    ));
+  };
+
+  // For listings display
+  const renderListings = () => {
+    if (isListingsLoading) {
+      return Array(6).fill(0).map((_, index) => (
+        <div key={index} className="listing-skeleton"></div>
+      ));
+    }
+    
+    if (isListingsError) {
+      return <div className="error-message">{t('errorLoadingListings')}</div>;
+    }
+    
+    // Sort the listings based on the active tab
+    const sortedListings = [...listings];
+    
+    if (activeTab === 'latest') {
+      sortedListings.sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+    } else if (activeTab === 'popular') {
+      sortedListings.sort((a, b) => b.views - a.views);
+    } else if (activeTab === 'featured') {
+      sortedListings.sort((a, b) => {
+        if (a.isPromoted && !b.isPromoted) return -1;
+        if (!a.isPromoted && b.isPromoted) return 1;
+        return 0;
+      });
+    }
+    
+    return sortedListings.map((listing) => (
+      <motion.div key={listing.id} variants={fadeIn}>
+        <ListingCard 
+          id={listing.id}
+          slug={listing.slug}
+          title={listing.title}
+          price={listing.price}
+          currency={listing.currency}
+          location={listing.location}
+          featuredImage={listing.featuredImage}
+          categoryName={listing.category?.name}
+          categorySlug={listing.category?.slug}
+          isFeatured={listing.isFeatured}
+          isPromoted={listing.isPromoted}
+          createdAt={listing.createdAt}
+        />
+      </motion.div>
+    ));
   };
 
   return (
@@ -185,6 +284,10 @@ const HomePage: React.FC = () => {
                   placeholder={t('homepage.searchPlaceholder')}
                   trendingSearches={trendingSearches}
                   showTrending={true}
+                  onSearch={(query) => {
+                    console.log("HomePage search triggered with:", query);
+                    navigate(`/listings?search=${encodeURIComponent(query)}`);
+                  }}
                 />
               </div>
             </motion.div>
@@ -211,20 +314,7 @@ const HomePage: React.FC = () => {
               whileInView="visible"
               viewport={{ once: true, margin: "-100px" }}
             >
-              {categories.map((category) => (
-                <motion.div 
-                  key={category.id}
-                  variants={fadeIn}
-                  transition={{ duration: 0.3 }}
-                >
-                  <CategoryCard
-                    id={category.id}
-                    name={category.name}
-                    icon={category.icon}
-                    count={category.count}
-                  />
-                </motion.div>
-              ))}
+              {renderCategories()}
             </motion.div>
             
             <div className="categories__action">
@@ -286,26 +376,7 @@ const HomePage: React.FC = () => {
               whileInView="visible"
               viewport={{ once: true, margin: "-50px" }}
             >
-              {featuredListings.map((listing) => (
-                <motion.div 
-                  key={listing.id}
-                  variants={fadeIn}
-                  transition={{ duration: 0.3 }}
-                >
-                  <ListingCard
-                    id={listing.id}
-                    title={listing.title}
-                    price={listing.price}
-                    location={listing.location}
-                    imageUrl={listing.imageUrl}
-                    category={listing.category}
-                    categoryIcon={listing.categoryIcon}
-                    isFeatured={listing.isFeatured}
-                    isNew={listing.isNew}
-                    createdAt={listing.createdAt}
-                  />
-                </motion.div>
-              ))}
+              {renderListings()}
             </motion.div>
             
             <div className="featured-listings__action">
@@ -345,7 +416,6 @@ const HomePage: React.FC = () => {
                 variants={fadeIn}
                 transition={{ duration: 0.3 }}
               >
-                <div className="step-card__number">1</div>
                 <div className="step-card__icon">
                   <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
@@ -371,7 +441,6 @@ const HomePage: React.FC = () => {
                 variants={fadeIn}
                 transition={{ duration: 0.3, delay: 0.1 }}
               >
-                <div className="step-card__number">2</div>
                 <div className="step-card__icon">
                   <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -397,7 +466,6 @@ const HomePage: React.FC = () => {
                 variants={fadeIn}
                 transition={{ duration: 0.3, delay: 0.2 }}
               >
-                <div className="step-card__number">3</div>
                 <div className="step-card__icon">
                   <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M20.42 4.58a5.4 5.4 0 0 0-7.65 0l-.77.78-.77-.78a5.4 5.4 0 0 0-7.65 0C1.46 6.7 1.33 10.28 4 13l8 8 8-8c2.67-2.72 2.54-6.3.42-8.42z"></path>

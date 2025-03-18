@@ -3,10 +3,12 @@
   "version": "1.0.0",
   "description": "Frontend application for Mart.az - Azerbaijan Online Marketplace",
   "private": true,
+  "repository": {
+    "url": "https://github.com/sbrbbzd/martaz"
+  },
   "dependencies": {
     "@reduxjs/toolkit": "^2.6.1",
     "@types/redux-persist": "^4.0.0",
-    "axios": "^1.6.2",
     "bcryptjs": "^3.0.2",
     "compression": "^1.8.0",
     "cors": "^2.8.5",
@@ -46,9 +48,11 @@
     "@types/react-dom": "^18.2.17",
     "@vitejs/plugin-react": "^4.2.1",
     "@vitejs/plugin-react-swc": "^3.8.0",
+    "axios": "^1.8.3",
     "eslint": "^8.55.0",
     "eslint-config-react-app": "^7.0.1",
     "eslint-plugin-react": "^7.33.2",
+    "gh-pages": "^6.3.0",
     "prettier": "^3.1.1",
     "typescript": "^5.8.2",
     "vite": "^5.4.14",
@@ -58,14 +62,16 @@
   "scripts": {
     "start": "vite",
     "dev": "vite",
-    "build": "tsc --project tsconfig.json && vite build",
+    "build": "tsc --project tsconfig.json && vite build && touch dist/.nojekyll",
     "preview": "vite preview",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "predeploy": "npm run build",
+    "deploy": "node scripts/deploy.js"
   },
   "eslintConfig": {
     "extends": [

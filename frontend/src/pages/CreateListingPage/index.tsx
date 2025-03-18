@@ -2,13 +2,16 @@ import React, { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { FiPlus, FiUpload, FiX, FiCheck, FiAlertCircle } from 'react-icons/fi';
-import { useSelector } from 'react-redux';
+import { useSelector, useStore } from 'react-redux';
 import { toast } from 'react-toastify';
 
-import { selectAuthUser } from '../../store/slices/authSlice';
+import { selectAuthUser, selectAuthToken, selectIsAuthenticated } from '../../store/slices/authSlice';
 import { useCreateListingMutation, useGetCategoriesQuery } from '../../services/api';
+import { uploadListingImages } from '../../services/api';
+import { uploadImagesToServer } from '../../services/imageServer';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import { isAuthenticated } from '../../utils/auth';
+import { RootState } from '../../store/types';
 import './styles.scss';
 
 // Define User interface
@@ -34,12 +37,24 @@ interface ListingFormData {
   categoryId: string;
   contactPhone: string;
   contactEmail: string;
+  contactWhatsapp: string;
+  contactTelegram: string;
+  tags: string;
 }
 
 const CreateListingPage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const currentUser = useSelector(selectAuthUser) as User | null;
+  const authToken = useSelector(selectAuthToken);
+  const isUserAuthenticated = useSelector(selectIsAuthenticated);
+  const store = useStore();
+  
+  // Debug auth status
+  useEffect(() => {
+    console.log('Auth token available:', !!authToken);
+    console.log('User authenticated:', isUserAuthenticated);
+  }, [authToken, isUserAuthenticated]);
   
   // Fetch categories using the API 
   const { data: categories, isLoading: categoriesLoading } = useGetCategoriesQuery();
@@ -59,6 +74,9 @@ const CreateListingPage: React.FC = () => {
     categoryId: '',
     contactPhone: currentUser?.phone || '',
     contactEmail: currentUser?.email || '',
+    contactWhatsapp: '',
+    contactTelegram: '',
+    tags: '',
   });
   
   // State for validation errors
@@ -165,18 +183,29 @@ const CreateListingPage: React.FC = () => {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
+    // Validate form before submission
     if (!validateForm()) {
-      // Scroll to the first error
-      const firstErrorField = document.querySelector('.form-group.error');
-      if (firstErrorField) {
-        firstErrorField.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }
       return;
     }
     
+    // Check authentication
+    if (!authToken) {
+      toast.error(t('auth.sessionExpired'));
+      return;
+    }
+    
+    // Generate a slug from the title
+    const generateSlug = (title: string): string => {
+      return title
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, '')  // Remove non-word chars except spaces and hyphens
+        .replace(/[\s_-]+/g, '-')  // Replace spaces and underscores with hyphens
+        .replace(/^-+|-+$/g, '');  // Remove leading/trailing hyphens
+    };
+    
     try {
-      // Create a regular object (not FormData) that matches Partial<Listing> type
-      const listingData: Record<string, any> = {
+      // Create listing without images first
+      const result = await createListing({
         title: formData.title,
         description: formData.description,
         price: formData.price,
@@ -186,19 +215,58 @@ const CreateListingPage: React.FC = () => {
         categoryId: formData.categoryId,
         contactPhone: formData.contactPhone,
         contactEmail: formData.contactEmail,
-        // Generate a slug from the title
-        slug: formData.title.toLowerCase()
-          .replace(/[^\w\s-]/g, '') // Remove special characters
-          .replace(/\s+/g, '-') // Replace spaces with hyphens
-          .replace(/-+/g, '-') // Replace multiple hyphens with a single one
-      };
+        slug: generateSlug(formData.title)
+      }).unwrap();
       
-      // Note: In a real implementation, you would need to handle image uploads separately
-      // or modify the API to accept FormData. For now, we'll just send the data without images.
-      // You may need to implement a custom API endpoint for this.
-      
-      // Submit the data
-      const result = await createListing(listingData).unwrap();
+      // If there are images to upload and we have a listing ID, upload them
+      if (formData.images.length > 0 && result.data?.id) {
+        try {
+          // Display uploading images message
+          toast.info(t('listings.uploadingImages'));
+          
+          console.log(`Uploading ${formData.images.length} images for listing ${result.data.id}`);
+          
+          // Log some details about the images
+          formData.images.forEach((img, index) => {
+            console.log(`Image ${index + 1}: ${img.name}, ${img.type}, ${img.size} bytes`);
+          });
+          
+          // First, upload images to image server
+          const formDataForImages = new FormData();
+          formData.images.forEach((image) => {
+            formDataForImages.append('images', image);
+          });
+          
+          // Upload to image server
+          const imageServerResponse = await uploadImagesToServer(formDataForImages);
+          
+          if (!imageServerResponse.success || !imageServerResponse.files) {
+            throw new Error(imageServerResponse.message || 'Failed to upload images to image server');
+          }
+          
+          // Now update the listing with the image paths
+          const imagePaths = imageServerResponse.files.map(file => file.path);
+          
+          // Create new FormData for updating the listing
+          const listingUpdateData = new FormData();
+          listingUpdateData.append('images', JSON.stringify(imagePaths));
+          
+          // Update the listing with image paths
+          const uploadResponse = await uploadListingImages(listingUpdateData, result.data.id);
+          
+          if (uploadResponse.success && uploadResponse.imageUrls) {
+            console.log(`Successfully uploaded ${uploadResponse.imageUrls.length} images:`, uploadResponse);
+            toast.success(t('listings.imageUploadSuccess'));
+          } else {
+            console.log('Image upload response:', uploadResponse);
+            throw new Error(uploadResponse.message || 'Failed to update listing with image paths');
+          }
+        } catch (imageError) {
+          console.error('Error uploading images:', imageError);
+          toast.error(t('listings.imageUploadError'));
+          // Continue despite image upload error - the listing is still created
+        }
+      }
       
       toast.success(t('listings.creationSuccess'));
       
@@ -211,7 +279,29 @@ const CreateListingPage: React.FC = () => {
       
     } catch (err) {
       console.error('Error creating listing:', err);
-      toast.error(t('listings.creationError'));
+      
+      // Extract more detailed error message if available
+      let errorMessage = t('listings.creationError');
+      
+      // Type checking and error extraction
+      interface ApiError {
+        status?: number;
+        data?: { 
+          success: boolean; 
+          message: string;
+        };
+        message?: string;
+      }
+      
+      const error = err as ApiError;
+      
+      if (error.data?.message) {
+        errorMessage = error.data.message;
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      toast.error(errorMessage);
     }
   };
 
