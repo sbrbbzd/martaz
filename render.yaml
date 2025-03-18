@@ -17,4 +17,24 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      - key: DB_HOST
+        value: dpg-cvcsk38gph6c739d97cg-a
+      - key: DB_PORT
+        value: 5432
+      - key: DB_NAME
+        value: martaz
+      - key: DB_USERNAME
+        value: martaz_user
+      - key: DB_PASSWORD
+        value: EbGHQceGDGNI94ddo08v3c6Ia4TGMtOK
+      - key: PGSSLMODE
+        value: no-verify
+      - key: JWT_SECRET
+        value: mart-az-super-secret-key-for-production-2024
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: CORS_ORIGIN
+        value: https://mart-az-frontend.onrender.com
+      - key: LOG_LEVEL
+        value: debug
     healthCheckPath: /api/health 
