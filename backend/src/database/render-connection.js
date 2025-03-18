@@ -10,18 +10,27 @@ const pg = require('pg');
 
 // Log database connection information
 logger.info('Initializing Render database connection...');
-logger.info(`Database host: ${config.database.host}`);
-logger.info(`Database port: ${config.database.port}`);
-logger.info(`Database name: ${config.database.name}`);
-logger.info(`Database user: ${config.database.user}`);
+
+// EMERGENCY FALLBACK: If config doesn't have database details, use env vars directly
+const dbHost = config.database.host || process.env.DB_HOST || process.env.PGHOST || 'dpg-cvcsk38gph6c739d97cg-a';
+const dbPort = config.database.port || process.env.DB_PORT || process.env.PGPORT || '5432';
+const dbName = config.database.name || process.env.DB_NAME || process.env.PGDATABASE || 'martaz';
+const dbUser = config.database.user || process.env.DB_USERNAME || process.env.DB_USER || process.env.PGUSER || 'martaz_user';
+const dbPassword = config.database.password || process.env.DB_PASSWORD || process.env.PGPASSWORD || 'EbGHQceGDGNI94ddo08v3c6Ia4TGMtOK';
+
+logger.info(`Database host: ${dbHost}`);
+logger.info(`Database port: ${dbPort}`);
+logger.info(`Database name: ${dbName}`);
+logger.info(`Database user: ${dbUser}`);
+logger.info(`Database password: ${dbPassword ? '(set)' : '(not set)'}`);
 
 // Create a native pg pool for direct testing
 const pool = new pg.Pool({
-  host: config.database.host,
-  port: config.database.port,
-  database: config.database.name,
-  user: config.database.user,
-  password: config.database.password,
+  host: dbHost,
+  port: dbPort,
+  database: dbName,
+  user: dbUser,
+  password: dbPassword,
   ssl: {
     rejectUnauthorized: false
   },
@@ -51,12 +60,12 @@ const testNativeConnection = async () => {
 
 // Create Sequelize instance with special configuration for Render.com
 const sequelize = new Sequelize(
-  config.database.name,
-  config.database.user,
-  config.database.password,
+  dbName,
+  dbUser,
+  dbPassword,
   {
-    host: config.database.host,
-    port: config.database.port,
+    host: dbHost,
+    port: dbPort,
     dialect: 'postgres',
     logging: (msg) => logger.debug(msg),
     dialectOptions: {
@@ -121,7 +130,7 @@ const testConnection = async () => {
     logger.error(`Error message: ${error.message}`);
     
     // Log detailed connection info (without password)
-    logger.error(`Connection details: ${config.database.host}:${config.database.port}/${config.database.name} as ${config.database.user}`);
+    logger.error(`Connection details: ${dbHost}:${dbPort}/${dbName} as ${dbUser}`);
     
     if (error.original) {
       logger.error(`Original error: ${error.original.message}`);

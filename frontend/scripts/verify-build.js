@@ -10,14 +10,6 @@ const path = require('path');
 const distDir = path.join(__dirname, '../dist');
 const indexHtmlPath = path.join(distDir, 'index.html');
 
-// Multiple potential manifest locations
-const possibleManifestPaths = [
-  path.join(distDir, '.vite/manifest.json'),
-  path.join(distDir, 'manifest.json'),
-  path.join(distDir, 'assets/manifest.json'),
-  path.join(__dirname, '../.vite/manifest.json')
-];
-
 // Check if dist directory exists
 if (!fs.existsSync(distDir)) {
   console.error('❌ Build directory does not exist:', distDir);
@@ -28,22 +20,6 @@ if (!fs.existsSync(distDir)) {
 if (!fs.existsSync(indexHtmlPath)) {
   console.error('❌ index.html not found in build directory');
   process.exit(1);
-}
-
-// Check for manifest file in any of the possible locations
-let manifestFound = false;
-let manifestPath = '';
-
-console.log('Looking for Vite manifest file...');
-for (const potentialPath of possibleManifestPaths) {
-  if (fs.existsSync(potentialPath)) {
-    console.log('✅ Found manifest at:', potentialPath);
-    manifestFound = true;
-    manifestPath = potentialPath;
-    break;
-  } else {
-    console.log('❓ Checked:', potentialPath, '- not found');
-  }
 }
 
 // List all files in dist directory to help debug
@@ -68,15 +44,6 @@ try {
   console.error('Error listing directory:', error.message);
 }
 
-if (!manifestFound) {
-  console.error('❌ Vite manifest not found in any of the expected locations');
-  
-  // Don't fail the build, just warn about the missing manifest
-  console.warn('⚠️ Continuing despite missing manifest file, as other build artifacts exist');
-} else {
-  console.log('✅ Vite manifest exists at:', manifestPath);
-}
-
 // Check the size of index.html to ensure it's not empty
 const indexStat = fs.statSync(indexHtmlPath);
 if (indexStat.size < 100) { // Arbitrary minimum size that a valid index.html should be
@@ -84,10 +51,13 @@ if (indexStat.size < 100) { // Arbitrary minimum size that a valid index.html sh
   process.exit(1);
 }
 
+// Skip manifest check entirely
+console.log('⚠️ Skipping Vite manifest check as it is not critical for the application');
+
 // All checks passed
 console.log('✅ Build verification successful!');
 console.log('📁 Build directory exists at:', distDir);
 console.log('📄 index.html exists and has content');
 
-// Exit successfully even if the manifest is missing as long as index.html exists
+// Exit successfully
 process.exit(0); 

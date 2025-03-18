@@ -83,42 +83,86 @@ app.use((err, req, res, next) => {
 
 const PORT = config.port || 3000;
 
+// Add a utility function to safely log environment variables without exposing secrets
+const logEnvironmentVariables = () => {
+  logger.info('=== ENVIRONMENT VARIABLES ===');
+  Object.keys(process.env)
+    .filter(key => !key.includes('SECRET') && !key.includes('PASSWORD') && !key.includes('KEY'))
+    .sort()
+    .forEach(key => {
+      logger.info(`${key}=${process.env[key]}`);
+    });
+  
+  // Log existence of sensitive values without revealing them
+  Object.keys(process.env)
+    .filter(key => key.includes('SECRET') || key.includes('PASSWORD') || key.includes('KEY'))
+    .sort()
+    .forEach(key => {
+      logger.info(`${key}=${process.env[key] ? '[SET]' : '[NOT SET]'}`);
+    });
+  logger.info('===============================');
+};
+
+// Function to delay execution
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 // Test database connection before starting server
 const startServer = async () => {
   try {
-    // Use the enhanced testConnection function
-    logger.info('🔌 Testing database connection before starting server...');
-    const connectionSuccessful = await testConnection();
+    // Log environment variables for troubleshooting
+    logEnvironmentVariables();
     
-    if (!connectionSuccessful) {
-      logger.error('❌ Database connection test failed - unable to start server');
-      
-      // In production, wait and retry once more before giving up
-      if (config.env === 'production') {
-        logger.info('Waiting 5 seconds and trying one more time...');
-        await new Promise(resolve => setTimeout(resolve, 5000));
-        
-        const retrySuccessful = await testConnection();
-        if (!retrySuccessful) {
-          logger.error('❌ Database connection retry failed - server startup aborted');
-          process.exit(1);
-        }
-      } else {
-        process.exit(1);
-      }
+    // Log config information
+    logger.info(`Starting server in ${config.env} mode...`);
+    
+    // Determine which database connection to use
+    let db;
+    if (config.env === 'production' && process.env.RENDER === 'true') {
+      logger.info('Using Render-specific database connection...');
+      db = require('./database/render-connection');
+    } else {
+      logger.info('Using standard database connection...');
+      db = require('./database/connection');
     }
     
-    logger.success('📦 Database connection established successfully');
+    // Retry connection up to 5 times with increasing delays
+    let connected = false;
+    let attempt = 1;
+    const maxAttempts = 5;
     
-    // Start the server after successful DB connection
+    while (!connected && attempt <= maxAttempts) {
+      logger.info(`Database connection attempt ${attempt}/${maxAttempts}...`);
+      
+      try {
+        connected = await db.testConnection();
+        if (connected) {
+          logger.success(`✅ Database connection successful on attempt ${attempt}`);
+        }
+      } catch (err) {
+        logger.error(`❌ Database connection failed on attempt ${attempt}: ${err.message}`);
+      }
+      
+      if (!connected && attempt < maxAttempts) {
+        const delayTime = attempt * 2000; // Exponential backoff: 2s, 4s, 6s, 8s
+        logger.warn(`Retrying database connection in ${delayTime/1000} seconds...`);
+        await delay(delayTime);
+      }
+      
+      attempt++;
+    }
+    
+    if (!connected) {
+      throw new Error(`Failed to connect to database after ${maxAttempts} attempts`);
+    }
+
+    // Start the Express server
     app.listen(PORT, () => {
-      logger.success(`✅ Server running in ${config.env || 'development'} mode on port ${PORT}`);
-      logger.info(`👉 API available at http://localhost:${PORT}/api`);
-      logger.info(`🔧 Environment: ${config.env || 'development'}`);
+      logger.success(`🚀 Server running on port ${PORT}`);
     });
-  } catch (err) {
-    logger.error('❌ Unexpected error during server startup:', err);
-    process.exit(1);
+  } catch (error) {
+    logger.error(`❌ Failed to start server: ${error.message}`);
+    // Don't exit the process, let Render restart if needed
+    logger.warn('Server will continue running but may not function correctly');
   }
 };
 

@@ -3,7 +3,15 @@ const config = require('../config');
 const logger = require('../utils/logger');
 
 logger.info('Initializing database connection...');
-logger.debug(`Database config: ${config.env} environment, host: ${config.database.host}, port: ${config.database.port}, database: ${config.database.name}`);
+
+// EMERGENCY FALLBACK: If config doesn't have database details, use env vars directly
+const dbHost = config.database.host || process.env.DB_HOST || process.env.PGHOST || 'localhost';
+const dbPort = config.database.port || process.env.DB_PORT || process.env.PGPORT || '5432';
+const dbName = config.database.name || process.env.DB_NAME || process.env.PGDATABASE || 'martaz';
+const dbUser = config.database.user || process.env.DB_USERNAME || process.env.DB_USER || process.env.PGUSER || 'postgres';
+const dbPassword = config.database.password || process.env.DB_PASSWORD || process.env.PGPASSWORD || '';
+
+logger.debug(`Database config: ${config.env} environment, host: ${dbHost}, port: ${dbPort}, database: ${dbName}, user: ${dbUser}`);
 
 // For debugging connection issues
 if (config.env === 'production') {
@@ -14,12 +22,12 @@ if (config.env === 'production') {
 
 // Create Sequelize instance
 const sequelize = new Sequelize(
-  config.database.name,
-  config.database.user,
-  config.database.password,
+  dbName,
+  dbUser,
+  dbPassword,
   {
-    host: config.database.host,
-    port: config.database.port,
+    host: dbHost,
+    port: dbPort,
     dialect: 'postgres',
     logging: (msg) => logger.debug(msg),
     dialectOptions: {
@@ -70,7 +78,7 @@ const testConnection = async () => {
     logger.error(`Error message: ${error.message}`);
     
     // Log detailed connection info (without password)
-    logger.error(`Connection details: ${config.database.host}:${config.database.port}/${config.database.name} as ${config.database.user}`);
+    logger.error(`Connection details: ${dbHost}:${dbPort}/${dbName} as ${dbUser}`);
     
     if (error.original) {
       logger.error(`Original error: ${error.original.message}`);

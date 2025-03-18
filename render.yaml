@@ -17,22 +17,52 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      # Database configuration with multiple naming conventions
       - key: DB_HOST
         value: dpg-cvcsk38gph6c739d97cg-a
+      - key: DATABASE_HOST
+        value: dpg-cvcsk38gph6c739d97cg-a
+      - key: PGHOST
+        value: dpg-cvcsk38gph6c739d97cg-a
+        
       - key: DB_PORT
         value: 5432
+      - key: DATABASE_PORT
+        value: 5432
+      - key: PGPORT
+        value: 5432
+        
       - key: DB_NAME
         value: martaz
+      - key: DATABASE_NAME
+        value: martaz
+      - key: PGDATABASE
+        value: martaz
+        
       - key: DB_USERNAME
         value: martaz_user
+      - key: DB_USER
+        value: martaz_user
+      - key: PGUSER
+        value: martaz_user
+        
       - key: DB_PASSWORD
         value: EbGHQceGDGNI94ddo08v3c6Ia4TGMtOK
+      - key: DATABASE_PASSWORD
+        value: EbGHQceGDGNI94ddo08v3c6Ia4TGMtOK
+      - key: PGPASSWORD
+        value: EbGHQceGDGNI94ddo08v3c6Ia4TGMtOK
+        
       - key: PGSSLMODE
         value: no-verify
       - key: JWT_SECRET
         value: mart-az-super-secret-key-for-production-2024
       - key: JWT_EXPIRES_IN
         value: 7d
+      - key: FRONTEND_URL
+        value: https://mart-az-frontend.onrender.com
+      - key: PORT
+        value: 10000
       - key: CORS_ORIGIN
         value: https://mart-az-frontend.onrender.com
       - key: LOG_LEVEL
