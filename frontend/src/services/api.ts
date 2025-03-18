@@ -203,7 +203,7 @@ export interface ListingQueryParams {
 export const api = createApi({
   reducerPath: 'api',
   baseQuery: fetchBaseQuery({
-    baseUrl: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+    baseUrl: '/api',
     prepareHeaders: (headers, { getState }) => {
       // Add specific debugging for auth
       console.log('Preparing headers for API request');

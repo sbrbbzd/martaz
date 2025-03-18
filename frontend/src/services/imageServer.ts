@@ -1,88 +1,90 @@
 import axios from 'axios';
+import { axiosInstance } from './api';
 
-// Create a separate axios instance for the image server
-const imageServerUrl = 'http://localhost:3001';
-
-const imageServerAxios = axios.create({
-  baseURL: imageServerUrl,
-  timeout: 30000, // 30 seconds
-  headers: {
-    'Content-Type': 'multipart/form-data',
-  }
-});
-
-/**
- * Interface for the image upload response
- */
-export interface ImageUploadResponse {
+// Define interface for successful upload response
+export interface UploadResponse {
   success: boolean;
   message?: string;
-  files?: Array<{
+  files?: {
     originalName: string;
     filename: string;
+    path: string;
     size: number;
     mimetype: string;
-    path: string;
-  }>;
+  }[];
 }
 
 /**
- * Upload images directly to the image server
+ * Upload images to the server
  * @param formData FormData containing images to upload
- * @returns Promise with uploaded file paths if successful
+ * @returns Promise with upload response
  */
-export const uploadImagesToServer = async (formData: FormData): Promise<ImageUploadResponse> => {
+export const uploadImagesToServer = async (formData: FormData): Promise<UploadResponse> => {
   try {
-    const response = await imageServerAxios.post('/upload', formData);
-    return response.data;
+    // Check if in development or production environment
+    const isDevelopment = import.meta.env.MODE === 'development';
+    
+    // Use the appropriate endpoint - in development, we use the standalone image server
+    // In production, we use the integrated image server
+    const endpoint = isDevelopment
+      ? `${import.meta.env.VITE_IMAGE_SERVER_URL || 'http://localhost:3001'}/upload`
+      : '/api/images/upload';
+    
+    console.log(`Uploading images to ${endpoint}...`);
+    
+    // Use axios instance for the request
+    const response = await axiosInstance.post(endpoint, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    
+    // Log the response
+    console.log('Image upload response:', response.data);
+    
+    // Return standardized response
+    return {
+      success: true,
+      message: response.data.message,
+      files: response.data.files,
+    };
   } catch (error) {
-    console.error('Error uploading images to image server:', error);
+    console.error('Error uploading images:', error);
     
-    if (axios.isAxiosError(error) && error.response) {
-      return {
-        success: false,
-        message: error.response.data?.message || error.message
-      };
-    }
-    
+    // Return error response
     return {
       success: false,
-      message: error instanceof Error ? error.message : 'Failed to upload images'
+      message: error instanceof Error ? error.message : 'Failed to upload images',
     };
   }
 };
 
 /**
- * Check if an image exists on the server
- * @param filename The filename to check
- * @returns Promise with the check result
- */
-export const checkImageExists = async (filename: string): Promise<{ exists: boolean; path?: string }> => {
-  try {
-    const response = await imageServerAxios.get(`/check/${filename}`);
-    return response.data;
-  } catch (error) {
-    console.error('Error checking image existence:', error);
-    return { exists: false };
-  }
-};
-
-/**
- * Get the full URL for an image on the image server
- * @param path The path returned from the image server (e.g. /tmp/filename.jpg)
+ * Get the full URL for an image
+ * @param imagePath The path to the image (e.g. /api/images/filename.jpg)
  * @returns The full URL to the image
  */
-export const getImageServerUrl = (path?: string): string => {
-  if (!path) return `${imageServerUrl}/images/placeholder.jpg`;
+export const getImageUrl = (imagePath?: string): string => {
+  if (!imagePath) return '/placeholder.jpg';
   
-  if (path.startsWith('/tmp/')) {
-    const filename = path.substring(5); // Remove /tmp/
-    return `${imageServerUrl}/images/${filename}`;
+  // If it's already a full URL, return it
+  if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
+    return imagePath;
   }
   
-  if (!path.includes('/')) {
-    return `${imageServerUrl}/images/${path}`;
+  // Check if in development or production environment
+  const isDevelopment = import.meta.env.MODE === 'development';
+  
+  // In development, we need to use the full image server URL
+  if (isDevelopment && !imagePath.startsWith('/api/')) {
+    return `${import.meta.env.VITE_IMAGE_SERVER_URL || 'http://localhost:3001'}/${imagePath}`;
   }
   
-  return path;
+  // For production or if the path already includes /api/, use relative URLs
+  return imagePath;
+};
+
+export default {
+  uploadImagesToServer,
+  getImageUrl,
 }; 

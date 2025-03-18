@@ -1,16 +1,26 @@
 {
+  "name": "martaz",
+  "version": "1.0.0",
+  "description": "Azerbaijan Online Marketplace",
   "scripts": {
-    "start": "node index.js",
-    "start:dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\" \"cd image-server && npm start\"",
-    "start:image-server": "cd image-server && npm start",
-    "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\"",
+    "start": "node scripts/prepare-deployment.js && node index.js",
+    "start:dev": "cross-env NODE_ENV=development concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\" \"npm run start:image-server\"",
+    "start:image-server": "node services/standalone-image-server.js",
+    "dev": "cross-env NODE_ENV=development concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\" \"npm run start:image-server\"",
     "setup": "concurrently \"cd backend && npm install\" \"cd frontend && npm install\"",
-    "build": "npm install && cd frontend && npm install && npm run build"
+    "build": "npm install && cd backend && npm install && cd ../frontend && npm install && npm run build",
+    "deploy": "cd frontend && npm run deploy",
+    "dev:env": "node -e \"require('fs').copyFileSync('.env.local', '.env')\" && echo 'Created .env from .env.local'"
   },
   "engines": {
     "node": ">=18.0.0"
   },
   "dependencies": {
-    "express": "^4.21.2"
+    "concurrently": "^8.2.2",
+    "cross-env": "^7.0.3",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "multer": "^1.4.5-lts.1",
+    "uuid": "^9.0.1"
   }
 }
