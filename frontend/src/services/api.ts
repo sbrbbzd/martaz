@@ -203,7 +203,7 @@ export interface ListingQueryParams {
 export const api = createApi({
   reducerPath: 'api',
   baseQuery: fetchBaseQuery({
-    baseUrl: '/api',
+    baseUrl: 'http://localhost:3000/api',
     prepareHeaders: (headers, { getState }) => {
       // Add specific debugging for auth
       console.log('Preparing headers for API request');
@@ -222,6 +222,17 @@ export const api = createApi({
       
       return headers;
     },
+    responseHandler: async (response) => {
+      // Check if the response is JSON before trying to parse it
+      const contentType = response.headers.get('content-type');
+      if (contentType && contentType.indexOf('application/json') !== -1) {
+        return response.json();
+      }
+      
+      // If it's not JSON, log it and try to return the text
+      console.error('Received non-JSON response:', await response.text());
+      throw new Error('Non-JSON response received from API');
+    }
   }),
   tagTypes: ['Listing', 'Category', 'User', 'FeaturedListings'],
   endpoints: (builder) => ({
@@ -335,7 +346,7 @@ export const api = createApi({
         if (params.page) queryParams.append('page', params.page.toString());
         if (params.limit) queryParams.append('limit', params.limit.toString());
         if (params.sort) queryParams.append('sort', params.sort);
-        if (params.order) queryParams.append('order', params.order);
+        if (params.order) queryParams.append('order', params.order.toUpperCase());
         // If category is provided and looks like a slug (not a UUID), use the category slug endpoint
         if (params.category) {
           // Check if the category is a UUID (categoryId) or a slug
@@ -359,21 +370,36 @@ export const api = createApi({
         if (params.favorites) queryParams.append('favorites', 'true');
         
         const queryString = queryParams.toString();
+        console.log('Listings API query:', `/listings${queryString ? `?${queryString}` : ''}`);
         
         return {
           url: `/listings${queryString ? `?${queryString}` : ''}`,
           method: 'GET',
-          transformResponse: (response: any) => {
-            console.log('Raw listings response:', response);
-            return response;
-          }
+          responseHandler: (response) => response.json(),
+          validateStatus: (response, body) => {
+            return response.status >= 200 && response.status < 300;
+          },
         };
       },
       transformResponse: (response: any) => {
-        if (response.data && Array.isArray(response.data.listings)) {
+        console.log('Raw listings response:', response);
+        if (response && response.data && Array.isArray(response.data.listings)) {
           response.data.listings = response.data.listings.map((listing: any) => convertImageUrls(listing));
+        } else {
+          console.error('Unexpected response format:', response);
         }
         return response;
+      },
+      async onQueryStarted(arg, { queryFulfilled, dispatch }) {
+        try {
+          await queryFulfilled;
+        } catch (error) {
+          console.error('Error fetching listings:', error);
+        }
+      },
+      transformErrorResponse: (response: any) => {
+        console.error('Listings API error response:', response);
+        return { error: 'Failed to load listings', details: response };
       },
       providesTags: (result) =>
         result
@@ -384,6 +410,10 @@ export const api = createApi({
           : [{ type: 'Listing', id: 'LIST' }],
       // Keep cached data for 5 minutes (300 seconds) to reduce excessive API calls
       keepUnusedDataFor: 300,
+      extraOptions: {
+        maxRetries: 3,
+        retryDelay: (attempt: number) => attempt * 1000, // 1s, 2s, 3s
+      },
     }),
     
     getListing: builder.query<any, string>({

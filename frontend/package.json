@@ -64,7 +64,8 @@
   "scripts": {
     "start": "vite",
     "dev": "vite",
-    "build": "tsc --project tsconfig.json && vite build && touch dist/.nojekyll",
+    "build": "tsc --project tsconfig.json && vite build && touch dist/.nojekyll && node scripts/verify-build.js",
+    "render-build": "node scripts/render-build.js",
     "preview": "vite preview",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

@@ -103,6 +103,12 @@ const ListingsPage: React.FC = () => {
         orderDirection = 'DESC';
     }
     
+    console.log('Building query object:', { 
+      sort: sortField, 
+      order: orderDirection,
+      category: selectedCategory
+    });
+    
     return {
       page,
       limit,
@@ -124,8 +130,8 @@ const ListingsPage: React.FC = () => {
     error: listingsError, 
     refetch: refetchListings 
   } = useGetListingsQuery(queryObject, {
-    // Only refetch when arguments change, not on component mount
-    refetchOnMountOrArgChange: false
+    // Allow refetching when component mounts
+    refetchOnMountOrArgChange: true
   });
   
   const { 
@@ -149,7 +155,7 @@ const ListingsPage: React.FC = () => {
     if (locationFilter) params.set('location', locationFilter);
     if (search) params.set('search', search);
     if (sort !== 'createdAt') params.set('sort', sort);
-    if (order !== 'desc') params.set('order', order);
+    if (order !== 'DESC') params.set('order', order);
     if (viewMode !== 'grid') params.set('viewMode', viewMode);
     
     const newUrl = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
@@ -188,11 +194,17 @@ const ListingsPage: React.FC = () => {
     if (sortParam) setSort(sortParam);
     
     const orderParam = params.get('order');
-    if (orderParam) setOrder(orderParam);
+    if (orderParam) setOrder(orderParam.toUpperCase());
     
     const viewModeParam = params.get('viewMode');
     if (viewModeParam) setViewMode(viewModeParam as 'grid' | 'list');
-  }, []);
+    
+    // Force a data fetch after loading URL parameters
+    setTimeout(() => {
+      console.log("Initial data fetch triggered");
+      refetchListings();
+    }, 300);
+  }, [refetchListings]);
   
   // Update URL when filters change - but debounce it
   useEffect(() => {
@@ -876,7 +888,21 @@ const ListingsPage: React.FC = () => {
                   ))}
                 </div>
               ) : listingsError ? (
-                <ErrorMessage message={t('listings.error')} />
+                <div className="listings-page__error">
+                  <ErrorMessage message={t('listings.error')} />
+                  <p className="listings-page__error-details">
+                    {JSON.stringify(listingsError).substring(0, 150)}...
+                  </p>
+                  <button 
+                    className="listings-page__retry-button"
+                    onClick={() => {
+                      console.log("Retrying listings fetch...");
+                      refetchListings();
+                    }}
+                  >
+                    {t('common.retry', 'Retry')}
+                  </button>
+                </div>
               ) : listingsData?.data?.listings && listingsData.data.listings.length > 0 ? (
                 <div className={`listings-page__${viewMode}`}>
                   {listingsData.data.listings.map((listing: Listing) => (

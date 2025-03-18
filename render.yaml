@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: mart-az-frontend
+    env: node
+    buildCommand: cd frontend && npm install && npm run render-build
+    startCommand: cd frontend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+    healthCheckPath: /
+
+  - type: web
+    name: mart-az-backend
+    env: node
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+    healthCheckPath: /api/health 
