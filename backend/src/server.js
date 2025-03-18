@@ -158,19 +158,38 @@ const startServer = async () => {
     // Sync database models
     try {
       logger.info('Syncing database models...');
-      // Force true in development only if needed, never in production!
-      const force = process.env.DB_FORCE_SYNC === 'true' && config.env !== 'production';
-      const alter = config.env === 'production' ? false : true;
+      
+      // Force sync only if explicitly set in environment
+      const force = process.env.DB_FORCE_SYNC === 'true';
+      
+      // Always use alter in production to avoid data loss unless force is specified
+      const alter = force ? false : true;
       
       // Import models and associate them
       require('./models');
       
-      // Sync all models with the database
-      await db.sequelize.sync({ force, alter });
+      // First try to access a table to see if it exists
+      let tablesExist = true;
+      try {
+        logger.info('Checking if tables exist...');
+        const User = require('./models/user.model'); // Adjust to your actual model path
+        const result = await db.sequelize.query('SELECT 1 FROM "users" LIMIT 1', { type: db.sequelize.QueryTypes.SELECT });
+        logger.info('Tables exist, proceeding with alter: true');
+      } catch (err) {
+        if (err.message.includes('relation') && err.message.includes('does not exist')) {
+          logger.warn('Tables do not exist, using force: true to create them');
+          tablesExist = false;
+        } else {
+          throw err;
+        }
+      }
+      
+      // Sync with appropriate options based on table existence
+      await db.sequelize.sync({ force: !tablesExist || force, alter: tablesExist && alter });
       logger.success('✅ Database models synchronized successfully');
       
-      // Run seeders if in dev mode or if forced
-      if (config.env === 'development' || process.env.RUN_SEEDERS === 'true') {
+      // Run seeders if in dev mode or if forced or if tables were just created
+      if (config.env === 'development' || process.env.RUN_SEEDERS === 'true' || !tablesExist) {
         logger.info('Running database seeders...');
         try {
           const seeders = require('./seeders');
