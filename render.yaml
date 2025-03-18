@@ -12,11 +12,15 @@ services:
   - type: web
     name: mart-az-backend
     env: node
-    buildCommand: cd backend && npm install
+    buildCommand: cd backend && npm install && npm run db:init
     startCommand: cd backend && npm start
     envVars:
       - key: NODE_ENV
         value: production
+      - key: RENDER
+        value: true
+      - key: RUN_SEEDERS
+        value: true
       # Database configuration with multiple naming conventions
       - key: DB_HOST
         value: dpg-cvcsk38gph6c739d97cg-a

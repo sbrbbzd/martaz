@@ -155,6 +155,37 @@ const startServer = async () => {
       throw new Error(`Failed to connect to database after ${maxAttempts} attempts`);
     }
 
+    // Sync database models
+    try {
+      logger.info('Syncing database models...');
+      // Force true in development only if needed, never in production!
+      const force = process.env.DB_FORCE_SYNC === 'true' && config.env !== 'production';
+      const alter = config.env === 'production' ? false : true;
+      
+      // Import models and associate them
+      require('./models');
+      
+      // Sync all models with the database
+      await db.sequelize.sync({ force, alter });
+      logger.success('✅ Database models synchronized successfully');
+      
+      // Run seeders if in dev mode or if forced
+      if (config.env === 'development' || process.env.RUN_SEEDERS === 'true') {
+        logger.info('Running database seeders...');
+        try {
+          const seeders = require('./seeders');
+          await seeders.run();
+          logger.success('✅ Database seeders completed successfully');
+        } catch (error) {
+          logger.error(`❌ Failed to run database seeders: ${error.message}`);
+        }
+      }
+    } catch (error) {
+      logger.error(`❌ Failed to sync database models: ${error.message}`);
+      logger.error(error.stack);
+      // Don't throw an error here, continue with startup
+    }
+
     // Start the Express server
     app.listen(PORT, () => {
       logger.success(`🚀 Server running on port ${PORT}`);
