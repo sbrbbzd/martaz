@@ -28,6 +28,8 @@ const User = require('./User')(sequelize);
 const Listing = require('./Listing')(sequelize);
 const Category = require('./Category')(sequelize);
 const Favorite = require('./Favorite')(sequelize, Sequelize.DataTypes);
+const ListingReport = require('./ListingReport')(sequelize);
+const SeoSettings = require('./SeoSettings')(sequelize);
 
 // Define associations
 User.hasMany(Listing, {
@@ -62,14 +64,39 @@ Category.hasMany(Category, {
 });
 
 // Favorites associations
-User.hasMany(Favorite, {
+User.belongsToMany(Listing, {
+  through: Favorite,
   foreignKey: 'userId',
-  as: 'favorites'
+  otherKey: 'listingId',
+  as: 'favoriteListings'
 });
 
-Favorite.belongsTo(User, {
-  foreignKey: 'userId',
-  as: 'user'
+Listing.belongsToMany(User, {
+  through: Favorite,
+  foreignKey: 'listingId',
+  otherKey: 'userId',
+  as: 'userFavorites'
+});
+
+// Listing Report associations
+Listing.hasMany(ListingReport, {
+  foreignKey: 'listingId',
+  as: 'reports'
+});
+
+ListingReport.belongsTo(Listing, {
+  foreignKey: 'listingId',
+  as: 'listing'
+});
+
+User.hasMany(ListingReport, {
+  foreignKey: 'reporterId',
+  as: 'reportedListings'
+});
+
+ListingReport.belongsTo(User, {
+  foreignKey: 'reporterId',
+  as: 'reporter'
 });
 
 module.exports = {
@@ -77,5 +104,7 @@ module.exports = {
   User,
   Listing,
   Category,
-  Favorite
+  Favorite,
+  ListingReport,
+  SeoSettings
 }; 

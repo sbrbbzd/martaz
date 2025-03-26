@@ -32,7 +32,14 @@
     "addToFavorites": "Добавить в избранное",
     "removeFromFavorites": "Удалить из избранного",
     "viewDetails": "Подробнее",
-    "items": "объявления"
+    "items": "объявления",
+    "previous": "Предыдущая",
+    "next": "Следующая",
+    "page": "Страница {{page}}",
+    "close": "Закрыть",
+    "statusRejected": "Отклонено",
+    "statusDeleted": "Удалено",
+    "statusInactive": "Неактивно"
   },
   "home": {
     "pageTitle": "Главная",

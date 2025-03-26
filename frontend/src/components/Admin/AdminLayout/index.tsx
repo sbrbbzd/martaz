@@ -21,7 +21,8 @@ import {
   FiPackage,
   FiShoppingBag,
   FiDollarSign,
-  FiActivity
+  FiActivity,
+  FiSearch
 } from 'react-icons/fi';
 import './styles.scss';
 
@@ -104,10 +105,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     <div className={`admin-layout ${sidebarOpen ? 'sidebar-open' : 'sidebar-closed'}`}>
       <aside className="admin-sidebar">
         <div className="sidebar-header">
-          <Link to="/admin" className="admin-logo">
-            <img src="/logo.png" alt="Mart.az" />
-            {sidebarOpen && <span>Admin Panel</span>}
-          </Link>
+        
           <button className="toggle-sidebar" onClick={toggleSidebar} aria-label="Toggle sidebar">
             <FiMenu />
           </button>
@@ -154,12 +152,6 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                         {t('admin.all', 'All Listings')}
                       </Link>
                     </li>
-                    <li className={isActive('/admin/listings/pending') ? 'active' : ''}>
-                      <Link to="/admin/listings/pending">
-                        <span className="submenu-dot"></span>
-                        {t('admin.pending_listings', 'Pending Listings')}
-                      </Link>
-                    </li>
                     <li className={isActive('/admin/listings/reported') ? 'active' : ''}>
                       <Link to="/admin/listings/reported">
                         <span className="submenu-dot"></span>
@@ -198,18 +190,6 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                       <Link to="/admin/users">
                         <span className="submenu-dot"></span>
                         {t('admin.all_users', 'All Users')}
-                      </Link>
-                    </li>
-                    <li className={isActive('/admin/users/admins') ? 'active' : ''}>
-                      <Link to="/admin/users/admins">
-                        <span className="submenu-dot"></span>
-                        {t('admin.admins', 'Administrators')}
-                      </Link>
-                    </li>
-                    <li className={isActive('/admin/users/banned') ? 'active' : ''}>
-                      <Link to="/admin/users/banned">
-                        <span className="submenu-dot"></span>
-                        {t('admin.banned_users', 'Banned Users')}
                       </Link>
                     </li>
                   </ul>
@@ -290,6 +270,13 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                 )}
               </li>
               
+              <li className={`nav-item ${isActive('/admin/seo') ? 'active' : ''}`}>
+                <Link to="/admin/seo" className="nav-link">
+                  <FiSearch />
+                  {sidebarOpen && <span>{t('admin.sidebar.seo', 'SEO Management')}</span>}
+                </Link>
+              </li>
+              
               <li className={`nav-item ${isActive('/admin/messages') ? 'active' : ''}`}>
                 <Link to="/admin/messages" className="nav-link">
                   <FiMessageSquare />
@@ -353,6 +340,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               {location.pathname.includes('/admin/users') && t('admin.sidebar.users', 'Users')}
               {location.pathname.includes('/admin/categories') && t('admin.sidebar.categories', 'Categories')}
               {location.pathname.includes('/admin/reports') && t('admin.sidebar.reports', 'Reports')}
+              {location.pathname.includes('/admin/seo') && t('admin.sidebar.seo', 'SEO Management')}
               {location.pathname.includes('/admin/messages') && t('admin.sidebar.messages', 'Messages')}
               {location.pathname.includes('/admin/settings') && t('admin.sidebar.settings', 'Settings')}
             </h1>

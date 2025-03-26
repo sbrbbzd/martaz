@@ -26,9 +26,10 @@ const NotFoundPage = React.lazy(() => import('@pages/NotFoundPage'));
 const AdminDashboard = React.lazy(() => import('@pages/Admin/Dashboard'));
 const AdminUsers = React.lazy(() => import('@pages/Admin/Users'));
 const AdminListings = React.lazy(() => import('@pages/Admin/Listings'));
-const AdminPendingListings = React.lazy(() => import('@pages/Admin/Listings/PendingListingsPage'));
 const AdminReportedListings = React.lazy(() => import('@pages/Admin/Listings/ReportedListingsPage'));
+const AdminFeaturedListings = React.lazy(() => import('@pages/Admin/Listings/FeaturedListingsPage'));
 const AdminCategories = React.lazy(() => import('@pages/Admin/Categories'));
+const AdminSEO = React.lazy(() => import('@pages/Admin/SEO'));
 const CategoryPage = React.lazy(() => import('@pages/ListingsPage')); // Reusing ListingsPage for category view
 const FavoritesPage = React.lazy(() => import('@pages/Favorites'));
 // Remove or comment out the ImageDebugPage import until the module is available
@@ -172,10 +173,11 @@ const App: React.FC = () => {
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="users" element={<AdminUsers />} />
             <Route path="listings" element={<AdminListings />} />
-            <Route path="listings/pending" element={<AdminPendingListings />} />
             <Route path="listings/reported" element={<AdminReportedListings />} />
+            <Route path="listings/featured" element={<AdminFeaturedListings />} />
+            <Route path="listings/edit/:id" element={<EditListingPage />} />
             <Route path="categories" element={<AdminCategories />} />
-            <Route path="featured" element={<AdminFeaturedListingsPage />} />
+            <Route path="seo" element={<AdminSEO />} />
           </Route>
           
           {/* Main site routes with common Layout */}

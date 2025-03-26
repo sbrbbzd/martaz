@@ -10,13 +10,14 @@ import {
   FiChevronRight,
   FiAlertCircle,
   FiSearch,
-  FiEye
+  FiEye,
+  FiEyeOff
 } from 'react-icons/fi';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import AdminLayout from '../../../components/Admin/AdminLayout';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
-import { useGetCategoriesQuery, useCreateCategoryMutation, useUpdateCategoryMutation, useDeleteCategoryMutation } from '../../../services/api';
+import { useGetAdminCategoriesQuery, useCreateCategoryMutation, useUpdateCategoryMutation, useDeleteCategoryMutation } from '../../../services/api';
 // @ts-ignore - Module exists but TypeScript can't find it
 import { showConfirm } from '../../../utils/confirm';
 // @ts-ignore
@@ -26,6 +27,11 @@ import { uploadImagesToServer, getImageUrl } from '../../../services/imageServer
 
 interface CategoryFormData {
   name: string;
+  translations: {
+    az: string | null;
+    en: string | null;
+    ru: string | null;
+  };
   slug: string;
   description: string;
   parentId: string | null;
@@ -37,6 +43,11 @@ interface CategoryFormData {
 
 const initialFormData: CategoryFormData = {
   name: '',
+  translations: {
+    az: null,
+    en: null,
+    ru: null
+  },
   slug: '',
   description: '',
   parentId: null,
@@ -53,6 +64,7 @@ const CategoryManagement: React.FC = () => {
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [searchText, setSearchText] = useState('');
   const [expandedCategories, setExpandedCategories] = useState<{[key: string]: boolean}>({});
+  const [showInactiveCategories, setShowInactiveCategories] = useState<boolean>(false);
   const [uploadStatus, setUploadStatus] = useState<{
     uploading: boolean,
     progress: number
@@ -68,7 +80,7 @@ const CategoryManagement: React.FC = () => {
     isError, 
     error, 
     refetch 
-  } = useGetCategoriesQuery(undefined);
+  } = useGetAdminCategoriesQuery(undefined);
   
   // Mutations for category actions
   const [createCategory, { isLoading: isCreating }] = useCreateCategoryMutation();
@@ -77,10 +89,36 @@ const CategoryManagement: React.FC = () => {
   
   // Filter categories by search text
   const filteredCategories = categoriesData ? 
-    categoriesData.filter(category => 
-      category.name.toLowerCase().includes(searchText.toLowerCase()) ||
-      category.description?.toLowerCase().includes(searchText.toLowerCase())
-    ) : [];
+    categoriesData.filter(category => {
+      // Parse isActive properly - ensure it's a boolean
+      const isActive = typeof category.isActive === 'string' 
+        ? (category.isActive as string).toLowerCase() === 'true'
+        : category.isActive === undefined ? true : Boolean(category.isActive);
+      
+      // First apply the search filter
+      const matchesSearch = category.name.toLowerCase().includes(searchText.toLowerCase()) || 
+                           (category.description?.toLowerCase() || '').includes(searchText.toLowerCase());
+      
+      // Then apply the active/inactive filter
+      // If showInactiveCategories is true, show both active and inactive
+      // If showInactiveCategories is false, show only active
+      const matchesActiveFilter = showInactiveCategories ? true : isActive;
+      
+      return matchesSearch && matchesActiveFilter;
+    }).map(category => ({
+      ...category,
+      // Parse isActive properly for display
+      isActive: typeof category.isActive === 'string' 
+        ? (category.isActive as string).toLowerCase() === 'true'
+        : category.isActive === undefined ? true : Boolean(category.isActive)
+    })) : [];
+  
+  // Debug logging for categories 
+  console.log('Categories data:', categoriesData?.length || 0, 'total categories');
+  console.log('Filtered categories:', filteredCategories.length, 'categories');
+  console.log('Active categories:', filteredCategories.filter(cat => cat.isActive).length, 'categories');
+  console.log('Inactive categories:', filteredCategories.filter(cat => !cat.isActive).length, 'categories');
+  console.log('showInactiveCategories state:', showInactiveCategories);
   
   // Get root categories and their subcategories
   const rootCategories = filteredCategories.filter(category => !category.parentId);
@@ -129,6 +167,10 @@ const CategoryManagement: React.FC = () => {
     setFormData(prev => ({ 
       ...prev, 
       name: value,
+      translations: {
+        ...prev.translations,
+        az: value // Set Azerbaijani translation to match the name by default
+      },
       slug: generateSlug(value)
     }));
   };
@@ -162,8 +204,19 @@ const CategoryManagement: React.FC = () => {
   
   // Edit category
   const handleEditCategory = (category: any) => {
+    console.log('Editing category with data:', category);
+    console.log('Translations from API:', category.translations);
+    
+    // Default translations object if not present
+    const translations = category.translations || { az: null, en: null, ru: null };
+    
     setFormData({
       name: category.name,
+      translations: {
+        az: translations.az || null,
+        en: translations.en || null,
+        ru: translations.ru || null
+      },
       slug: category.slug,
       description: category.description || '',
       parentId: category.parentId,
@@ -186,6 +239,22 @@ const CategoryManagement: React.FC = () => {
         console.error('Failed to delete category:', err);
         // Could add error notification here
       }
+    }
+  };
+  
+  // Function to toggle category active status
+  const handleToggleActiveStatus = async (category: any) => {
+    try {
+      await updateCategory({
+        id: category.id,
+        isActive: !category.isActive
+      }).unwrap();
+      
+      toast.success(t('admin.categories.statusToggleSuccess', 'Category status updated successfully'));
+      refetch();
+    } catch (error) {
+      console.error('Error toggling category status:', error);
+      toast.error(t('admin.categories.statusToggleFailed', 'Failed to update category status'));
     }
   };
   
@@ -237,6 +306,7 @@ const CategoryManagement: React.FC = () => {
       
       const categoryData = {
         name: formData.name,
+        translations: formData.translations,
         slug: formData.slug,
         description: formData.description,
         parentId: formData.parentId || null,
@@ -271,7 +341,7 @@ const CategoryManagement: React.FC = () => {
           
           return (
             <li key={category.id} className="category-item">
-              <div className="category-row">
+              <div className={`category-row ${!category.isActive ? 'inactive-row' : ''}`}>
                 {hasSubcategories && (
                   <button 
                     className="toggle-button"
@@ -289,30 +359,35 @@ const CategoryManagement: React.FC = () => {
                     {category.name}
                   </span>
                   
-                  {!category.isActive && (
-                    <span className="inactive-badge">{t('admin.categories.inactive', 'Inactive')}</span>
-                  )}
+                  <span className={`status-badge ${category.isActive ? 'active' : 'inactive'}`}>
+                    {category.isActive 
+                      ? t('admin.categories.active', 'Active') 
+                      : t('admin.categories.inactive', 'Inactive')}
+                  </span>
                 </div>
                 
                 <div className="category-actions">
                   <button 
-                    className="action-button view"
-                    onClick={() => window.open(`/${category.slug}`, '_blank')}
+                    className="action-button edit"
+                    onClick={() => handleEditCategory(category)}
+                    title={t('admin.categories.edit', 'Edit Category')}
                   >
-                    <FiEye />
+                    <FiEdit />
                   </button>
                   
                   <button 
-                    className="action-button edit"
-                    onClick={() => handleEditCategory(category)}
+                    className="action-button view"
+                    onClick={() => window.open(`/${category.slug}`, '_blank')}
+                    title={t('admin.categories.view', 'View Category')}
                   >
-                    <FiEdit />
+                    <FiEye />
                   </button>
                   
                   <button 
                     className="action-button delete"
                     onClick={() => handleDeleteCategory(category.id)}
                     disabled={isDeleting}
+                    title={t('admin.categories.delete', 'Delete Category')}
                   >
                     <FiTrash2 />
                   </button>
@@ -385,6 +460,24 @@ const CategoryManagement: React.FC = () => {
             <FiSearch />
           </div>
           
+          <div className="filter-options">
+            <label className="toggle-label">
+              <input
+                type="checkbox"
+                checked={showInactiveCategories}
+                onChange={() => {
+                  console.log("Toggling showInactiveCategories from", showInactiveCategories, "to", !showInactiveCategories);
+                  setShowInactiveCategories(!showInactiveCategories);
+                }}
+              />
+              <span className="toggle-text">
+                {showInactiveCategories 
+                  ? t('admin.categories.showingAll', 'Showing all categories') 
+                  : t('admin.categories.showingOnlyActive', 'Showing only active categories')}
+              </span>
+            </label>
+          </div>
+          
           <button 
             className="expand-all-button"
             onClick={() => {
@@ -410,7 +503,31 @@ const CategoryManagement: React.FC = () => {
         
         <div className="categories-container">
           {rootCategories.length > 0 ? (
-            <CategoryTree categories={rootCategories} />
+            <>
+              <div className="categories-header">
+                <span className="category-count">
+                  {t('admin.categories.showing', 'Showing')}: {filteredCategories.length} {t('admin.categories.categories', 'categories')} 
+                  {!showInactiveCategories && (
+                    <span className="active-only-note">
+                      ({t('admin.categories.activeOnly', 'active only')})
+                    </span>
+                  )}
+                </span>
+                <span className="status-counts">
+                  <span className="active-count">
+                    <span className="status-indicator active"></span>
+                    {t('admin.categories.active', 'Active')}: {filteredCategories.filter(cat => cat.isActive).length}
+                  </span>
+                  {showInactiveCategories && (
+                    <span className="inactive-count">
+                      <span className="status-indicator inactive"></span>
+                      {t('admin.categories.inactive', 'Inactive')}: {filteredCategories.filter(cat => !cat.isActive).length}
+                    </span>
+                  )}
+                </span>
+              </div>
+              <CategoryTree categories={rootCategories} />
+            </>
           ) : (
             <div className="empty-state">
               <FiGrid size={36} />
@@ -440,6 +557,73 @@ const CategoryManagement: React.FC = () => {
                     onChange={handleNameChange}
                     required
                   />
+                  <small className="help-text">
+                    {t('admin.categories.nameHelp', 'This is the default name and will be used for Azerbaijani language')}
+                  </small>
+                </div>
+                
+                <div className="form-group translations-group">
+                  <label>{t('admin.categories.translations', 'Translations')}</label>
+                  
+                  <div className="translation-fields">
+                    <div className="translation-field">
+                      <label htmlFor="translations.az">
+                        {t('admin.languages.azerbaijani', 'Azerbaijani')}
+                      </label>
+                      <input
+                        type="text"
+                        id="translations.az"
+                        name="translations.az"
+                        value={formData.translations.az || ''}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          translations: {
+                            ...formData.translations,
+                            az: e.target.value
+                          }
+                        })}
+                        placeholder={formData.name}
+                      />
+                    </div>
+                    
+                    <div className="translation-field">
+                      <label htmlFor="translations.en">
+                        {t('admin.languages.english', 'English')}
+                      </label>
+                      <input
+                        type="text"
+                        id="translations.en"
+                        name="translations.en"
+                        value={formData.translations.en || ''}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          translations: {
+                            ...formData.translations,
+                            en: e.target.value
+                          }
+                        })}
+                      />
+                    </div>
+                    
+                    <div className="translation-field">
+                      <label htmlFor="translations.ru">
+                        {t('admin.languages.russian', 'Russian')}
+                      </label>
+                      <input
+                        type="text"
+                        id="translations.ru"
+                        name="translations.ru"
+                        value={formData.translations.ru || ''}
+                        onChange={(e) => setFormData({
+                          ...formData,
+                          translations: {
+                            ...formData.translations,
+                            ru: e.target.value
+                          }
+                        })}
+                      />
+                    </div>
+                  </div>
                 </div>
                 
                 <div className="form-group">
@@ -544,56 +728,52 @@ const CategoryManagement: React.FC = () => {
                 </div>
                 
                 <div className="form-group">
-                  <label htmlFor="icon">{t('admin.categories.iconCode', 'Icon Code (optional)')}</label>
-                  <input
-                    type="text"
-                    id="icon"
-                    name="icon"
-                    value={formData.icon}
-                    onChange={handleInputChange}
-                    placeholder="e.g. FiHome or URL to icon"
+                  <label htmlFor="icon">{t('admin.categories.icon', 'Icon (emoji or icon code)')}</label>
+                  <input 
+                    type="text" 
+                    id="icon" 
+                    value={formData.icon || ''} 
+                    onChange={(e) => setFormData({...formData, icon: e.target.value})}
+                    placeholder={t('admin.categories.iconPlaceholder', 'e.g. 📱 or fa-mobile')}
                   />
-                  <small className="help-text">
-                    {t('admin.categories.iconHelp', 'Enter an icon name from React Icons or use the uploader above')}
-                  </small>
+                  {formData.icon && <span className="icon-preview">{formData.icon}</span>}
                 </div>
                 
-                <div className="form-group checkbox-group">
-                  <input
-                    type="checkbox"
-                    id="isActive"
-                    name="isActive"
-                    checked={formData.isActive}
-                    onChange={handleInputChange}
-                  />
-                  <label htmlFor="isActive">{t('admin.categories.active', 'Active')}</label>
+                <div className="form-group">
+                  <label className="toggle-label">
+                    <input 
+                      type="checkbox" 
+                      checked={formData.isActive} 
+                      onChange={(e) => setFormData({...formData, isActive: e.target.checked})}
+                    />
+                    <span className="toggle-text">
+                      {formData.isActive ? 
+                        t('admin.categories.statusActive', 'Category is Active') : 
+                        t('admin.categories.statusInactive', 'Category is Inactive')}
+                    </span>
+                  </label>
+                  <p className="field-help">
+                    {t('admin.categories.statusHelp', 'Inactive categories are hidden from users on the frontend')}
+                  </p>
                 </div>
                 
                 <div className="form-actions">
-                  <button 
-                    type="button" 
-                    className="cancel-button"
-                    onClick={resetForm}
-                  >
+                  <button type="button" className="cancel-button" onClick={resetForm}>
                     {t('admin.categories.cancel', 'Cancel')}
                   </button>
-                  
                   <button 
-                    type="submit"
+                    type="submit" 
                     className="save-button"
                     disabled={isCreating || isUpdating || uploadStatus.uploading}
                   >
                     {isCreating || isUpdating || uploadStatus.uploading ? (
-                      <div className="saving-spinner">
-                        <LoadingSpinner />
-                        <span>{uploadStatus.uploading ? t('admin.categories.uploading', 'Uploading...') : t('admin.categories.saving', 'Saving...')}</span>
-                      </div>
+                      <span className="loading-spinner"></span>
                     ) : (
-                      <>
-                        <FiCheck />
-                        {t('admin.categories.save', 'Save Category')}
-                      </>
+                      <FiCheck />
                     )}
+                    {editingCategoryId ? 
+                      t('admin.categories.update', 'Update Category') : 
+                      t('admin.categories.create', 'Create Category')}
                   </button>
                 </div>
               </form>

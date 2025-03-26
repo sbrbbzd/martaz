@@ -1438,4 +1438,197 @@
     stroke-dasharray: 90, 150;
     stroke-dashoffset: -124;
   }
+}
+
+// Report Dialog Styles
+.report-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.report-dialog {
+  background-color: white;
+  border-radius: 8px;
+  width: 100%;
+  max-width: 500px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  
+  &__header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    
+    h2 {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #111827;
+      display: flex;
+      align-items: center;
+      
+      svg {
+        color: #ef4444;
+        margin-right: 0.75rem;
+      }
+    }
+    
+    .report-dialog__close-button {
+      background: none;
+      border: none;
+      color: #6b7280;
+      cursor: pointer;
+      font-size: 1.25rem;
+      padding: 0.25rem;
+      transition: color 0.2s;
+      
+      &:hover {
+        color: #111827;
+      }
+    }
+  }
+  
+  &__content {
+    padding: 1.5rem;
+    overflow-y: auto;
+  }
+  
+  &__description {
+    margin-bottom: 1.5rem;
+    color: #4b5563;
+    font-size: 0.95rem;
+    line-height: 1.5;
+  }
+  
+  &__listing-info {
+    background-color: #f9fafb;
+    padding: 1rem;
+    border-radius: 6px;
+    margin-bottom: 1.5rem;
+    font-size: 0.95rem;
+    color: #4b5563;
+    
+    strong {
+      color: #111827;
+      margin-right: 0.5rem;
+    }
+  }
+  
+  &__form-group {
+    margin-bottom: 1.25rem;
+    
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: #374151;
+      font-size: 0.95rem;
+    }
+  }
+  
+  &__select, &__input, &__textarea {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    
+    &:focus {
+      outline: none;
+      border-color: #4f46e5;
+      box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+    }
+  }
+  
+  &__textarea {
+    resize: vertical;
+    min-height: 100px;
+  }
+  
+  &__loading {
+    display: flex;
+    justify-content: center;
+    padding: 1rem 0;
+  }
+  
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+  }
+  
+  &__button {
+    padding: 0.75rem 1.25rem;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    
+    &--primary {
+      background-color: #ef4444;
+      color: white;
+      border: none;
+      
+      &:hover:not(:disabled) {
+        background-color: #dc2626;
+      }
+    }
+    
+    &--secondary {
+      background-color: white;
+      color: #4b5563;
+      border: 1px solid #d1d5db;
+      
+      &:hover:not(:disabled) {
+        background-color: #f9fafb;
+      }
+    }
+  }
+}
+
+// Report button style
+.listing-detail-page__actions-report {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1.25rem;
+  background-color: #fee2e2;
+  color: #b91c1c;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  svg {
+    margin-right: 0.5rem;
+  }
+  
+  &:hover {
+    background-color: #fecaca;
+  }
 } 

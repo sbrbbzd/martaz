@@ -1,0 +1,275 @@
+@use '../../../styles/variables' as vars;
+@use '../../../styles/mixins' as mix;
+
+.seo-management {
+  width: 100%;
+  
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 2rem;
+    
+    h1 {
+      margin: 0;
+      font-size: 1.8rem;
+      color: vars.$primary-color;
+    }
+    
+    .actions {
+      display: flex;
+      align-items: center;
+      
+      .search {
+        position: relative;
+        margin-right: 1rem;
+        
+        svg {
+          position: absolute;
+          left: 10px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: vars.$text-muted;
+          font-size: 1rem;
+        }
+        
+        input {
+          padding: 0.6rem 1rem 0.6rem 2.2rem;
+          border: 1px solid vars.$border-color;
+          border-radius: 4px;
+          width: 260px;
+          transition: all 0.2s;
+          
+          &:focus {
+            border-color: vars.$primary-color;
+            box-shadow: 0 0 0 2px rgba(vars.$primary-color, 0.2);
+            outline: none;
+          }
+        }
+      }
+      
+      .btn-add {
+        @include mix.button-primary;
+        display: flex;
+        align-items: center;
+        
+        svg {
+          margin-right: 0.5rem;
+        }
+      }
+    }
+  }
+  
+  .form-container {
+    background: #fff;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    
+    h2 {
+      margin-top: 0;
+      margin-bottom: 1.5rem;
+      font-size: 1.4rem;
+      color: vars.$text-primary;
+    }
+    
+    .tabs {
+      display: flex;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid vars.$border-color;
+      
+      button {
+        background: none;
+        border: none;
+        padding: 0.8rem 1.2rem;
+        font-weight: 500;
+        color: vars.$text-muted;
+        cursor: pointer;
+        transition: all 0.2s;
+        position: relative;
+        
+        &.active {
+          color: vars.$primary-color;
+          
+          &::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background-color: vars.$primary-color;
+          }
+        }
+        
+        &:hover {
+          color: vars.$text-primary;
+        }
+      }
+    }
+    
+    .form-section {
+      margin-bottom: 1.5rem;
+      
+      .social-section {
+        margin-bottom: 2rem;
+        
+        h3 {
+          font-size: 1.1rem;
+          margin-bottom: 1rem;
+          color: vars.$text-primary;
+        }
+      }
+    }
+    
+    .form-group {
+      margin-bottom: 1.2rem;
+      
+      label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: vars.$text-primary;
+        
+        .character-count {
+          margin-left: 0.5rem;
+          font-weight: 400;
+          color: vars.$text-muted;
+          font-size: 0.85rem;
+        }
+      }
+      
+      input,
+      textarea,
+      select {
+        width: 100%;
+        padding: 0.6rem 0.8rem;
+        border: 1px solid vars.$border-color;
+        border-radius: 4px;
+        transition: all 0.2s;
+        
+        &:focus {
+          border-color: vars.$primary-color;
+          box-shadow: 0 0 0 2px rgba(vars.$primary-color, 0.2);
+          outline: none;
+        }
+      }
+      
+      textarea {
+        min-height: 100px;
+        resize: vertical;
+      }
+    }
+    
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 2rem;
+      
+      button {
+        padding: 0.6rem 1.2rem;
+        border-radius: 4px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        
+        &.btn-cancel {
+          background-color: #f5f5f5;
+          border: 1px solid vars.$border-color;
+          color: vars.$text-muted;
+          margin-right: 1rem;
+          
+          &:hover {
+            background-color: #eaeaea;
+          }
+        }
+        
+        &.btn-save {
+          @include mix.button-primary;
+        }
+      }
+    }
+  }
+  
+  .seo-settings-list {
+    background: #fff;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      
+      th,
+      td {
+        padding: 1rem;
+        text-align: left;
+        border-bottom: 1px solid vars.$border-color;
+      }
+      
+      th {
+        background-color: #f9f9f9;
+        font-weight: 600;
+        color: vars.$text-primary;
+      }
+      
+      .truncate-text {
+        max-width: 250px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      
+      .no-data {
+        text-align: center;
+        padding: 2rem;
+        color: vars.$text-muted;
+      }
+      
+      .actions {
+        display: flex;
+        align-items: center;
+        
+        button {
+          background: none;
+          border: none;
+          cursor: pointer;
+          padding: 0.4rem;
+          border-radius: 4px;
+          transition: all 0.2s;
+          
+          svg {
+            font-size: 1.1rem;
+          }
+          
+          &.btn-edit {
+            color: vars.$primary-color;
+            
+            &:hover {
+              background-color: rgba(vars.$primary-color, 0.1);
+            }
+          }
+          
+          &.btn-delete {
+            color: vars.$error;
+            
+            &:hover {
+              background-color: rgba(vars.$error, 0.1);
+            }
+            
+            &:disabled {
+              color: vars.$text-muted;
+              cursor: not-allowed;
+              
+              &:hover {
+                background-color: transparent;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+} 

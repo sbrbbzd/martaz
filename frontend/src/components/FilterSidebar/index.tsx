@@ -26,6 +26,17 @@ interface FilterSidebarProps {
   onLocationChange: (location: string) => void;
 }
 
+// Add this helper function to get translated category name
+const getLocalizedCategoryName = (category: any, currentLanguage: string) => {
+  if (!category.translations) return category.name;
+  
+  // Try to get the translation for the current language
+  const translation = category.translations[currentLanguage as keyof typeof category.translations];
+  
+  // If no translation exists for the current language, fallback to the default name
+  return translation || category.name;
+};
+
 const FilterSidebar: React.FC<FilterSidebarProps> = ({
   show,
   onFilterChange,
@@ -40,7 +51,8 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
   order,
   onLocationChange
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const currentLanguage = i18n.language;
   
   // Local state for form inputs
   const [localMinPrice, setLocalMinPrice] = useState(minPrice);
@@ -105,7 +117,7 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
                 to={`/categories/${category.slug}`}
                 className={currentCategory?.id === category.id ? 'active' : ''}
               >
-                {category.name}
+                {getLocalizedCategoryName(category, currentLanguage)}
               </Link>
               
               {/* Show subcategories if this is the current category or parent of current */}
@@ -119,7 +131,7 @@ const FilterSidebar: React.FC<FilterSidebarProps> = ({
                         to={`/categories/${subCategory.slug}`}
                         className={currentCategory?.id === subCategory.id ? 'active' : ''}
                       >
-                        {subCategory.name}
+                        {getLocalizedCategoryName(subCategory, currentLanguage)}
                       </Link>
                     </li>
                   ))}

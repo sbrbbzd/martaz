@@ -4,7 +4,7 @@
   "description": "Azerbaijan Online Marketplace",
   "scripts": {
     "prestart": "node scripts/check-files.js",
-    "start": "node scripts/prepare-deployment.js && node index.js",
+    "start": "node index.js",
     "start:dev": "cross-env NODE_ENV=development concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\" \"npm run start:image-server\"",
     "start:image-server": "node services/standalone-image-server.js",
     "dev": "cross-env NODE_ENV=development concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\" \"npm run start:image-server\"",

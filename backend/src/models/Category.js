@@ -33,6 +33,16 @@ module.exports = (sequelize) => {
         len: [2, 50]
       }
     },
+    translations: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      defaultValue: {
+        az: null,
+        en: null,
+        ru: null
+      },
+      comment: 'Translations for category name in different languages (az, en, ru)'
+    },
     slug: {
       type: DataTypes.STRING,
       allowNull: false,

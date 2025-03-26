@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SEO API Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        button {
+            padding: 10px 15px;
+            margin: 10px 0;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>SEO API Test</h1>
+    
+    <div>
+        <button id="testSeo">Test /api/seo Endpoint</button>
+        <button id="testAvailablePages">Test /api/seo/available-pages Endpoint</button>
+    </div>
+    
+    <h2>Response:</h2>
+    <pre id="response">Click a button to test an endpoint...</pre>
+    
+    <script>
+        document.getElementById('testSeo').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/seo');
+                const data = await response.json();
+                document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('response').textContent = `Error: ${error.message}`;
+            }
+        });
+        
+        document.getElementById('testAvailablePages').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/api/seo/available-pages');
+                const data = await response.json();
+                document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('response').textContent = `Error: ${error.message}`;
+            }
+        });
+    </script>
+</body>
+</html> 

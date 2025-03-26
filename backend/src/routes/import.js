@@ -37,7 +37,7 @@ const { auth } = require('../middleware/auth');
  *       500:
  *         description: Server error
  */
-router.post('/url', auth(), importFromUrl);
+router.post('/url', auth, importFromUrl);
 
 /**
  * @swagger

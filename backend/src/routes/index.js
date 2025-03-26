@@ -7,7 +7,12 @@ const axios = require('axios');
 function safeRequire(paths) {
   for (const path of paths) {
     try {
-      return require(path);
+      const module = require(path);
+      // Check if module exists and is valid
+      if (module) {
+        logger.debug(`Successfully loaded module at ${path}`);
+        return module;
+      }
     } catch (err) {
       logger.debug(`Failed to load module at ${path}: ${err.message}`);
     }
@@ -24,6 +29,55 @@ const categoryRoutes = safeRequire(['./category.routes', './category.routes.js',
 const adminRoutes = safeRequire(['./admin.routes', './admin.routes.js', './admin', './admin.js']);
 const importRoutes = safeRequire(['./import.js', './import']);
 const favoriteRoutes = safeRequire(['./favorite.routes', './favorite.routes.js', './favorites', './favorites.js']);
+const reportRoutes = safeRequire(['./report.routes', './report.routes.js', './report', './report.js', './reportRoutes', './reportRoutes.js']);
+
+// Try to load SEO routes directly - with more debugging
+let seoRoutes = null;
+try {
+  console.log('Attempting to load SEO routes from absolute path...');
+  const path = require('path');
+  const absolutePath = path.resolve(__dirname, 'seo.routes.js');
+  console.log('Absolute path for SEO routes:', absolutePath);
+  
+  seoRoutes = require('./seo.routes');
+  logger.info('Successfully loaded SEO routes directly');
+} catch (err) {
+  logger.error(`Failed to load SEO routes directly: ${err.message}`);
+  try {
+    console.log('Attempting to load SEO routes with explicit extension...');
+    seoRoutes = require('./seo.routes.js');
+    logger.info('Successfully loaded SEO routes with .js extension');
+  } catch (err) {
+    logger.error(`Failed to load SEO routes with .js extension: ${err.message}`);
+    
+    // Attempt a direct simple require
+    try {
+      console.log('Attempting direct simple require...');
+      seoRoutes = express.Router();
+      
+      // Manually load the controller
+      const seoController = require('../controllers/seo.controller');
+      
+      // Define routes manually
+      seoRoutes.get('/test', (req, res) => {
+        res.json({ success: true, message: 'SEO routes are working' });
+      });
+      
+      seoRoutes.get('/', seoController.getAllSeoSettings);
+      seoRoutes.get('/available-pages', seoController.getAvailablePages);
+      seoRoutes.get('/by-page', seoController.getSeoSettingsByPage);
+      seoRoutes.get('/:id', seoController.getSeoSettingsById);
+      seoRoutes.post('/', seoController.createSeoSettings);
+      seoRoutes.put('/:id', seoController.updateSeoSettings);
+      seoRoutes.delete('/:id', seoController.deleteSeoSettings);
+      
+      logger.info('Successfully created SEO routes manually');
+    } catch (err) {
+      logger.error(`Failed to create SEO routes manually: ${err.message}`);
+      seoRoutes = safeRequire(['./seo.routes', './seo.routes.js', './seo', './seo.js']);
+    }
+  }
+}
 
 // API health check
 router.get('/', (req, res) => {
@@ -38,10 +92,26 @@ router.get('/', (req, res) => {
       categories: categoryRoutes ? 'loaded' : 'missing',
       admin: adminRoutes ? 'loaded' : 'missing',
       import: importRoutes ? 'loaded' : 'missing',
-      favorites: favoriteRoutes ? 'loaded' : 'missing'
+      favorites: favoriteRoutes ? 'loaded' : 'missing',
+      reports: reportRoutes ? 'loaded' : 'missing',
+      seo: seoRoutes ? 'loaded' : 'missing'
     }
   });
 });
+
+// Direct sitemap routes at the root level
+if (seoRoutes) {
+  try {
+    const seoController = require('../controllers/seo.controller');
+    // Root sitemap
+    router.get('/sitemap.xml', seoController.generateSitemap);
+    // Language-specific sitemaps
+    router.get('/:lang/sitemap.xml', seoController.generateSitemap);
+    logger.info('Successfully mounted sitemap routes at root level');
+  } catch (err) {
+    logger.error(`Failed to mount sitemap routes at root level: ${err.message}`);
+  }
+}
 
 // Debug endpoint to test route paths
 router.get('/test', (req, res) => {
@@ -110,5 +180,14 @@ mountRoutes('categories', categoryRoutes);
 mountRoutes('admin', adminRoutes);
 mountRoutes('import', importRoutes);
 mountRoutes('favorites', favoriteRoutes);
+mountRoutes('seo', seoRoutes);
+
+// Properly mount report routes with the correct path
+if (reportRoutes) {
+  logger.info('Mounting listing report routes');
+  router.use('/listings/report', reportRoutes);
+} else {
+  logger.warn('Report routes could not be loaded');
+}
 
 module.exports = router; 

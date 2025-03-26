@@ -2,9 +2,10 @@ const express = require('express');
 const router = express.Router();
 const { auth, adminAuth } = require('../middleware/auth');
 const adminController = require('../controllers/admin.controller');
+const reportController = require('../controllers/report.controller');
 
 // All routes require authentication and admin privileges
-router.use(auth());
+router.use(auth);
 router.use(adminAuth);
 
 // Dashboard statistics
@@ -32,6 +33,12 @@ router.get('/categories', adminController.getCategories);
 router.post('/categories', adminController.createCategory);
 router.put('/categories/:id', adminController.updateCategory);
 router.delete('/categories/:id', adminController.deleteCategory);
+
+// Reports endpoints
+router.get('/reports', reportController.getReportedListings);
+router.patch('/reports/:id/status', reportController.updateReportStatus);
+router.get('/reports/stats', reportController.getReportStats);
+router.post('/reports/bulk-action', reportController.bulkUpdateReportStatus);
 
 // Reports and analytics
 router.get('/reports/users', adminController.getUsersReport);

@@ -269,21 +269,28 @@ const startServer = async () => {
     try {
       logger.info('Syncing database models...');
       
-      // Force sync only if explicitly set in environment
-      const force = process.env.DB_FORCE_SYNC === 'true';
-      
-      // Always use alter in production to avoid data loss unless force is specified
-      const alter = force ? false : true;
-      
       // Import models and associate them
-      require('./models');
+      const models = require('./models');
       
       // First try to access a table to see if it exists
       let tablesExist = true;
       try {
         logger.info('Checking if tables exist...');
-        const User = require('./models/User'); 
-        const result = await db.sequelize.query('SELECT 1 FROM "users" LIMIT 1', { type: db.sequelize.QueryTypes.SELECT });
+        await db.sequelize.query('SELECT 1 FROM "users" LIMIT 1', { type: db.sequelize.QueryTypes.SELECT });
+        
+        // Also check if seo_settings table exists
+        try {
+          await db.sequelize.query('SELECT 1 FROM "seo_settings" LIMIT 1', { type: db.sequelize.QueryTypes.SELECT });
+          logger.info('SEO settings table exists');
+        } catch (err) {
+          if (err.message.includes('relation') && err.message.includes('does not exist')) {
+            logger.warn('SEO settings table does not exist, forcing creation of just this table');
+            // Force create just the SEO settings table
+            await models.SeoSettings.sync({ force: true });
+            logger.info('SEO settings table created successfully');
+          }
+        }
+        
         logger.info('Tables exist, proceeding with alter: true');
       } catch (err) {
         if (err.message.includes('relation') && err.message.includes('does not exist')) {
@@ -295,7 +302,13 @@ const startServer = async () => {
       }
       
       // Sync with appropriate options based on table existence
-      await db.sequelize.sync({ force: !tablesExist || force, alter: tablesExist && alter });
+      const force = process.env.DB_FORCE_SYNC === 'true';
+      const alter = force ? false : true;
+      
+      await db.sequelize.sync({ 
+        force: !tablesExist || force, 
+        alter: tablesExist && alter 
+      });
       logger.success('✅ Database models synchronized successfully');
       
       // Run seeders if in dev mode or if forced or if tables were just created

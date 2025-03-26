@@ -482,7 +482,7 @@ $danger: $error;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       
       &:hover {
-        background-color: darken(#10b981, 5%);
+        background-color: color.adjust(#10b981, $lightness: -5%);
         transform: translateY(-1px);
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
       }
@@ -692,6 +692,7 @@ $danger: $error;
       line-height: 1.4;
       display: -webkit-box;
       -webkit-line-clamp: 2;
+      line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
     }
@@ -805,7 +806,7 @@ $danger: $error;
       transition: all 0.2s ease;
       
       &:hover {
-        background-color: darken(#10b981, 5%);
+        background-color: color.adjust(#10b981, $lightness: -5%);
         transform: translateY(-1px);
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
       }
@@ -1010,6 +1011,7 @@ $danger: $error;
       line-height: 1.4;
       display: -webkit-box;
       -webkit-line-clamp: 2;
+      line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
     }

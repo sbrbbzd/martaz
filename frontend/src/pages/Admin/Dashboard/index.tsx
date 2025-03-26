@@ -7,25 +7,27 @@ import {
   FiEdit, FiEye, FiFilter, FiGrid, FiList, FiPackage, FiPieChart,
   FiPlus, FiRefreshCw, FiSearch, FiShoppingBag, FiTrendingUp, 
   FiUsers, FiX, FiClipboard, FiGlobe, FiMessageSquare, 
-  FiAlertCircle, FiCheckCircle, FiClock, FiInfo, FiArrowUp, FiMap
+  FiAlertCircle, FiCheckCircle, FiClock, FiInfo, FiArrowUp, FiMap,
+  FiFlag
 } from 'react-icons/fi';
 import { RootState } from '../../../store';
 import { selectAuthUser } from '../../../store/slices/authSlice';
 import { 
   useGetAdminDashboardDataQuery, 
-  useApproveListingMutation, 
-  useRejectListingMutation,
-  useGetAdminListingsQuery,
+  useGetAdminListingsQuery, 
+  useApproveListingMutation,
   useGetAdminUsersQuery,
-  AdminDashboardData as ApiDashboardData,
-  AdminDashboardListing,
-  AdminDashboardActivity
+  Listing,
+  AdminDashboardData,
+  User as ApiUser,
+  AdminDashboardListing
 } from '../../../services/api';
 import { formatDate, timeSince } from '../../../utils/date';
 import { getImageUrl } from '../../../utils/helpers';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import AdminLayout from '../../../components/Admin/AdminLayout';
 import './style.scss';
+import { toast } from 'react-hot-toast';
 
 // Import chart components and utilities
 import ChartUtils, { Line, Doughnut, lineChartOptions, doughnutChartOptions } from '../../../utils/chartUtils';
@@ -44,7 +46,7 @@ interface User {
 }
 
 // Interface for admin dashboard data with additional fields for the component
-interface AdminDashboardData extends ApiDashboardData {
+interface ExtendedDashboardData extends AdminDashboardData {
   totalSales?: {
     count: number;
     growth: number;
@@ -192,7 +194,7 @@ const Dashboard: React.FC = () => {
   
   // Pending listings query
   const {
-    data: pendingListings,
+    data: listingsData,
     isLoading: isListingsLoading,
     refetch: refetchListings
   } = useGetAdminListingsQuery({
@@ -203,29 +205,19 @@ const Dashboard: React.FC = () => {
     pollingInterval: 60000 // Refresh every minute
   });
   
-  // Mutations for listing approval/rejection
+  // Mutations for listing approval
   const [approveListing, { isLoading: isApproving }] = useApproveListingMutation();
-  const [rejectListing, { isLoading: isRejecting }] = useRejectListingMutation();
   
   // Handle listing approval
   const handleApproveListing = async (id: string) => {
     try {
       await approveListing(id).unwrap();
+      toast.success(t('admin.dashboard.approveSuccess'));
       refetchListings();
       refetchDashboard();
     } catch (error) {
-      console.error('Failed to approve listing:', error);
-    }
-  };
-  
-  // Handle listing rejection
-  const handleRejectListing = async (id: string) => {
-    try {
-      await rejectListing({ id }).unwrap();
-      refetchListings();
-      refetchDashboard();
-    } catch (error) {
-      console.error('Failed to reject listing:', error);
+      console.error('Error approving listing:', error);
+      toast.error(t('admin.dashboard.approveFailed'));
     }
   };
   
@@ -294,6 +286,15 @@ const Dashboard: React.FC = () => {
   // Define mock data for demo purposes when API data is missing
   const mockSalesData = { count: 0, growth: 0 };
   
+  // Add debug logging for pending listings data - MOVED OUTSIDE CONDITIONAL RENDERING
+  useEffect(() => {
+    if (listingsData && listingsData.listings && listingsData.listings.length > 0) {
+      console.log('Pending listings data:', listingsData.listings);
+      // Log the first listing in detail to inspect its structure
+      console.log('First pending listing structure:', JSON.stringify(listingsData.listings[0], null, 2));
+    }
+  }, [listingsData]);
+  
   // Check if user is admin
   if (!isUserAdmin(user)) {
     return <UnauthorizedView />;
@@ -334,7 +335,7 @@ const Dashboard: React.FC = () => {
     totalListings: dashboardData?.totalListings || { count: 0 },
     totalRevenue: dashboardData?.totalRevenue || 0,
     totalSales: mockSalesData,
-    pendingListings: pendingListings?.listings || dashboardData?.pendingListings || []
+    pendingListings: dashboardData?.pendingListings || []
   };
   
   return (
@@ -350,7 +351,7 @@ const Dashboard: React.FC = () => {
               <FiRefreshCw />
               {t('admin.dashboard.refresh')}
             </button>
-            <button className="add-button" onClick={() => navigate('/admin/listings/create')}>
+            <button className="add-button" onClick={() => navigate('/listings/create')}>
               <FiPlus />
               {t('admin.dashboard.addListing')}
             </button>
@@ -571,74 +572,92 @@ const Dashboard: React.FC = () => {
               </div>
             ) : safeData.pendingListings.length > 0 ? (
               <div className="pending-listings">
-                {safeData.pendingListings.map((listing) => (
-                  <div className="pending-item" key={listing.id}>
-                    <div className="pending-item-image">
-                      <Link to={`/admin/listings/${listing.id}`}>
-                        <img 
-                          src={Array.isArray(listing.images) && listing.images.length > 0 
-                            ? getImageUrl(listing.images[0]) 
-                            : '/placeholder-image.jpg'
-                          } 
-                          alt={typeof listing.title === 'string' ? listing.title : 'Untitled'} 
-                          onError={(e) => {
-                            console.log(`Failed to load image for listing ${listing.id}`);
-                            (e.target as HTMLImageElement).src = '/placeholder-image.jpg';
-                          }}
-                        />
-                        <span className="item-category">{typeof listing.category === 'string' ? listing.category : ''}</span>
-                      </Link>
-                    </div>
-                    <div className="pending-item-details">
-                      <Link to={`/admin/listings/${listing.id}`} className="item-title-link">
-                        <h3>{typeof listing.title === 'string' ? listing.title : 'Untitled'}</h3>
-                      </Link>
-                      <div className="item-meta">
-                        <p className="item-price">
-                          {formatCurrency(typeof listing.price === 'number' ? listing.price : 0)}
-                        </p>
+                {safeData.pendingListings.map((listing) => {
+                  // Convert price to number if it's a string
+                  const price = typeof listing.price === 'string' 
+                    ? parseFloat(listing.price) 
+                    : (typeof listing.price === 'number' ? listing.price : 0);
+                    
+                  return (
+                    <div className="pending-item" key={listing.id}>
+                      <div className="pending-item-image">
+                        <Link to={`/listings/${listing.id}`}>
+                          <img 
+                            src={Array.isArray(listing.images) && listing.images.length > 0 
+                              ? getImageUrl(listing.images[0]) 
+                              : '/placeholder-image.jpg'
+                            } 
+                            alt={typeof listing.title === 'string' ? listing.title : 'Untitled'} 
+                            onError={(e) => {
+                              console.log(`Failed to load image for listing ${listing.id}`);
+                              (e.target as HTMLImageElement).src = '/placeholder-image.jpg';
+                            }}
+                          />
+                          <span className="item-category">{typeof listing.category === 'string' ? listing.category : ''}</span>
+                        </Link>
                       </div>
-                      <div className="item-user">
-                        <p className="item-seller">
-                          <span className="seller-label">{t('admin.dashboard.by')}</span> 
-                          {typeof listing.user === 'string' ? listing.user : ''}
-                        </p>
-                        <p className="item-date">
-                          <FiCalendar size={14} />
-                          {listing.createdAt 
-                            ? timeSince(new Date(listing.createdAt)) 
-                            : t('common.unknown')
-                          }
-                        </p>
+                      <div className="pending-item-details">
+                        <Link to={`/listings/${listing.id}`} className="item-title-link">
+                          <h3>{typeof listing.title === 'string' ? listing.title : 'Untitled'}</h3>
+                        </Link>
+                        <div className="item-meta">
+                          <p className="item-price">
+                            <strong>{t('admin.dashboard.price')}:</strong> {formatCurrency(price)}
+                          </p>
+                        </div>
+                        <div className="item-user">
+                          <p className="item-seller">
+                            <strong>{t('admin.dashboard.seller')}:</strong> {
+                              // Handle the user property which can be either a string or an object
+                              typeof listing.user === 'object' && listing.user 
+                                ? `${(listing.user as any).firstName || ''} ${(listing.user as any).lastName || ''}`.trim()
+                                : typeof listing.user === 'string'
+                                  ? listing.user
+                                  : ''
+                            }
+                          </p>
+                          <p className="item-date">
+                            <FiCalendar size={14} />
+                            <strong>{t('admin.dashboard.created')}:</strong> {listing.createdAt 
+                              ? formatDate(new Date(listing.createdAt)) 
+                              : t('common.unknown')
+                            }
+                          </p>
+                          <p className="item-age">
+                            <strong>{t('admin.dashboard.age')}:</strong> {listing.createdAt 
+                              ? timeSince(new Date(listing.createdAt)) 
+                              : t('common.unknown')
+                            }
+                          </p>
+                        </div>
+                      </div>
+                      <div className="pending-item-actions">
+                        <button 
+                          className="approve-button"
+                          onClick={() => handleApproveListing(listing.id)}
+                          disabled={isApproving}
+                        >
+                          <FiCheckCircle />
+                          <span>{t('admin.dashboard.approve')}</span>
+                        </button>
+                        <button 
+                          className="view-button"
+                          onClick={() => navigate(`/listings/${listing.id}`)}
+                        >
+                          <FiEye />
+                          <span>{t('admin.dashboard.view')}</span>
+                        </button>
+                        <button 
+                          className="report-button"
+                          onClick={() => navigate(`/listings/${listing.id}/report`)}
+                        >
+                          <FiFlag />
+                          <span>{t('admin.dashboard.report')}</span>
+                        </button>
                       </div>
                     </div>
-                    <div className="pending-item-actions">
-                      <button 
-                        className="approve-button"
-                        onClick={() => handleApproveListing(listing.id)}
-                        disabled={isApproving}
-                      >
-                        <FiCheckCircle />
-                        <span>{t('admin.dashboard.approve')}</span>
-                      </button>
-                      <button 
-                        className="reject-button"
-                        onClick={() => handleRejectListing(listing.id)}
-                        disabled={isRejecting}
-                      >
-                        <FiAlertCircle />
-                        <span>{t('admin.dashboard.reject')}</span>
-                      </button>
-                      <button 
-                        className="view-button"
-                        onClick={() => navigate(`/admin/listings/${listing.id}`)}
-                      >
-                        <FiEye />
-                        <span>{t('admin.dashboard.view')}</span>
-                      </button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="empty-state">

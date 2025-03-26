@@ -41,7 +41,10 @@
     "removeFromFavorites": "Seçilmişlərdən sil",
     "viewDetails": "Ətraflı bax",
     "items": "elan",
-    "all": "Hamısı"
+    "all": "Hamısı",
+    "previous": "Əvvəlki",
+    "next": "Növbəti",
+    "page": "Səhifə {{page}}"
   },
   "home": {
     "pageTitle": "Ana səhifə",
@@ -214,7 +217,8 @@
       "messages": "Mesajlar",
       "settings": "Parametrlər",
       "adminRole": "Administrator",
-      "logout": "Çıxış"
+      "logout": "Çıxış",
+      "seo": "SEO İdarəetməsi"
     },
     "dashboard": {
       "title": "İdarəetmə Paneli",
@@ -249,7 +253,6 @@
       "noRecentUsers": "Son qeydiyyatdan keçən istifadəçi yoxdur",
       "categoryDistribution": "Kateqoriya Paylanması",
       "pendingApprovals": "Təsdiqlənməyi Gözləyən Elanlar",
-      "viewAll": "Hamısına bax",
       "by": "Sahibi",
       "approve": "Təsdiqlə",
       "reject": "Rədd et",
@@ -309,7 +312,6 @@
       "sortPriceHigh": "Qiymət (Yüksəkdən Aşağıya)",
       "sortPriceLow": "Qiymət (Aşağıdan Yüksəyə)",
       "image": "Şəkil",
-      "title": "Başlıq",
       "category": "Kateqoriya",
       "price": "Qiymət",
       "status": "Status",
@@ -512,7 +514,7 @@
       "active": "Aktiv",
       "pending": "Gözləmədə",
       "inactive": "Qeyri-aktiv",
-      "rejected": "Rədd edilmiş",
+      "rejected": "Rədd edilib",
       "sold": "Satılıb",
       "deleted": "Silinib",
       "expired": "Vaxtı bitib"
@@ -572,7 +574,41 @@
     "backToHome": "Ana Səhifəyə Qayıt"
   },
   "seo": {
-    "browseAllListings": "Bütün elanlara baxın"
+    "browseAllListings": "Bütün elanlara baxın",
+    "management": {
+      "title": "SEO İdarəetməsi",
+      "description": "Saytınızın SEO ayarlarını bu səhifədən idarə edin",
+      "globalSettings": "Qlobal Parametrlər",
+      "pageSettings": "Səhifə Parametrləri",
+      "addNew": "Yeni SEO Parametri Əlavə Et",
+      "editSetting": "SEO Parametrini Redaktə Et",
+      "deleteSetting": "SEO Parametrini Sil",
+      "pageType": "Səhifə Tipi",
+      "pageIdentifier": "Səhifə İdentifikatoru",
+      "metaTitle": "Meta Başlıq",
+      "metaDescription": "Meta Təsvir",
+      "keywords": "Açar Sözlər",
+      "ogTitle": "OG Başlıq",
+      "ogDescription": "OG Təsvir",
+      "ogImage": "OG Şəkli",
+      "twitterTitle": "Twitter Başlıq",
+      "twitterDescription": "Twitter Təsvir",
+      "twitterImage": "Twitter Şəkli",
+      "canonical": "Kanonik URL",
+      "robotsDirectives": "Robots Direktivləri",
+      "structuredData": "Strukturlaşdırılmış Data",
+      "priority": "Prioritet",
+      "saveChanges": "Dəyişiklikləri Saxla",
+      "cancel": "Ləğv Et",
+      "deleteConfirmation": "Bu SEO parametrini silmək istədiyinizə əminsiniz?",
+      "saveSuccess": "SEO parametri uğurla yadda saxlandı",
+      "saveError": "SEO parametrini yadda saxlamaq mümkün olmadı",
+      "deleteSuccess": "SEO parametri uğurla silindi",
+      "deleteError": "SEO parametrini silmək mümkün olmadı",
+      "generalTab": "Ümumi",
+      "socialTab": "Sosial Media",
+      "advancedTab": "Təkmilləşdirilmiş"
+    }
   },
   "favorites": {
     "title": "Seçilmişlər",

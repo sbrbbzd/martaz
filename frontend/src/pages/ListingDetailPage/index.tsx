@@ -7,6 +7,7 @@ import { toast } from 'react-toastify';
 import './styles.scss';
 import { selectAuthState } from '../../store/slices/authSlice';
 import { getImageUrl } from '../../utils/imageUrl';
+import { useListingDetailSeo } from '../../services/seoService';
 import { 
   useGetListingQuery,
   useChangeListingStatusMutation,
@@ -27,7 +28,8 @@ import {
   Breadcrumbs,
   FeatureModal,
   ErrorComponent,
-  LoadingComponent
+  LoadingComponent,
+  ReportDialog
 } from './components';
 
 // Import types
@@ -52,6 +54,7 @@ const ListingDetailPage: FC = () => {
   // State for UI elements
   const [showContactInfo, setShowContactInfo] = useState(false);
   const [isFeatureModalOpen, setIsFeatureModalOpen] = useState(false);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [selectedFeatureDuration, setSelectedFeatureDuration] = useState<FeatureDuration>('day');
   const [isProcessingFeature, setIsProcessingFeature] = useState(false);
   const [failedImages, setFailedImages] = useState<Set<string>>(new Set());
@@ -87,6 +90,18 @@ const ListingDetailPage: FC = () => {
   const isOwner = isAuthenticated && user?.id === listing?.userId;
   const isAdmin = isAuthenticated && user?.role === 'admin';
   const canEdit = isOwner || isAdmin;
+  
+  // Apply SEO settings
+  useEffect(() => {
+    if (listing && listing.id) {
+      // Apply advanced SEO settings for this listing
+      useListingDetailSeo(listing.id, {
+        title: listing.title,
+        description: listing.description?.slice(0, 160) || '',
+        ogImage: listing.images && listing.images.length > 0 ? getImageUrl(listing.images[0]) : undefined
+      });
+    }
+  }, [listing]);
   
   // Mark image as failed for fallback handling
   const markImageAsFailed = useCallback((src: string, failedSet: Set<string>) => {
@@ -279,11 +294,6 @@ const ListingDetailPage: FC = () => {
   // Main content rendering with smaller, more focused components
   return (
     <div className="listing-detail-page">
-      <Helmet>
-        <title>{listing.title ? `${listing.title} | AzeriMarket` : 'Listing Detail | AzeriMarket'}</title>
-        <meta name="description" content={listing.description ? listing.description.slice(0, 160) : 'Listing details on AzeriMarket'} />
-      </Helmet>
-      
       <div className="listing-detail-page__container">
         <Breadcrumbs listing={listing} t={t} />
 
@@ -342,11 +352,13 @@ const ListingDetailPage: FC = () => {
                 listing={listing}
                 canEdit={canEdit}
                 isAdmin={isAdmin}
+                isAuthenticated={isAuthenticated}
                 isChangingStatus={isChangingStatus || isApproving}
                 isDeleting={isDeleting}
                 isFeaturing={isFeaturing}
                 handleStatusChange={handleStatusChange}
                 handleDelete={handleDelete}
+                onReportClick={() => setIsReportModalOpen(true)}
                 setIsFeatureModalOpen={setIsFeatureModalOpen}
                 t={t}
               />
@@ -367,6 +379,14 @@ const ListingDetailPage: FC = () => {
           t={t}
         />
       )}
+
+      {/* Report Modal */}
+      <ReportDialog
+        isOpen={isReportModalOpen}
+        onClose={() => setIsReportModalOpen(false)}
+        listingId={listing?.id || ''}
+        listingTitle={listing?.title || ''}
+      />
     </div>
   );
 };

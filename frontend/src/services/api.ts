@@ -3,44 +3,46 @@ import { RootState } from '../store';
 import axios from 'axios';
 import { store } from '../store';
 import { transformApiError } from '../utils/errorHandling';
+import { createEntityAdapter } from '@reduxjs/toolkit';
 
-// Define base types
+// User interface
 export interface User {
   id: string;
   email: string;
-  firstName: string;
-  lastName: string;
-  username?: string;
+  firstName?: string;
+  lastName?: string;
   phone?: string;
   profileImage?: string;
   role: string;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
+  status?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
+// Category interface
 export interface Category {
   id: string;
   name: string;
+  translations?: {
+    az?: string | null;
+    en?: string | null;
+    ru?: string | null;
+  };
   slug: string;
   description?: string;
   icon?: string;
   image?: string;
   parentId?: string | null;
-  order: number;
+  order?: number;
   isActive: boolean;
-  subcategories?: Category[];
+  attributes?: Record<string, any>;
+  children?: Category[];
   parent?: Category;
-  createdAt: string;
-  updatedAt: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-export type FeatureDuration = 'day' | 'week' | 'month';
-
-export interface FeatureListingRequest {
-  duration: FeatureDuration;
-}
-
+// Listing interface
 export interface Listing {
   id: string;
   title: string;
@@ -66,6 +68,53 @@ export interface Listing {
   updatedAt: string;
   category?: Category;
   user?: User;
+}
+
+// Report Types
+export interface ReportReason {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+export interface ReportListingRequest {
+  listingId: string;
+  reason: string;
+  additionalInfo?: string;
+}
+
+export interface ReportResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    id: string;
+    listingId: string;
+    reporterId: string;
+    reason: string;
+    additionalInfo?: string;
+    status: 'pending' | 'reviewed' | 'resolved' | 'dismissed';
+    createdAt: string;
+    updatedAt: string;
+  };
+}
+
+export interface ReportedListingsResponse {
+  success: boolean;
+  data: {
+    reports: Array<{
+      id: string;
+      listing: Listing;
+      reporter: User;
+      reason: string;
+      additionalInfo?: string;
+      status: 'pending' | 'reviewed' | 'resolved' | 'dismissed';
+      createdAt: string;
+      updatedAt: string;
+    }>;
+    total: number;
+    currentPage: number;
+    totalPages: number;
+  };
 }
 
 // Admin Dashboard Types
@@ -206,6 +255,9 @@ interface ApiResponse<T = any> {
   data: T | null;
 }
 
+// Define feature duration type
+export type FeatureDuration = 'day' | 'week' | 'month';
+
 // Import or define missing interfaces
 interface UploadListingImagesResponse {
   images: string[];
@@ -275,7 +327,7 @@ export const api = createApi({
       throw new Error('Non-JSON response received from API');
     }
   }),
-  tagTypes: ['Listing', 'Category', 'User', 'FeaturedListings', 'Favorites'],
+  tagTypes: ['Listing', 'Category', 'User', 'FeaturedListings', 'Favorites', 'Report'],
   endpoints: (builder) => ({
     // Auth endpoints
     login: builder.mutation<AuthResponse, LoginRequest>({
@@ -649,6 +701,16 @@ export const api = createApi({
       keepUnusedDataFor: 60, // Cache for 60 seconds
     }),
     
+    getAdminCategories: builder.query<Category[], void>({
+      query: () => '/admin/categories',
+      transformResponse: (response: { status: string; data: Category[] }) => {
+        console.log('Raw admin categories response:', response);
+        return response.data;
+      },
+      providesTags: ['Category'],
+      keepUnusedDataFor: 60, // Cache for 1 minute
+    }),
+    
     // Import endpoints
     importFromUrl: builder.mutation<{ status: string, message: string, data: Listing }, { url: string, categoryId?: string }>({
       query: (data) => ({
@@ -879,18 +941,6 @@ export const api = createApi({
       ],
     }),
     
-    rejectListing: builder.mutation<ListingActionResponse, { id: string, reason?: string }>({
-      query: ({ id, reason }) => ({
-        url: `/admin/listings/${id}/reject`,
-        method: 'PUT',
-        body: { reason },
-      }),
-      invalidatesTags: (result, error, { id }) => [
-        { type: 'Listing', id },
-        { type: 'Listing', id: 'LIST' }
-      ],
-    }),
-    
     adminDeleteListing: builder.mutation<{ message: string }, string>({
       query: (id) => ({
         url: `/admin/listings/${id}`,
@@ -927,6 +977,65 @@ export const api = createApi({
       }),
       invalidatesTags: ['Category'],
     }),
+
+    // Report Types
+    reportListing: builder.mutation<ReportResponse, ReportListingRequest>({
+      query: (reportData) => ({
+        url: '/listings/report',
+        method: 'POST',
+        body: reportData,
+      }),
+      invalidatesTags: ['Listing'],
+    }),
+
+    getReportReasons: builder.query<ReportReason[], void>({
+      query: () => '/listings/report-reasons',
+      transformResponse: (response: { success: boolean; data: ReportReason[] }) => response.data,
+    }),
+
+    // User report endpoints
+    getUserReportHistory: builder.query<ReportedListingsResponse['data'], { page?: number; limit?: number; status?: string }>({
+      query: (params) => ({
+        url: '/listings/report/my-reports',
+        params,
+      }),
+      transformResponse: (response: ReportedListingsResponse) => response.data,
+      providesTags: [{ type: 'Report', id: 'USER_REPORTS' }],
+    }),
+
+    // Admin endpoints for managing reports
+    getReportedListings: builder.query<ReportedListingsResponse['data'], { page?: number; limit?: number; status?: string }>({
+      query: (params) => ({
+        url: '/admin/reports',
+        params,
+      }),
+      transformResponse: (response: ReportedListingsResponse) => response.data,
+      providesTags: [{ type: 'Report', id: 'LIST' }],
+    }),
+
+    updateReportStatus: builder.mutation<{ success: boolean; message: string }, { id: string; status: 'reviewed' | 'resolved' | 'dismissed'; adminNote?: string; actionTaken?: string }>({
+      query: ({ id, status, adminNote, actionTaken }) => ({
+        url: `/admin/reports/${id}/status`,
+        method: 'PATCH',
+        body: { status, adminNote, actionTaken },
+      }),
+      invalidatesTags: [{ type: 'Report', id: 'LIST' }],
+    }),
+
+    bulkUpdateReportStatus: builder.mutation<{ success: boolean; message: string }, { reportIds: string[]; status: 'reviewed' | 'resolved' | 'dismissed'; adminNote?: string; actionTaken?: string }>({
+      query: (data) => ({
+        url: `/admin/reports/bulk-action`,
+        method: 'POST',
+        body: data,
+      }),
+      invalidatesTags: [{ type: 'Report', id: 'LIST' }],
+    }),
+
+    getReportStats: builder.query<any, void>({
+      query: () => '/admin/reports/stats',
+      transformResponse: (response: { success: boolean; data: any }) => response.data,
+      providesTags: [{ type: 'Report', id: 'STATS' }],
+    }),
   }),
 });
 
@@ -953,7 +1062,6 @@ export const {
   useDeleteUserMutation,
   useGetAdminListingsQuery,
   useApproveListingMutation,
-  useRejectListingMutation,
   useAdminDeleteListingMutation,
   useCreateCategoryMutation,
   useUpdateCategoryMutation,
@@ -967,6 +1075,14 @@ export const {
   useCheckFavoriteQuery,
   useToggleFavoriteMutation,
   useGetFavoriteQuery,
+  useReportListingMutation,
+  useGetReportReasonsQuery,
+  useGetUserReportHistoryQuery,
+  useGetReportedListingsQuery,
+  useUpdateReportStatusMutation,
+  useBulkUpdateReportStatusMutation,
+  useGetReportStatsQuery,
+  useGetAdminCategoriesQuery,
 } = api;
 
 // Comment out the debug logging
@@ -1318,6 +1434,63 @@ const convertImageUrls = (data: any) => {
   }
   
   return result;
+};
+
+// Mock Data for Report Reasons
+const mockReportReasons: ReportReason[] = [
+  { id: '1', name: 'Fake or fraudulent listing', description: 'The listing appears to be a scam or fraudulent' },
+  { id: '2', name: 'Inappropriate content', description: 'The listing contains inappropriate text, images, or other content' },
+  { id: '3', name: 'Prohibited item', description: 'The item being sold is prohibited according to our policies' },
+  { id: '4', name: 'Incorrect category', description: 'The listing is posted in the wrong category' },
+  { id: '5', name: 'Price gouging', description: 'The price is excessively high compared to market value' },
+  { id: '6', name: 'Duplicate listing', description: 'This listing is a duplicate of another listing' },
+  { id: '7', name: 'Item unavailable', description: 'The listing is for an item that is not actually available' },
+  { id: '8', name: 'Other', description: 'Other issue not listed above' }
+];
+
+// Mock data for reported listings
+const mockReportedListings = (page = 1, limit = 10) => {
+  const total = 25; // Total number of mock reports
+  const reports = Array.from({ length: Math.min(limit, total - (page - 1) * limit) }, (_, i) => {
+    const index = (page - 1) * limit + i;
+    return {
+      id: `report-${index + 1}`,
+      listing: {
+        id: `listing-${index + 1}`,
+        title: `Reported Item ${index + 1}`,
+        description: `This is a description for reported item ${index + 1}`,
+        price: 100 + (index * 25),
+        category: { id: `cat-${(index % 5) + 1}`, name: `Category ${(index % 5) + 1}` },
+        user: { id: `user-${(index % 8) + 1}`, firstName: `John${index}`, lastName: `Doe${index}` },
+        images: [`https://picsum.photos/id/${30 + index}/200/200`],
+        featuredImage: `https://picsum.photos/id/${30 + index}/200/200`,
+        status: 'active',
+        createdAt: new Date(Date.now() - (index * 86400000)).toISOString(), // Each listing a day apart
+        slug: `reported-item-${index + 1}`
+      },
+      reporter: {
+        id: `user-${10 + (index % 5)}`,
+        firstName: `Reporter${index}`,
+        lastName: `User${index}`,
+        email: `reporter${index}@example.com`
+      },
+      reason: mockReportReasons[index % mockReportReasons.length].name,
+      additionalInfo: index % 3 === 0 ? 'Additional information about this report.' : undefined,
+      status: (['pending', 'reviewed', 'pending', 'dismissed'][index % 4]) as 'pending' | 'reviewed' | 'resolved' | 'dismissed',
+      createdAt: new Date(Date.now() - (index * 3600000)).toISOString(), // Each report an hour apart
+      updatedAt: new Date(Date.now() - (index * 3000000)).toISOString()
+    };
+  });
+  
+  return {
+    success: true,
+    data: {
+      reports,
+      total,
+      currentPage: page,
+      totalPages: Math.ceil(total / limit)
+    }
+  };
 };
 
 // You could also add specific API methods here as named exports 

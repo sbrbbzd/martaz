@@ -8,4 +8,5 @@ export { default as DescriptionSection } from './DescriptionSection';
 export { default as Breadcrumbs } from './Breadcrumbs';
 export { default as FeatureModal } from './FeatureModal';
 export { default as ErrorComponent } from './ErrorComponent';
-export { default as LoadingComponent } from './LoadingComponent'; 
+export { default as LoadingComponent } from './LoadingComponent';
+export { default as ReportDialog } from './ReportDialog'; 

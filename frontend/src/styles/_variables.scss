@@ -19,6 +19,7 @@ $primary-900: #1a3399; // Darker shade for shadows
 $primary-300: color.adjust($primary-color, $lightness: 15%);
 $primary-200: color.adjust($primary-color, $lightness: 25%);
 $primary-100: color.adjust($primary-color, $lightness: 35%);
+$primary-50: color.adjust($primary-color, $lightness: 43%);
 
 // Neutrals
 $black: #0c0e16;
@@ -37,10 +38,26 @@ $white: #ffffff;
 // Status colors
 $success: #38cb89;
 $success-dark: color.adjust($success, $lightness: -15%);
+$success-700: color.adjust($success, $lightness: -10%);
+$success-600: $success;
+$success-500: $success;
+$success-100: color.adjust($success, $lightness: 35%);
+$success-50: color.adjust($success, $lightness: 43%);
 $warning: #ffb648;
 $warning-dark: color.adjust($warning, $lightness: -15%);
+$warning-700: color.adjust($warning, $lightness: -10%);
+$warning-600: $warning;
+$warning-500: $warning;
+$warning-200: color.adjust($warning, $lightness: 25%);
+$warning-100: color.adjust($warning, $lightness: 35%);
+$warning-50: color.adjust($warning, $lightness: 43%);
 $error: #ff5724;
 $error-dark: color.adjust($error, $lightness: -15%);
+$error-700: color.adjust($error, $lightness: -10%);
+$error-600: $error;
+$error-500: $error;
+$error-100: color.adjust($error, $lightness: 35%);
+$error-50: color.adjust($error, $lightness: 43%);
 $danger: #ff5724; // Alias for error
 $danger-dark: $error-dark;
 $info: #3bc1f6;

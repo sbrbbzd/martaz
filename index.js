@@ -135,7 +135,8 @@ app.get('/api', (req, res) => {
       '/api/users',
       '/api/auth',
       '/api/images',
-      '/api/health'
+      '/api/health',
+      '/api/seo'
     ]
   });
 });
@@ -182,6 +183,7 @@ app.use('/api', (req, res, next) => {
   
   // Log API requests for debugging
   logger.debug(`API request to ${req.method} ${req.path}`);
+  console.log(`MAIN SERVER: Handling API request: ${req.method} ${req.path}`);
   
   // Set a flag to indicate this is an API request through the main app
   req.isApiRequest = true;
@@ -190,10 +192,11 @@ app.use('/api', (req, res, next) => {
   // Example: /api/categories should be handled as /categories in the backend app
   // IMPORTANT: Do not modify the path for root API requests
   if (req.path !== '/') {
+    const originalPath = req.path;
     // The request already has /api stripped by express middleware
     // but we need to ensure the path is correctly passed to backend routes
     req._parsedUrl.pathname = req.path;
-    req.url = req.url;
+    console.log(`MAIN SERVER: Rewriting path from ${originalPath} to ${req.path} before forwarding to backend`);
   }
   
   // Use the backend app to handle the request

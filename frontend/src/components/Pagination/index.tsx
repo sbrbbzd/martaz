@@ -1,93 +1,114 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import './styles.scss';
 
 interface PaginationProps {
   currentPage: number;
   totalPages: number;
   onPageChange: (page: number) => void;
+  disabled?: boolean;
 }
 
 const Pagination: React.FC<PaginationProps> = ({
   currentPage,
   totalPages,
-  onPageChange
+  onPageChange,
+  disabled = false
 }) => {
   const { t } = useTranslation();
   
-  const getPageNumbers = () => {
-    const pages = [];
+  const handlePrevious = () => {
+    if (!disabled && currentPage > 1) {
+      onPageChange(currentPage - 1);
+    }
+  };
+  
+  const handleNext = () => {
+    if (!disabled && currentPage < totalPages) {
+      onPageChange(currentPage + 1);
+    }
+  };
+  
+  const generatePageNumbers = () => {
+    let pages = [];
     
-    // Always show first page
-    pages.push(1);
-    
-    // Add current page and pages around it
-    for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
-      if (pages.indexOf(i) === -1) {
+    if (totalPages <= 5) {
+      // Show all pages if 5 or fewer
+      for (let i = 1; i <= totalPages; i++) {
         pages.push(i);
       }
-    }
-    
-    // Always show last page
-    if (totalPages > 1) {
+    } else {
+      // Always include first page
+      pages.push(1);
+      
+      if (currentPage <= 3) {
+        // Near the start
+        pages.push(2, 3, 4);
+        pages.push(-1); // Ellipsis
+      } else if (currentPage >= totalPages - 2) {
+        // Near the end
+        pages.push(-1); // Ellipsis
+        pages.push(totalPages - 3, totalPages - 2, totalPages - 1);
+      } else {
+        // Somewhere in the middle
+        pages.push(-1); // Ellipsis
+        pages.push(currentPage - 1, currentPage, currentPage + 1);
+        pages.push(-2); // Ellipsis
+      }
+      
+      // Always include last page
       pages.push(totalPages);
     }
     
-    // Add ellipses
-    const result = [];
-    let prev = 0;
-    
-    for (const page of pages) {
-      if (page - prev > 1) {
-        result.push(-1); // -1 represents an ellipsis
-      }
-      result.push(page);
-      prev = page;
-    }
-    
-    return result;
+    return pages;
   };
   
-  const pageNumbers = getPageNumbers();
+  const pageNumbers = generatePageNumbers();
   
   return (
     <div className="pagination">
       {/* Previous button */}
-      <div 
-        className={`pagination__item ${currentPage === 1 ? 'pagination__item--disabled' : ''}`}
-        onClick={() => currentPage > 1 && onPageChange(currentPage - 1)}
+      <button 
+        className="pagination__button"
+        onClick={handlePrevious}
+        disabled={disabled || currentPage === 1}
+        aria-label={t('common.previous')}
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="15 18 9 12 15 6"></polyline>
-        </svg>
-      </div>
+        <FiChevronLeft />
+      </button>
       
       {/* Page numbers */}
-      {pageNumbers.map((page, index) => 
-        page === -1 ? (
-          <div key={`ellipsis-${index}`} className="pagination__item pagination__item--ellipsis">
-            ...
-          </div>
-        ) : (
-          <div
-            key={page}
-            className={`pagination__item ${currentPage === page ? 'pagination__item--active' : ''}`}
-            onClick={() => onPageChange(page)}
-          >
-            {page}
-          </div>
-        )
-      )}
+      <div className="pagination__pages">
+        {pageNumbers.map((page, index) => 
+          page === -1 || page === -2 ? (
+            <div key={`ellipsis-${index}`} className="pagination__ellipsis">
+              ...
+            </div>
+          ) : (
+            <button
+              key={page}
+              className={`pagination__page ${currentPage === page ? 'pagination__page--active' : ''}`}
+              onClick={() => !disabled && onPageChange(page)}
+              disabled={disabled}
+              aria-label={t('common.page', { page })}
+              aria-current={currentPage === page ? 'page' : undefined}
+            >
+              {page}
+            </button>
+          )
+        )}
+      </div>
       
       {/* Next button */}
-      <div 
-        className={`pagination__item ${currentPage === totalPages ? 'pagination__item--disabled' : ''}`}
-        onClick={() => currentPage < totalPages && onPageChange(currentPage + 1)}
+      <button 
+        className="pagination__button"
+        onClick={handleNext}
+        disabled={disabled || currentPage === totalPages}
+        aria-label={t('common.next')}
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-          <polyline points="9 18 15 12 9 6"></polyline>
-        </svg>
-      </div>
+        <FiChevronRight />
+      </button>
     </div>
   );
 };

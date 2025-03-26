@@ -3,15 +3,43 @@
 
 .pagination {
   display: flex;
+  align-items: center;
+  justify-content: center;
   gap: $spacing-2;
-  background: rgba($white, 0.5);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border-radius: $border-radius-full;
-  padding: $spacing-2;
-  box-shadow: 0 4px 15px rgba($black, 0.05);
+  margin: 1.5rem 0;
   
-  &__item {
+  &__button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+    height: 40px;
+    border-radius: $border-radius-full;
+    border: 1px solid $gray-200;
+    background-color: white;
+    color: $gray-700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    
+    &:hover:not(:disabled) {
+      background: rgba($white, 0.8);
+      color: $primary-color;
+      border-color: $gray-300;
+    }
+    
+    &:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+  }
+  
+  &__pages {
+    display: flex;
+    align-items: center;
+    gap: $spacing-1;
+  }
+  
+  &__page {
     min-width: 40px;
     height: 40px;
     display: flex;
@@ -20,42 +48,43 @@
     border-radius: $border-radius-full;
     font-weight: $font-weight-medium;
     color: $gray-700;
+    border: 1px solid $gray-200;
+    background-color: white;
     cursor: pointer;
     transition: all 0.2s ease;
-    user-select: none;
     
-    &:hover {
+    &:hover:not(:disabled) {
       background: rgba($white, 0.8);
       color: $primary-color;
+      border-color: $gray-300;
     }
     
     &--active {
       background: $primary-color;
       color: $white;
       box-shadow: 0 4px 8px rgba($primary-color, 0.3);
+      border-color: $primary-color;
       
-      &:hover {
+      &:hover:not(:disabled) {
         background: $primary-color;
         color: $white;
       }
     }
     
-    &--disabled {
+    &:disabled {
       opacity: 0.4;
       cursor: not-allowed;
-      
-      &:hover {
-        background: transparent;
-        color: $gray-700;
-      }
     }
-    
-    &--ellipsis {
-      cursor: default;
-      
-      &:hover {
-        background: transparent;
-      }
-    }
+  }
+  
+  &__ellipsis {
+    min-width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: $font-weight-medium;
+    color: $gray-500;
+    user-select: none;
   }
 } 

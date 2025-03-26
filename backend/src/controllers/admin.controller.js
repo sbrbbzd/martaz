@@ -257,28 +257,37 @@ exports.rejectListing = async (req, res, next) => {
     const { id } = req.params;
     const { reason } = req.body;
     
+    console.log(`Rejecting listing ${id} with reason: ${reason}`);
+    
     const listing = await Listing.findByPk(id);
     
     if (!listing) {
-      throw new ApiError(404, 'Listing not found');
+      return res.status(404).json({ message: 'Listing not found' });
     }
     
     if (listing.status !== 'pending') {
-      throw new ApiError(400, 'Listing is not in pending status');
+      return res.status(400).json({ 
+        message: 'Only pending listings can be rejected' 
+      });
     }
     
-    await listing.update({ 
-      status: 'rejected',
-      rejectionReason: reason || 'Rejected by administrator'
+    // Update status to 'deleted' since model doesn't have 'rejected' status
+    // and store rejection reason in attributes
+    await listing.update({
+      status: 'deleted',
+      attributes: {
+        ...listing.attributes,
+        rejectionReason: reason || 'Rejected by administrator'
+      }
     });
     
-    res.json({
-      success: true,
-      message: 'Listing rejected successfully',
-      data: { id: listing.id }
+    res.json({ 
+      success: true, 
+      message: 'Listing rejected successfully'
     });
   } catch (error) {
-    next(error);
+    console.error('Error rejecting listing:', error);
+    res.status(500).json({ message: 'Server error' });
   }
 };
 
@@ -675,7 +684,13 @@ exports.deleteListing = async (req, res, next) => {
 exports.getCategories = async (req, res, next) => {
   try {
     const categories = await Category.findAll({
+      attributes: ['id', 'name', 'slug', 'description', 'icon', 'image', 'parentId', 'isActive', 'order', 'translations', 'metaTitle', 'metaDescription'],
       order: [['name', 'ASC']]
+    });
+
+    console.log('Fetched categories with translations:');
+    categories.forEach(category => {
+      console.log(`- ${category.name}: ${JSON.stringify(category.translations)}`);
     });
 
     res.json({
@@ -683,26 +698,43 @@ exports.getCategories = async (req, res, next) => {
       data: categories
     });
   } catch (error) {
+    console.error('Error fetching categories:', error);
     next(error);
   }
 };
 
 exports.createCategory = async (req, res, next) => {
   try {
-    const { name, slug, parentId, description, isActive } = req.body;
+    const { name, slug, parentId, description, isActive, translations, icon, image, order, metaTitle, metaDescription, attributes } = req.body;
     
     // Check if category with same slug already exists
     const existingCategory = await Category.findOne({ where: { slug } });
     if (existingCategory) {
       throw new ApiError(400, 'Category with this slug already exists');
     }
+
+    // Prepare default translations if not provided
+    const categoryTranslations = translations || {
+      az: name, // Default to using the main name for Azerbaijani
+      en: name, // Default to using the main name for English
+      ru: null  // Default to null for Russian
+    };
+    
+    console.log('Creating category with translations:', categoryTranslations);
     
     const category = await Category.create({
       name,
       slug,
       parentId: parentId || null,
       description,
-      isActive: isActive !== undefined ? isActive : true
+      isActive: isActive !== undefined ? isActive : true,
+      translations: categoryTranslations,
+      icon,
+      image,
+      order,
+      metaTitle,
+      metaDescription,
+      attributes
     });
     
     res.status(201).json({
@@ -710,6 +742,7 @@ exports.createCategory = async (req, res, next) => {
       data: category
     });
   } catch (error) {
+    console.error('Error creating category:', error);
     next(error);
   }
 };
@@ -717,7 +750,7 @@ exports.createCategory = async (req, res, next) => {
 exports.updateCategory = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, slug, parentId, description, isActive } = req.body;
+    const { name, slug, parentId, description, isActive, translations, icon, image, order, metaTitle, metaDescription, attributes } = req.body;
     
     const category = await Category.findByPk(id);
     if (!category) {
@@ -732,12 +765,35 @@ exports.updateCategory = async (req, res, next) => {
       }
     }
     
+    // Handle translations properly
+    let categoryTranslations = category.translations;
+    if (translations) {
+      // Use provided translations
+      categoryTranslations = translations;
+    } else if (name && name !== category.name) {
+      // Update default translations if name is changing but translations weren't provided
+      categoryTranslations = {
+        ...(category.translations || {}),
+        az: name, // Update Azerbaijani
+        en: name  // Update English
+      };
+    }
+    
+    console.log('Updating category with translations:', categoryTranslations);
+    
     await category.update({
       name: name || category.name,
       slug: slug || category.slug,
       parentId: parentId === null ? null : (parentId || category.parentId),
       description: description || category.description,
-      isActive: isActive !== undefined ? isActive : category.isActive
+      isActive: isActive !== undefined ? isActive : category.isActive,
+      translations: categoryTranslations,
+      icon: icon !== undefined ? icon : category.icon,
+      image: image !== undefined ? image : category.image,
+      order: order !== undefined ? order : category.order,
+      metaTitle: metaTitle !== undefined ? metaTitle : category.metaTitle,
+      metaDescription: metaDescription !== undefined ? metaDescription : category.metaDescription,
+      attributes: attributes !== undefined ? attributes : category.attributes
     });
     
     res.json({
@@ -745,6 +801,7 @@ exports.updateCategory = async (req, res, next) => {
       data: category
     });
   } catch (error) {
+    console.error('Error updating category:', error);
     next(error);
   }
 };

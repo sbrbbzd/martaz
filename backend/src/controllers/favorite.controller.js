@@ -216,19 +216,36 @@ exports.removeFavorite = async (req, res) => {
 };
 
 /**
- * Check if an item is in favorites
+ * Check if item is in user's favorites
  */
 exports.checkFavorite = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { itemId, itemType } = req.query;
+    const { itemId, itemType, listingId } = req.query;
 
-    if (!itemId || !itemType) {
-      return res.status(400).json({ message: 'Item ID and type are required' });
+    // Create the where clause based on available parameters
+    let whereClause = { userId };
+
+    // If listingId is provided (legacy approach), use that directly
+    if (listingId) {
+      whereClause.listingId = listingId;
+    } 
+    // Otherwise use the itemId/itemType approach
+    else if (itemId && itemType) {
+      whereClause.itemId = itemId;
+      whereClause.itemType = itemType;
+    } 
+    // If neither is provided, return error
+    else {
+      return res.status(400).json({ 
+        message: 'Item ID and type are required, or listingId for legacy calls' 
+      });
     }
 
+    console.log('Checking favorite with where clause:', whereClause);
+
     const favorite = await Favorite.findOne({
-      where: { userId, itemId, itemType },
+      where: whereClause,
     });
 
     res.status(200).json({ isFavorite: !!favorite });

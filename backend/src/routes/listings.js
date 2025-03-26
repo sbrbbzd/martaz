@@ -56,41 +56,41 @@ router.get('/:id', listingController.getListing);
  * @desc    Create a new listing
  * @access  Private
  */
-router.post('/', auth(), listingController.createListing);
+router.post('/', auth, listingController.createListing);
 
 /**
  * @route   POST /api/listings/:id/images
  * @desc    Upload images for a listing
  * @access  Private (owner or admin)
  */
-router.post('/:id/images', auth(), listingController.uploadImages);
+router.post('/:id/images', auth, listingController.uploadImages);
 
 /**
  * @route   POST /api/listings/:id/feature
  * @desc    Feature a listing
  * @access  Private (owner or admin)
  */
-router.post('/:id/feature', auth(), listingController.featureListing);
+router.post('/:id/feature', auth, listingController.featureListing);
 
 /**
  * @route   PATCH /api/listings/:id/status
  * @desc    Change listing status (active, sold, etc.)
  * @access  Private (owner or admin)
  */
-router.patch('/:id/status', auth(), listingController.changeListingStatus);
+router.patch('/:id/status', auth, listingController.changeListingStatus);
 
 /**
  * @route   PUT /api/listings/:id
  * @desc    Update a listing
  * @access  Private (owner or admin)
  */
-router.put('/:id', auth(), listingController.updateListing);
+router.put('/:id', auth, listingController.updateListing);
 
 /**
  * @route   DELETE /api/listings/:id
  * @desc    Delete a listing
  * @access  Private (owner or admin)
  */
-router.delete('/:id', auth(), listingController.deleteListing);
+router.delete('/:id', auth, listingController.deleteListing);
 
 module.exports = router; 

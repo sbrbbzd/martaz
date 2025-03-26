@@ -23,8 +23,19 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
   const currentLanguage = languages.find(lang => lang.code === i18n.language) || languages[0];
   
   const handleLanguageChange = (langCode: string) => {
+    console.log(`Changing language from ${i18n.language} to ${langCode}`);
     i18n.changeLanguage(langCode);
+    
+    // Store language in localStorage for persistence
+    localStorage.setItem('i18nextLng', langCode);
+    
+    console.log(`Language changed to ${langCode}, current language is now: ${i18n.language}`);
+    console.log(`localStorage i18nextLng is now: ${localStorage.getItem('i18nextLng')}`);
+    
     setIsOpen(false);
+    
+    // Force page reload to ensure all components update
+    // window.location.reload();
   };
   
   if (variant === 'buttons') {

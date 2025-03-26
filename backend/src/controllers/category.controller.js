@@ -6,7 +6,7 @@ exports.getCategories = async (req, res, next) => {
   try {
     const categories = await Category.findAll({
       where: { isActive: true },
-      attributes: ['id', 'name', 'slug', 'icon', 'image', 'parentId'],
+      attributes: ['id', 'name', 'translations', 'slug', 'icon', 'image', 'parentId'],
       order: [['order', 'ASC']]
     });
 
@@ -138,6 +138,15 @@ exports.getCategoryHierarchy = async (req, res, next) => {
 
 exports.createCategory = async (req, res, next) => {
   try {
+    // Set default translations if not provided
+    if (!req.body.translations) {
+      req.body.translations = {
+        az: req.body.name, // Default to using the main name for Azerbaijani
+        en: req.body.name, // Default to using the main name for English
+        ru: null           // Default to null for Russian
+      };
+    }
+    
     const category = await Category.create(req.body);
 
     res.status(201).json({
@@ -155,6 +164,15 @@ exports.updateCategory = async (req, res, next) => {
 
     if (!category) {
       throw new ApiError(404, 'Category not found');
+    }
+    
+    // If name is being updated but translations aren't provided, update the translations too
+    if (req.body.name && !req.body.translations) {
+      req.body.translations = {
+        ...category.translations,
+        az: req.body.translations?.az || req.body.name, // Update Azerbaijani if not explicitly provided
+        en: req.body.translations?.en || req.body.name  // Update English if not explicitly provided
+      };
     }
 
     await category.update(req.body);

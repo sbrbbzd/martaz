@@ -1,5 +1,5 @@
 const { sequelize, testConnection } = require('./connection');
-const { User, Category, Listing } = require('../models');
+const { User, Category, Listing, ListingReport } = require('../models');
 const logger = require('../utils/logger');
 
 /**
@@ -32,6 +32,29 @@ const initDatabase = async () => {
         logger.error(`Original error: ${syncError.original.message}`);
       }
       return false;
+    }
+    
+    // Verify that the listing_reports table was created
+    try {
+      logger.info('Verifying listing_reports table...');
+      const tables = await sequelize.getQueryInterface().showAllTables();
+      if (!tables.includes('listing_reports')) {
+        logger.warn('⚠️ listing_reports table not found after sync. Will attempt to create it directly.');
+        // This will execute if the model sync didn't create the table
+        try {
+          // Require the direct table creation script
+          require('../../scripts/force-create-report-table');
+          logger.info('Forced creation of listing_reports table');
+        } catch (tableError) {
+          logger.error('❌ Failed to force create listing_reports table:');
+          logger.error(`Error: ${tableError.message}`);
+        }
+      } else {
+        logger.success('listing_reports table exists ✅');
+      }
+    } catch (tableCheckError) {
+      logger.error('❌ Failed to verify tables:');
+      logger.error(`Error: ${tableCheckError.message}`);
     }
     
     // Check if we need to create initial admin user

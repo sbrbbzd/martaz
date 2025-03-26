@@ -65,8 +65,20 @@ interface UploadedFile {
   fullUrl?: string;
 }
 
+// Add this helper function to get localized category name
+const getLocalizedCategoryName = (category: any, currentLanguage: string) => {
+  if (!category.translations) return category.name;
+  
+  // Try to get the translation for the current language
+  const translation = category.translations[currentLanguage as keyof typeof category.translations];
+  
+  // If no translation exists for the current language, fallback to the default name
+  return translation || category.name;
+};
+
 const EditListingPage: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const currentLanguage = i18n.language;
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const currentUser = useSelector(selectAuthUser) as User | null;
@@ -845,7 +857,7 @@ const EditListingPage: React.FC = () => {
                 <option value="">{t('listings.selectCategory', 'Select a category')}</option>
                 {Array.isArray(categories) && categories.length > 0 && categories.map((category) => (
                   <option key={category.id} value={category.id}>
-                    {category.name}
+                    {getLocalizedCategoryName(category, currentLanguage)}
                   </option>
                 ))}
               </select>

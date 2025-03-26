@@ -235,9 +235,17 @@
     
     &__grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      grid-template-columns: repeat(6, 1fr);
       gap: $spacing-5;
       margin-bottom: $spacing-8;
+      
+      @media (max-width: $breakpoint-lg) {
+        grid-template-columns: repeat(4, 1fr);
+      }
+      
+      @media (max-width: $breakpoint-md) {
+        grid-template-columns: repeat(3, 1fr);
+      }
       
       @media (max-width: $breakpoint-sm) {
         grid-template-columns: repeat(2, 1fr);

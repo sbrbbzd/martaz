@@ -127,6 +127,24 @@
   }
 }
 
+@mixin button-primary {
+  @include button-base;
+  background-color: $primary-color;
+  color: $white;
+  
+  &:hover {
+    background-color: $primary-dark;
+  }
+  
+  &:active {
+    background-color: color.adjust($primary-color, $lightness: -20%);
+  }
+  
+  &:disabled {
+    background-color: $primary-light;
+  }
+}
+
 // Card styles
 @mixin card {
   background-color: $white;

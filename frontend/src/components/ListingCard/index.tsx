@@ -18,6 +18,17 @@ import { toast } from 'react-toastify';
 // Placeholder image from helpers
 const placeholderImage = getImageUrl('placeholder.jpg');
 
+// Helper function to get localized category name
+const getLocalizedCategoryName = (category: any, currentLanguage: string) => {
+  if (!category || !category.translations) return category?.name;
+  
+  // Try to get the translation for the current language
+  const translation = category.translations[currentLanguage as keyof typeof category.translations];
+  
+  // If no translation exists for the current language, fallback to the default name
+  return translation || category.name;
+};
+
 interface ListingCardProps {
   id: string | number;
   title: string;
@@ -29,6 +40,7 @@ interface ListingCardProps {
   category?: string;
   categoryName?: string;
   categorySlug?: string;
+  categoryObj?: any; // Added to accept full category object with translations
   slug?: string;
   condition?: string;
   isPromoted?: boolean;
@@ -51,6 +63,7 @@ const ListingCard: React.FC<ListingCardProps> = ({
   category,
   categoryName,
   categorySlug,
+  categoryObj,
   slug,
   condition,
   isPromoted = false,
@@ -61,7 +74,8 @@ const ListingCard: React.FC<ListingCardProps> = ({
   userImage,
   onClick,
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const currentLanguage = i18n.language;
   const [isFavorite, setIsFavorite] = useState(false);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [currentImageUrl, setCurrentImageUrl] = useState(placeholderImage);
@@ -247,6 +261,11 @@ const ListingCard: React.FC<ListingCardProps> = ({
   // Generate URL for the listing
   const listingUrl = slug ? `/listings/${slug}` : `/listings/${id}`;
 
+  // Determine the category name to display
+  const displayCategoryName = categoryObj 
+    ? getLocalizedCategoryName(categoryObj, currentLanguage)
+    : categoryName || category;
+
   return (
     <motion.div
       whileHover={{ y: -5 }}
@@ -301,9 +320,9 @@ const ListingCard: React.FC<ListingCardProps> = ({
         
         <Link to={listingUrl} className="listing-card__content-link" target="_blank" rel="noopener noreferrer">
           <div className="listing-card__content">
-            {(category || categoryName) && (
+            {(displayCategoryName) && (
               <div className="listing-card__category">
-                {categoryName || category}
+                {displayCategoryName}
               </div>
             )}
             

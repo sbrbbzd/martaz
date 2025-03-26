@@ -11,7 +11,7 @@ const { User, Listing } = require('../models');
  * @desc    Get current user profile
  * @access  Private
  */
-router.get('/profile', auth(), (req, res) => {
+router.get('/profile', auth, (req, res) => {
   res.json({
     success: true,
     message: 'User profile retrieved successfully',
@@ -26,7 +26,7 @@ router.get('/profile', auth(), (req, res) => {
  * @desc    Get listings for the current user
  * @access  Private
  */
-router.get('/listings', auth(), async (req, res, next) => {
+router.get('/listings', auth, async (req, res, next) => {
   try {
     const { page = 1, limit = 10, status = 'all' } = req.query;
     const userId = req.user.id;
@@ -73,7 +73,7 @@ router.get('/listings', auth(), async (req, res, next) => {
  * @desc    Update user profile
  * @access  Private
  */
-router.put('/profile', auth(), async (req, res, next) => {
+router.put('/profile', auth, async (req, res, next) => {
   try {
     const { firstName, lastName, phone } = req.body;
     
@@ -116,7 +116,7 @@ router.put('/profile', auth(), async (req, res, next) => {
  * @desc    Upload profile image
  * @access  Private
  */
-router.post('/profile/image', auth(), async (req, res, next) => {
+router.post('/profile/image', auth, async (req, res, next) => {
   try {
     const { imageData, mimeType, fileName } = req.body;
     

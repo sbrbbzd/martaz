@@ -57,6 +57,6 @@ router.post('/reset-password', validate(newPasswordSchema), authController.reset
  * @desc Get current user
  * @access Private
  */
-router.get('/me', auth(), authController.getMe);
+router.get('/me', auth, authController.getMe);
 
 module.exports = router; 

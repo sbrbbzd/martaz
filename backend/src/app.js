@@ -356,6 +356,110 @@ app.get('/listings', async (req, res, next) => {
   }
 });
 
+// API routes
+logger.debug('Setting up API routes...');
+app.use('/api', routes);
+
+// Direct SEO routes registration for debugging
+try {
+  const seoRoutes = require('./routes/seo.routes');
+  if (seoRoutes) {
+    logger.info('Directly registering SEO routes at /api/seo-direct');
+    app.use('/api/seo-direct', seoRoutes);
+    
+    // Also register them at the main /api/seo path to fix 404 errors
+    logger.info('Registering SEO routes at /api/seo');
+    app.use('/api/seo', seoRoutes);
+  }
+} catch (error) {
+  logger.error(`Failed to directly register SEO routes: ${error.message}`);
+}
+
+// Register the test-seo router directly
+try {
+  const testSeoRouter = require('./routes/test-seo');
+  if (testSeoRouter) {
+    logger.info('Registering test SEO router at /api/test-seo');
+    app.use('/api/test-seo', testSeoRouter);
+  }
+} catch (error) {
+  logger.error(`Failed to register test SEO router: ${error.message}`);
+}
+
+// Add special CORS settings for SEO endpoints
+app.use('/api/seo', cors({
+  origin: '*',
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+app.options('/api/seo*', cors()); // Enable pre-flight for all SEO endpoints
+
+// Direct handlers for specific SEO endpoints
+app.get('/api/seo', (req, res) => {
+  logger.info('BACKEND APP: Direct handler for /api/seo called');
+  console.log('BACKEND APP: Direct handler for /api/seo called - returning mock data');
+  // Return mock SEO settings
+  res.json({
+    success: true,
+    data: [
+      {
+        id: '1',
+        pageType: 'global',
+        pageIdentifier: null,
+        title: 'Mart.az - Largest Marketplace in Azerbaijan',
+        description: 'Buy and sell products across Azerbaijan with the largest online marketplace',
+        keywords: 'marketplace, online shopping, azerbaijan, baku, sell items',
+        ogTitle: 'Mart.az',
+        ogDescription: 'The leading online marketplace in Azerbaijan',
+        ogImage: 'https://example.com/images/og-image.jpg',
+        twitterTitle: 'Mart.az Online Marketplace',
+        twitterDescription: 'Find anything you need on Mart.az',
+        twitterImage: 'https://example.com/images/twitter-image.jpg',
+        canonical: 'https://mart.az',
+        robotsDirectives: 'index, follow',
+        structuredData: { "@type": "Organization", "name": "Mart.az" },
+        priority: 0,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      }
+    ]
+  });
+});
+
+app.get('/api/seo/available-pages', (req, res) => {
+  logger.info('BACKEND APP: Direct handler for /api/seo/available-pages called');
+  console.log('BACKEND APP: Direct handler for /api/seo/available-pages called - returning mock data');
+  // Return mock available pages data
+  res.json({
+    success: true,
+    data: {
+      pageTypes: [
+        { id: 'global', name: 'Global Settings' },
+        { id: 'home', name: 'Homepage' },
+        { id: 'listings', name: 'Listings Pages' },
+        { id: 'listing_detail', name: 'Listing Detail Pages' },
+        { id: 'category', name: 'Category Pages' },
+        { id: 'user_profile', name: 'User Profile Pages' },
+        { id: 'search', name: 'Search Results Pages' },
+        { id: 'static', name: 'Static Pages' }
+      ],
+      categories: [
+        { id: '1', name: 'Electronics', slug: 'electronics' },
+        { id: '2', name: 'Vehicles', slug: 'vehicles' },
+        { id: '3', name: 'Home & Garden', slug: 'home-garden' }
+      ],
+      staticPages: [
+        { id: 'about', name: 'About Us', path: '/about' },
+        { id: 'contact', name: 'Contact Us', path: '/contact' },
+        { id: 'terms', name: 'Terms of Service', path: '/terms' },
+        { id: 'privacy', name: 'Privacy Policy', path: '/privacy' },
+        { id: 'faq', name: 'FAQ', path: '/faq' }
+      ]
+    }
+  });
+});
+
 // Error handling middleware
 logger.debug('Setting up error handling middleware...');
 app.use(errorHandler);

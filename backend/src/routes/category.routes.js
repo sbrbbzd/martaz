@@ -55,8 +55,8 @@ router.get('/:idOrSlug/listings', categoryController.getCategoryListings);
  */
 router.post(
   '/',
-  auth(),
-  isAdmin(),
+  auth,
+  isAdmin,
   validate(categoryValidation.createCategory),
   categoryController.createCategory
 );
@@ -68,8 +68,8 @@ router.post(
  */
 router.put(
   '/:id',
-  auth(),
-  isAdmin(),
+  auth,
+  isAdmin,
   validate(categoryValidation.updateCategory),
   categoryController.updateCategory
 );
@@ -81,8 +81,8 @@ router.put(
  */
 router.delete(
   '/:id',
-  auth(),
-  isAdmin(),
+  auth,
+  isAdmin,
   categoryController.deleteCategory
 );
 

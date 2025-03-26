@@ -7,7 +7,7 @@ const { AuthenticationError, ForbiddenError, ApiError } = require('../utils/erro
  * Authentication middleware
  * Verifies JWT token and adds user to request
  */
-const auth = () => async (req, res, next) => {
+const auth = async (req, res, next) => {
   try {
     console.log('=== AUTH MIDDLEWARE START ===');
     
@@ -65,14 +65,14 @@ const auth = () => async (req, res, next) => {
 const adminAuth = async (req, res, next) => {
   try {
     // First authenticate the user
-    await auth()(req, res, () => {});
-    
-    // Check if user is admin
-    if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
-      throw new ForbiddenError('Admin access required');
-    }
-    
-    next();
+    await auth(req, res, () => {
+      // Check if user is admin
+      if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+        throw new ForbiddenError('Admin access required');
+      }
+      
+      next();
+    });
   } catch (err) {
     next(err);
   }
@@ -85,11 +85,34 @@ const adminAuth = async (req, res, next) => {
 const superAdminAuth = async (req, res, next) => {
   try {
     // First authenticate the user
-    await auth()(req, res, () => {});
+    await auth(req, res, () => {
+      // Check if user is super admin
+      if (req.user.role !== 'superadmin') {
+        throw new ForbiddenError('Super admin access required');
+      }
+      
+      next();
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Admin role check middleware
+ * Checks if the authenticated user has admin privileges
+ * This is used after the auth middleware has already run
+ */
+const isAdmin = (req, res, next) => {
+  try {
+    // Auth middleware should have already attached the user
+    if (!req.user) {
+      throw new ApiError(401, 'User not authenticated');
+    }
     
-    // Check if user is super admin
-    if (req.user.role !== 'superadmin') {
-      throw new ForbiddenError('Super admin access required');
+    // Check if user is admin or superadmin
+    if (req.user.role !== 'admin' && req.user.role !== 'superadmin') {
+      throw new ForbiddenError('Admin access required');
     }
     
     next();
@@ -101,5 +124,6 @@ const superAdminAuth = async (req, res, next) => {
 module.exports = {
   auth,
   adminAuth,
-  superAdminAuth
+  superAdminAuth,
+  isAdmin
 }; 

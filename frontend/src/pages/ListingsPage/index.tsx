@@ -99,13 +99,27 @@ type QueryObjectType = {
   promoted?: boolean;
 };
 
+// Add helper function to get localized category name
+const getLocalizedCategoryName = (category: any, currentLanguage: string) => {
+  if (!category.translations) return category.name;
+  
+  // Try to get the translation for the current language
+  const translation = category.translations[currentLanguage as keyof typeof category.translations];
+  
+  // If no translation exists for the current language, fallback to the default name
+  return translation || category.name;
+};
+
 const ListingsPage: React.FC = () => {
   const locationHook = useLocation();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const currentLanguage = i18n.language;
   
   // Extract category slug from URL params - works for both /categories/:categorySlug and /:categorySlug routes
   const { categorySlug: urlCategorySlug } = useParams<{ categorySlug?: string }>();
+  
+  console.log('URL Category Slug from params:', urlCategorySlug);
   
   const filterModalRef = useRef<HTMLDivElement>(null);
   
@@ -182,12 +196,30 @@ const ListingsPage: React.FC = () => {
   
   // Sync URL with filter state
   const syncUrlWithFilters = useCallback(() => {
+    // Don't synchronize URL for direct category URLs - they're handled by navigation
+    if (urlCategorySlug !== undefined) {
+      console.log('Skipping URL sync for direct category URL:', urlCategorySlug);
+      return;
+    }
+    
+    console.log('Syncing URL with filters:', { 
+      page, 
+      selectedCategory, 
+      minPrice, 
+      maxPrice, 
+      condition, 
+      locationFilter, 
+      search, 
+      sort, 
+      order 
+    });
+    
     const params = new URLSearchParams();
     
     if (page > 1) params.set('page', page.toString());
     if (selectedCategory) params.set('category', selectedCategory);
-    if (minPrice) params.set('minPrice', minPrice);
-    if (maxPrice) params.set('maxPrice', maxPrice);
+    if (minPrice) params.set('minPrice', minPrice.toString());
+    if (maxPrice) params.set('maxPrice', maxPrice.toString());
     if (condition) params.set('condition', condition);
     if (locationFilter) params.set('location', locationFilter);
     if (search) params.set('search', search);
@@ -197,7 +229,7 @@ const ListingsPage: React.FC = () => {
     
     const newUrl = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
     window.history.replaceState({}, '', newUrl);
-  }, [page, selectedCategory, minPrice, maxPrice, condition, locationFilter, search, sort, order, viewMode]);
+  }, [page, selectedCategory, minPrice, maxPrice, condition, locationFilter, search, sort, order, viewMode, urlCategorySlug]);
   
   // Extract query parameters and set initial state
   useEffect(() => {
@@ -486,16 +518,27 @@ const ListingsPage: React.FC = () => {
     
     // Category chip
     if (selectedCategory) {
-      const categoryName = categoriesData?.find(cat => cat.slug === selectedCategory)?.name || selectedCategory;
+      const categoryObj = categoriesData?.find(cat => cat.slug === selectedCategory);
+      const categoryName = categoryObj ? getLocalizedCategoryName(categoryObj, currentLanguage) : selectedCategory;
+      
       chips.push({
         id: 'category',
         label: `${t('listings.category')}: ${categoryName}`,
         onRemove: () => {
           // For root-level category URLs, navigate to /listings instead of clearing the category param
-          if (locationHook.pathname === `/${selectedCategory}` || locationHook.pathname === `/categories/${selectedCategory}`) {
+          const isDirectCategoryUrl = urlCategorySlug !== undefined;
+          
+          console.log('Removing category chip:', {
+            selectedCategory,
+            isDirectCategoryUrl,
+            currentPath: window.location.pathname
+          });
+          
+          if (isDirectCategoryUrl) {
+            console.log('Navigating to listings page from category chip removal');
             navigate('/listings');
           } else {
-            console.log("Removing category filter chip, was:", selectedCategory);
+            console.log("Removing category filter chip");
             setSelectedCategory('');
             // Directly refetch with a small delay
             setTimeout(() => {
@@ -845,6 +888,37 @@ const ListingsPage: React.FC = () => {
     setShowAllPromoted(false);
   };
   
+  // Update queryObject state whenever filters change
+  useEffect(() => {
+    console.log('Updating query object with:', { 
+      page, 
+      limit, 
+      selectedCategory,
+      minPrice, 
+      maxPrice, 
+      condition, 
+      locationFilter,
+      debouncedSearch, 
+      sort, 
+      order
+    });
+    
+    setQueryObject({
+      page,
+      limit,
+      sort,
+      order,
+      category: selectedCategory,
+      minPrice: minPrice ? parseInt(minPrice) : undefined,
+      maxPrice: maxPrice ? parseInt(maxPrice) : undefined,
+      condition: condition || undefined,
+      location: locationFilter || undefined,
+      search: debouncedSearch || undefined,
+      status: 'active',
+      promoted: showAllPromoted // Add promoted flag for filtering
+    });
+  }, [page, limit, selectedCategory, minPrice, maxPrice, condition, locationFilter, debouncedSearch, sort, order, showAllPromoted]);
+  
   return (
     <div className="listings-page">
       <style>
@@ -918,16 +992,39 @@ const ListingsPage: React.FC = () => {
                     setSelectedCategory(newCategory);
                     setPage(1);
                     
-                    // Update URL and trigger refetch
-                    const params = new URLSearchParams(window.location.search);
-                    if (newCategory) {
-                      params.set('category', newCategory);
+                    // For URLs with category in the path (/:categorySlug or /categories/:categorySlug)
+                    // we need to navigate to the new path
+                    const isDirectCategoryUrl = urlCategorySlug !== undefined;
+                    
+                    console.log('Category change detected:', { 
+                      from: selectedCategory, 
+                      to: newCategory, 
+                      isDirectCategoryUrl,
+                      currentPath: window.location.pathname
+                    });
+                    
+                    if (isDirectCategoryUrl) {
+                      // Navigate to the root listings page or to the new category page
+                      if (newCategory) {
+                        console.log('Navigating to new category URL:', `/${newCategory}`);
+                        navigate(`/${newCategory}`);
+                      } else {
+                        console.log('Navigating to listings page');
+                        navigate('/listings');
+                      }
                     } else {
-                      params.delete('category');
+                      // Just update query params for normal listings page
+                      console.log('Updating query params for listings page');
+                      const params = new URLSearchParams(window.location.search);
+                      if (newCategory) {
+                        params.set('category', newCategory);
+                      } else {
+                        params.delete('category');
+                      }
+                      const newUrl = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
+                      window.history.replaceState({}, '', newUrl);
+                      setTimeout(() => refetchListings(), 50);
                     }
-                    const newUrl = `${window.location.pathname}${params.toString() ? '?' + params.toString() : ''}`;
-                    window.history.replaceState({}, '', newUrl);
-                    setTimeout(() => refetchListings(), 50);
                   }}
                   className="filter-select"
                   aria-label={t('listings.categories')}
@@ -935,7 +1032,7 @@ const ListingsPage: React.FC = () => {
                   <option value="">{t('listings.allCategories')}</option>
                   {categoriesData.map(category => (
                     <option key={category.id} value={category.slug}>
-                      {category.name}
+                      {getLocalizedCategoryName(category, currentLanguage)}
                     </option>
                   ))}
                 </select>
@@ -1195,6 +1292,7 @@ const ListingsPage: React.FC = () => {
                     isPromoted={true}
                     categoryName={listing.category?.name}
                     categorySlug={listing.category?.slug}
+                    categoryObj={listing.category}
                     userName={listing.user?.firstName}
                     userImage={listing.user?.profileImage}
                   />
@@ -1250,6 +1348,7 @@ const ListingsPage: React.FC = () => {
                       isPromoted={listing.isPromoted}
                       categoryName={listing.category?.name}
                       categorySlug={listing.category?.slug}
+                      categoryObj={listing.category}
                       userName={listing.user?.firstName}
                       userImage={listing.user?.profileImage}
                     />
@@ -1334,7 +1433,7 @@ const ListingsPage: React.FC = () => {
                 <option value="">{t('listings.allCategories')}</option>
                 {categoriesData.map(category => (
                   <option key={category.id} value={category.slug}>
-                    {category.name}
+                    {getLocalizedCategoryName(category, currentLanguage)}
                   </option>
                 ))}
               </select>

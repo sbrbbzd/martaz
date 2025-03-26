@@ -34,27 +34,27 @@ router.get('/:idOrSlug', listingController.getListing);
 // Protected routes
 router.post(
   '/',
-  auth(),
+  auth,
   validate(listingValidation.createListing),
   listingController.createListing
 );
 
 router.put(
   '/:id',
-  auth(),
+  auth,
   validate(listingValidation.updateListing),
   listingController.updateListing
 );
 
 router.delete(
   '/:id',
-  auth(),
+  auth,
   listingController.deleteListing
 );
 
 router.post(
   '/:id/images',
-  auth(),
+  auth,
   upload.array('images', 10),
   listingController.uploadImages
 );

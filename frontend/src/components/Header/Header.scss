@@ -668,7 +668,7 @@
     margin-left: 12px;
     
     &:hover {
-      background-color: darken(#27ae60, 8%);
+      background-color: color.adjust(#27ae60, $lightness: -8%);
       transform: translateY(-2px);
       box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     }

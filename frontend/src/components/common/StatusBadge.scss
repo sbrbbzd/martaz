@@ -1,0 +1,52 @@
+@use '../../styles/variables' as vars;
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-weight: 500;
+  line-height: 1;
+  
+  // Size variants
+  &--small {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+  }
+  
+  &--medium {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+  }
+  
+  &--large {
+    padding: 0.5rem 1rem;
+    font-size: 0.95rem;
+  }
+  
+  // Type variants
+  &--success {
+    background-color: rgba(vars.$success, 0.1);
+    color: vars.$success;
+  }
+  
+  &--warning {
+    background-color: rgba(vars.$warning, 0.1);
+    color: vars.$warning;
+  }
+  
+  &--error {
+    background-color: rgba(vars.$error, 0.1);
+    color: vars.$error;
+  }
+  
+  &--info {
+    background-color: rgba(vars.$info, 0.1);
+    color: vars.$info;
+  }
+  
+  &--default {
+    background-color: vars.$gray-100;
+    color: vars.$gray-700;
+  }
+} 

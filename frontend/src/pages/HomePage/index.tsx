@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Helmet } from 'react-helmet-async';
-import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 // Material Icons imports
 import 'material-icons/iconfont/material-icons.css';
+import { useHomeSeo } from '../../services/seoService';
 import SearchBox from '../../components/common/SearchBox';
 import CategoryCard from '../../components/CategoryCard';
 import ListingCard from '../../components/ListingCard';
@@ -22,11 +22,45 @@ interface Category {
   icon?: string;
   image?: string;
   parentId?: string | null;
+  translations?: {
+    az?: string | null;
+    en?: string | null;
+    ru?: string | null;
+  };
 }
 
+// Add helper function to get localized category name
+const getLocalizedCategoryName = (category: Category, currentLanguage: string) => {
+  // Log full category object to verify structure
+  console.log(`Full category object for ${category.name}:`, category);
+  
+  if (!category.translations) {
+    console.log(`No translations found for category: ${category.name}`);
+    return category.name;
+  }
+  
+  // Try to get the translation for the current language
+  const translation = category.translations[currentLanguage as keyof typeof category.translations];
+  
+  // More detailed logging for Azerbaijani
+  if (currentLanguage === 'az') {
+    console.log(`AZERBAIJANI TRANSLATION CHECK for ${category.name}:`);
+    console.log(`- translations object:`, category.translations);
+    console.log(`- az translation:`, category.translations.az);
+    console.log(`- using:`, translation || category.name);
+  }
+  
+  // Log translation information for debugging
+  console.log(`Category translation for ${category.name} [${currentLanguage}]:`, translation || 'Not available');
+  
+  // If no translation exists for the current language, fallback to the default name
+  return translation || category.name;
+};
+
 const HomePage: React.FC = () => {
-  const { t } = useTranslation();
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
+  const currentLanguage = i18n.language;
   const [activeTab, setActiveTab] = useState('all');
   const [forceRender, setForceRender] = useState(0);
   const trendingSearches = ['iPhone', 'Laptop', 'Apartment', 'Toyota', 'Sofa'];
@@ -85,6 +119,15 @@ const HomePage: React.FC = () => {
     };
   }, [refetchCategories]);
   
+  // Apply SEO settings
+  useEffect(() => {
+    // Apply advanced SEO settings for homepage
+    useHomeSeo(undefined, {
+      title: t('homepage.pageTitle'),
+      description: t('homepage.metaDescription')
+    });
+  }, [t]);
+  
   // Effect to handle categories data
   useEffect(() => {
     if (categoriesData) {
@@ -135,20 +178,37 @@ const HomePage: React.FC = () => {
     const slug = category.slug?.toLowerCase() || '';
     const name = category.name?.toLowerCase() || '';
     
-    // Common category types
-    if (slug.includes('electronics') || name.includes('electronics')) 
-      return '/assets/icons/category-electronics.svg';
-    if (slug.includes('vehicle') || name.includes('vehicle') || slug.includes('car') || name.includes('car')) 
+    // Map category names/slugs to their corresponding icons
+    if (slug.includes('heyvanlar') || name.includes('animal')) 
+      return '/assets/icons/category-animals.svg';
+    if (slug.includes('neqliyyat') || name.includes('vehicle') || slug.includes('car') || name.includes('car')) 
       return '/assets/icons/category-vehicles.svg';
-    if (slug.includes('real') || name.includes('real') || slug.includes('estate') || name.includes('estate') || 
+    if (slug.includes('dasinmaz-emlak') || name.includes('real') || slug.includes('estate') || name.includes('estate') || 
         slug.includes('property') || name.includes('property') || slug.includes('home') || name.includes('home'))
       return '/assets/icons/category-real-estate.svg';
-    if (slug.includes('job') || name.includes('job') || slug.includes('work') || name.includes('work'))
-      return '/assets/icons/category-jobs.svg';
-    if (slug.includes('furniture') || name.includes('furniture'))
-      return '/assets/icons/category-furniture.svg';
-    if (slug.includes('service') || name.includes('service'))
+    if (slug.includes('sexsi-esyalar') || name.includes('Şəxsi əşyalar'))
+      return '/assets/icons/category-personal-items.svg';
+    if (slug.includes('meiset-texnikasi') || name.includes('household') || slug.includes('appliance') || name.includes('appliance'))
+      return '/assets/icons/category-household-appliances.svg';
+    if (slug.includes('tibbi-mehsullar') || name.includes('medical') || slug.includes('health') || name.includes('health'))
+      return '/assets/icons/category-medical-products.svg';
+    if (slug.includes('usaq-alemi') || name.includes('children') || slug.includes('kid') || name.includes('kid') || 
+        slug.includes('baby') || name.includes('baby') || slug.includes('toy') || name.includes('toy'))
+      return '/assets/icons/category-childrens-world.svg';
+    if (slug.includes('xidmetler-ve-biznes') || name.includes('service') || slug.includes('business') || name.includes('business') ||
+        slug.includes('job') || name.includes('job') || slug.includes('work') || name.includes('work'))
       return '/assets/icons/category-services.svg';
+    if (slug.includes('telefonlar') || name.includes('mobile') || slug.includes('phone') || name.includes('phone'))
+      return '/assets/icons/category-mobile-phones.svg';
+    if (slug.includes('elektronika') || name.includes('electronic') || slug.includes('tech') || name.includes('tech') ||
+        slug.includes('computer') || name.includes('computer') || slug.includes('laptop') || name.includes('laptop'))
+      return '/assets/icons/category-electronics.svg';
+    if (slug.includes('idman-ve-hobbi') || name.includes('sport') || slug.includes('hobby') || name.includes('hobby') ||
+        slug.includes('fitness') || name.includes('fitness') || slug.includes('outdoor') || name.includes('outdoor'))
+      return '/assets/icons/category-sports-hobbies.svg';
+    if (slug.includes('ev-v-bag-ucun') || name.includes('home') || slug.includes('garden') || name.includes('garden') ||
+        slug.includes('furniture') || name.includes('furniture') || slug.includes('decor') || name.includes('decor'))
+      return '/assets/icons/category-home-garden.svg';
       
     // Default icon if no matches found
     return '/assets/icons/category-default.svg';
@@ -157,6 +217,7 @@ const HomePage: React.FC = () => {
   // For categories display
   const renderCategories = () => {
     console.log('Rendering categories, loading:', isCategoriesLoading, 'forceRender:', forceRender);
+    console.log('Current language:', currentLanguage);
     
     // Check localStorage for cached categories if data isn't available
     const useCachedData = !categoriesData && !isCategoriesLoading;
@@ -204,16 +265,24 @@ const HomePage: React.FC = () => {
     const parentCategories = categoriesToUse.filter(category => !category.parentId);
     console.log('Parent Categories:', parentCategories);
     
+    // Log all translations for debugging
+    if (parentCategories.length > 0) {
+      console.log('Category translations:');
+      parentCategories.forEach(category => {
+        console.log(`- ${category.name}:`, category.translations || 'No translations');
+      });
+    }
+    
     if (parentCategories.length === 0) {
       console.log('No parent categories to display');
       return <div className="info-message">{t('noCategoriesAvailable')}</div>;
     }
     
-    return parentCategories.slice(0, 6).map((category) => (
+    return parentCategories.slice(0, 12).map((category) => (
       <motion.div key={category.id} variants={fadeIn}>
         <CategoryCard
           id={category.id}
-          name={category.name}
+          name={getLocalizedCategoryName(category, currentLanguage)}
           icon={getCategoryIcon(category)}
           count={0} // Default count since API might not provide this
           slug={category.slug}
@@ -264,6 +333,7 @@ const HomePage: React.FC = () => {
           featuredImage={listing.featuredImage}
           categoryName={listing.category?.name}
           categorySlug={listing.category?.slug}
+          categoryObj={listing.category}
           isPromoted={listing.isPromoted}
           createdAt={listing.createdAt}
         />
@@ -273,11 +343,6 @@ const HomePage: React.FC = () => {
 
   return (
     <>
-      <Helmet>
-        <title>{t('homepage.pageTitle')} | Mart.az</title>
-        <meta name="description" content={t('homepage.metaDescription')} />
-      </Helmet>
-
       <div className="home-page">
         {/* Hero Section with Search */}
         <section className="hero">
@@ -369,7 +434,7 @@ const HomePage: React.FC = () => {
                   className={`featured-tab ${activeTab === 'latest' ? 'featured-tab--active' : ''}`}
                   onClick={() => handleTabChange('latest')}
                 >
-                  <span className="material-icons">new_releases</span>
+                  <span className="material-icons">schedule</span>
                   {t('latest')}
                 </button>
                 <button 
@@ -394,169 +459,10 @@ const HomePage: React.FC = () => {
               variants={staggerContainer}
               initial="hidden"
               whileInView="visible"
-              viewport={{ once: true, margin: "-50px" }}
+              viewport={{ once: true, margin: "-100px" }}
             >
               {renderListings()}
             </motion.div>
-            
-            <div className="featured-listings__action">
-              <LinkButton 
-                to="/listings" 
-                variant="primary" 
-                icon={
-                  <span className="material-icons">arrow_forward</span>
-                }
-              >
-                {t('viewAllListings')}
-              </LinkButton>
-            </div>
-          </Container>
-        </section>
-
-        {/* How It Works Section */}
-        <section className="how-it-works">
-          <Container>
-            <div className="section-header">
-              <h2 className="section-title">
-                <span className="material-icons">info</span>
-                {t('howItWorks')}
-              </h2>
-              <p className="section-subtitle">{t('howItWorksSubtitle')}</p>
-            </div>
-            
-            <motion.div 
-              className="how-it-works__steps"
-              variants={staggerContainer}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, margin: "-100px" }}
-            >
-              <motion.div 
-                className="step-card"
-                variants={fadeIn}
-                transition={{ duration: 0.3 }}
-              >
-                <div className="step-card__icon">
-                  <span className="material-icons">person_add</span>
-                </div>
-                <h3 className="step-card__title">{t('createAccount')}</h3>
-                <p className="step-card__description">
-                  {t('createAccountDescription')}
-                </p>
-              </motion.div>
-              
-              <div className="step-connector">
-                <svg width="40" height="12" viewBox="0 0 40 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M40 6L30 0.226497V11.7735L40 6ZM0 7H31V5H0V7Z" fill="currentColor"/>
-                </svg>
-              </div>
-              
-              <motion.div 
-                className="step-card"
-                variants={fadeIn}
-                transition={{ duration: 0.3, delay: 0.1 }}
-              >
-                <div className="step-card__icon">
-                  <span className="material-icons">post_add</span>
-                </div>
-                <h3 className="step-card__title">{t('common.postAd')}</h3>
-                <p className="step-card__description">
-                  {t('postAdDescription')}
-                </p>
-              </motion.div>
-              
-              <div className="step-connector">
-                <svg width="40" height="12" viewBox="0 0 40 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M40 6L30 0.226497V11.7735L40 6ZM0 7H31V5H0V7Z" fill="currentColor"/>
-                </svg>
-              </div>
-              
-              <motion.div 
-                className="step-card"
-                variants={fadeIn}
-                transition={{ duration: 0.3, delay: 0.2 }}
-              >
-                <div className="step-card__icon">
-                  <span className="material-icons">handshake</span>
-                </div>
-                <h3 className="step-card__title">{t('connectWithBuyers')}</h3>
-                <p className="step-card__description">
-                  {t('connectWithBuyersDescription')}
-                </p>
-              </motion.div>
-            </motion.div>
-          </Container>
-        </section>
-
-        {/* Call to Action Section */}
-        <section className="cta">
-          <Container>
-            <motion.div 
-              className="cta__content"
-              initial="hidden"
-              whileInView="visible"
-              variants={fadeIn}
-              viewport={{ once: true }}
-              transition={{ duration: 0.5 }}
-            >
-              <div className="cta__image">
-                <img src="/images/cta-illustration.svg" alt="" />
-              </div>
-              <div className="cta__text">
-                <h2 className="cta__title">{t('readyToSell')}</h2>
-                <p className="cta__description">{t('readyToSellDescription')}</p>
-                <ul className="cta__benefits">
-                  <li>
-                    <span className="material-icons">check_circle</span>
-                    {t('freeListing')}
-                  </li>
-                  <li>
-                    <span className="material-icons">check_circle</span>
-                    {t('easyToUse')}
-                  </li>
-                  <li>
-                    <span className="material-icons">check_circle</span>
-                    {t('secureCommunication')}
-                  </li>
-                </ul>
-                <LinkButton 
-                  to="/create-listing" 
-                  variant="accent" 
-                  size="lg" 
-                  icon={
-                    <span className="material-icons">arrow_forward</span>
-                  }
-                  className="cta__button"
-                >
-                  {t('postAdNow')}
-                </LinkButton>
-              </div>
-            </motion.div>
-          </Container>
-        </section>
-        
-
-        
-        {/* Download App Section */}
-        <section className="download-app">
-          <Container>
-            <div className="download-app__content">
-              <div className="download-app__info">
-                <h2 className="download-app__title">
-                  <span className="material-icons">get_app</span>
-                  {t('downloadOurApp')}
-                </h2>
-                <p className="download-app__description">{t('downloadAppDescription')}</p>
-                <div className="download-app__buttons">
-                  <a href="#" className="app-button">
-                    <img src="assets/images/app-store.png" alt="App Store" />
-                  </a>
-                  <a href="#" className="app-button">
-                    <img src="assets/images/google-play.png" alt="Google Play" />
-                  </a>
-                </div>
-              </div>
-            </div>
           </Container>
         </section>
       </div>
@@ -564,4 +470,4 @@ const HomePage: React.FC = () => {
   );
 };
 
-export default HomePage; 
+export default HomePage;
