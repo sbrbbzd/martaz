@@ -23,7 +23,10 @@ const FavoriteButton: React.FC<FavoriteButtonProps> = ({ itemId, itemType, class
   );
   const [addFavorite, { isLoading: isAdding }] = useAddFavoriteMutation();
   const [removeFavorite, { isLoading: isRemoving }] = useRemoveFavoriteMutation();
-  const [getFavorite] = useGetFavoriteQuery();
+  const { refetch: getFavorite } = useGetFavoriteQuery(
+    { itemId, itemType },
+    { skip: true } // Skip initial fetch, we'll call it manually when needed
+  );
   
   const isLoading = isCheckingFavorite || isAdding || isRemoving;
   
@@ -53,9 +56,9 @@ const FavoriteButton: React.FC<FavoriteButtonProps> = ({ itemId, itemType, class
         toast.success('Added to favorites');
       } else {
         // First get the favorite ID
-        const favorite = await getFavorite({ itemId, itemType }).unwrap();
-        if (favorite && favorite.id) {
-          await removeFavorite(favorite.id).unwrap();
+        const result = await getFavorite().unwrap();
+        if (result && result.id) {
+          await removeFavorite(result.id).unwrap();
           toast.success('Removed from favorites');
         } else {
           throw new Error('Favorite not found');

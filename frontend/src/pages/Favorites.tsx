@@ -8,7 +8,10 @@ import { RootState } from '../store';
 
 const Favorites: React.FC = () => {
   const { token } = useSelector((state: RootState) => state.auth);
-  const { data: favorites, isLoading, error } = useGetFavoritesQuery(undefined, {
+  const { data: favorites, isLoading, error } = useGetFavoritesQuery({
+    page: 1,
+    limit: 20
+  }, {
     skip: !token,
   });
 
@@ -44,7 +47,7 @@ const Favorites: React.FC = () => {
     );
   }
 
-  if (!favorites || favorites.length === 0) {
+  if (!favorites || !favorites.data || favorites.data.listings.length === 0) {
     return (
       <Container className="py-5">
         <div className="text-center">
@@ -57,44 +60,32 @@ const Favorites: React.FC = () => {
 
   return (
     <Container className="py-5">
-      <h1 className="mb-4">My Favorites</h1>
-      <Row xs={1} md={2} lg={3} className="g-4">
-        {favorites.map((item) => (
-          <Col key={item.id}>
+      <h1 className="mb-4">Your Favorites</h1>
+      <Row>
+        {favorites.data.listings.map((item) => (
+          <Col md={4} key={item.id} className="mb-4">
             <Card>
-              {item.details?.images && item.details.images.length > 0 && (
-                <Card.Img
-                  variant="top"
-                  src={item.details.images[0]}
-                  alt={item.details?.title || `Item #${item.itemId}`}
-                  style={{ height: '200px', objectFit: 'cover' }}
-                />
-              )}
+              <Card.Img
+                variant="top"
+                src={item.featuredImage || '/placeholder.jpg'}
+                alt={item.title}
+              />
               <Card.Body>
                 <div className="d-flex justify-content-between align-items-start">
-                  <Link 
-                    to={`/${item.itemType}s/${item.itemId}`} 
-                    className="text-decoration-none text-dark"
-                  >
-                    <Card.Title>
-                      {item.details?.title || `${item.itemType.charAt(0).toUpperCase() + item.itemType.slice(1)} #${item.itemId}`}
-                    </Card.Title>
-                  </Link>
-                  <FavoriteButton itemId={item.itemId.toString()} itemType={item.itemType} />
+                  <Card.Title>{item.title}</Card.Title>
+                  <FavoriteButton
+                    itemId={item.id}
+                    itemType="listing"
+                  />
                 </div>
-                {item.details?.price && (
-                  <Card.Text className="fw-bold">
-                    {item.details.price} AZN
-                  </Card.Text>
-                )}
-                {item.details?.description && (
-                  <Card.Text className="text-truncate">
-                    {item.details.description}
-                  </Card.Text>
-                )}
-                <Card.Text className="text-muted">
-                  Added on: {new Date(item.createdAt).toLocaleDateString()}
-                </Card.Text>
+                <Card.Text>${item.price} {item.currency}</Card.Text>
+                <Card.Text>{item.location}</Card.Text>
+                <Link
+                  to={`/listing/${item.slug}`}
+                  className="btn btn-primary btn-sm"
+                >
+                  View Details
+                </Link>
               </Card.Body>
             </Card>
           </Col>

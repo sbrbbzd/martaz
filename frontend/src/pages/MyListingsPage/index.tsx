@@ -101,7 +101,6 @@ const MyListingsPage: React.FC = () => {
                   featuredImage={listing.featuredImage}
                   images={listing.images}
                   condition={listing.condition}
-                  isFeatured={listing.isFeatured}
                   isPromoted={listing.isPromoted}
                 />
               ))}

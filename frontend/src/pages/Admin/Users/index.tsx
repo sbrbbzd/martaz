@@ -224,7 +224,7 @@ const UserManagement: React.FC = () => {
                       {user.status}
                     </span>
                   </td>
-                  <td>{new Date(user.createdAt).toLocaleDateString()}</td>
+                  <td>{user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}</td>
                   <td className="actions-cell">
                     <button 
                       className="action-button edit"
