@@ -15,6 +15,7 @@
     "db:migrate:status": "npx sequelize-cli db:migrate:status",
     "db:create-report-table": "node scripts/force-create-report-table.js",
     "render:db:setup": "NODE_ENV=production RENDER=true node scripts/render-db-setup.js",
+    "render:migrate": "NODE_ENV=production RENDER=true node scripts/render-migration.js",
     "emergency:create-tables": "NODE_ENV=production RENDER=true node scripts/force-create-tables.js"
   },
   "author": "",

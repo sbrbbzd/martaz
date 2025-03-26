@@ -12,16 +12,20 @@ services:
   - type: web
     name: mart-az-backend
     env: node
-    buildCommand: cd backend && npm install && npm run emergency:create-tables
+    buildCommand: >
+      cd backend && 
+      npm install && 
+      npm run render:migrate && 
+      npm run render:db:setup
     startCommand: cd backend && npm start
     envVars:
       - key: NODE_ENV
         value: production
       - key: RENDER
         value: true
-      - key: RUN_SEEDERS
+      - key: RUN_MIGRATIONS
         value: true
-      - key: DB_FORCE_SYNC
+      - key: RUN_SEEDERS
         value: true
       # Database configuration with multiple naming conventions
       - key: DB_HOST
