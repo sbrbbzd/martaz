@@ -1,6 +1,8 @@
 import { createSlice, PayloadAction, createAsyncThunk, createSelector } from '@reduxjs/toolkit';
 import { RootState, AppDispatch } from '../types';
 import authService from '../../services/authService';
+import axios from 'axios';
+import { transformApiError } from '../../utils/errorHandling';
 
 // Load persisted state from localStorage
 const loadState = () => {
@@ -138,6 +140,26 @@ export const register = createAsyncThunk<
   }
 );
 
+// Get current user from backend
+export const getCurrentUser = createAsyncThunk(
+  'auth/getCurrentUser',
+  async (_, { getState, rejectWithValue }) => {
+    try {
+      const { token } = (getState() as RootState).auth;
+      if (!token) {
+        return rejectWithValue('No authentication token found');
+      }
+      
+      // Use the same axiosInstance as other calls for consistency
+      const response = await authService.getCurrentUser();
+      console.log('Get current user response:', response);
+      return response;
+    } catch (error) {
+      return rejectWithValue(transformApiError(error));
+    }
+  }
+);
+
 const authSlice = createSlice({
   name: 'auth',
   initialState,
@@ -173,14 +195,29 @@ const authSlice = createSlice({
     },
     updateUser: (state, action: PayloadAction<Partial<User>>) => {
       if (state.user) {
+        console.log('AUTH SLICE: Updating user with:', action.payload);
+        console.log('AUTH SLICE: Current user before update:', state.user);
+        
         state.user = {
           ...state.user,
           ...action.payload
         };
+        
+        console.log('AUTH SLICE: Updated user after update:', state.user);
+        
+        // Also update in localStorage to persist changes
+        saveState({
+          ...state,
+          loading: false,
+          error: null
+        });
       }
     },
     clearError: (state) => {
       state.error = null;
+    },
+    refreshUser: (state) => {
+      state.loading = true;
     }
   },
   extraReducers: (builder) => {
@@ -229,11 +266,21 @@ const authSlice = createSlice({
       })
       .addCase(updateProfile.fulfilled, (state, action) => {
         state.loading = false;
+        console.log('AUTH SLICE: updateProfile.fulfilled payload:', action.payload);
+        
         if (state.user && action.payload) {
+          console.log('AUTH SLICE: Updating user in fulfilled case');
           state.user = {
             ...state.user,
             ...action.payload
           };
+          
+          // Update localStorage state
+          saveState({
+            ...state,
+            loading: false,
+            error: null
+          });
         }
       })
       .addCase(updateProfile.rejected, (state, action) => {
@@ -257,6 +304,29 @@ const authSlice = createSlice({
       .addCase(updateProfileImage.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
+      })
+      
+      .addCase('auth/refreshUser', (state) => {
+        state.loading = true;
+      })
+      
+      .addCase(getCurrentUser.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(getCurrentUser.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload;
+        // Update localStorage
+        saveState({
+          ...state,
+          loading: false,
+          error: null
+        });
+      })
+      .addCase(getCurrentUser.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
       });
   }
 });
@@ -267,7 +337,8 @@ export const {
   loginFailure,
   logout,
   updateUser,
-  clearError
+  clearError,
+  refreshUser
 } = authSlice.actions;
 
 export const selectAuth = (state: RootState) => state.auth;

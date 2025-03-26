@@ -130,11 +130,16 @@ module.exports = (sequelize) => {
       beforeCreate: (listing) => {
         // Generate slug from title if not provided
         if (!listing.slug) {
-          listing.slug = listing.title
+          // Generate base slug from title
+          let baseSlug = listing.title
             .toLowerCase()
             .replace(/[^\w\s-]/g, '')
             .replace(/[\s_-]+/g, '-')
             .replace(/^-+|-+$/g, '');
+          
+          // Add timestamp to ensure uniqueness
+          const timestamp = new Date().getTime().toString().slice(-6);
+          listing.slug = `${baseSlug}-${timestamp}`;
         }
       }
     }

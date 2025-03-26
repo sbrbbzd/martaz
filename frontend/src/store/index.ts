@@ -5,22 +5,25 @@ import authReducer from './slices/authSlice';
 import listingReducer from './slices/listingSlice';
 import uiReducer from './slices/uiSlice';
 import adminReducer from './slices/adminSlice';
+import favoritesReducer from './slices/favoritesSlice';
 import { api } from '../services/api';
 
 // Configure persist options
 const persistConfig = {
   key: 'root',
   storage,
-  whitelist: ['auth'] // only persist auth state
+  whitelist: ['auth', 'favorites'] // persist auth and favorites state
 };
 
 // Create persisted reducer
-const persistedReducer = persistReducer(persistConfig, authReducer);
+const persistedAuthReducer = persistReducer(persistConfig, authReducer);
+const persistedFavoritesReducer = persistReducer(persistConfig, favoritesReducer);
 
 // Configure store
 export const store = configureStore({
   reducer: {
-    auth: persistedReducer,
+    auth: persistedAuthReducer,
+    favorites: persistedFavoritesReducer,
     listings: listingReducer,
     ui: uiReducer,
     admin: adminReducer,

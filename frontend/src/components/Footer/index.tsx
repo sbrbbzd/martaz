@@ -13,7 +13,7 @@ const Footer: React.FC = () => {
         <div className="footer__content">
           <div className="footer__logo">
             <Link to="/" className="footer__logo-link">
-              <img src="/assets/images/logo.svg" alt="Mart.az" className="footer__logo-img" />
+              <img src="/assets/icons/logo.svg" alt="Mart.az" className="footer__logo-img" />
             </Link>
             <p className="footer__tagline">
               Mart.az - Azərbaycanda alqı-satqı üçün marketplace

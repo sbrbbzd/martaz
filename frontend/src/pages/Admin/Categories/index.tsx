@@ -1,22 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { 
+  FiGrid, 
+  FiCheck, 
+  FiPlus, 
   FiEdit, 
   FiTrash2, 
-  FiPlus, 
-  FiSearch, 
-  FiGrid, 
-  FiAlertCircle,
-  FiCheck, 
-  FiEye,
+  FiChevronDown, 
   FiChevronRight,
-  FiChevronDown,
-  FiImage
+  FiAlertCircle,
+  FiSearch,
+  FiEye
 } from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
 import AdminLayout from '../../../components/Admin/AdminLayout';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import { useGetCategoriesQuery, useCreateCategoryMutation, useUpdateCategoryMutation, useDeleteCategoryMutation } from '../../../services/api';
+// @ts-ignore - Module exists but TypeScript can't find it
+import { showConfirm } from '../../../utils/confirm';
+// @ts-ignore
+import slugify from 'slugify';
 import './styles.scss';
+import { uploadImagesToServer, getImageUrl } from '../../../services/imageServer';
 
 interface CategoryFormData {
   name: string;
@@ -25,6 +31,8 @@ interface CategoryFormData {
   parentId: string | null;
   icon: string;
   isActive: boolean;
+  iconFile?: File | null;
+  iconPreview?: string | null;
 }
 
 const initialFormData: CategoryFormData = {
@@ -33,7 +41,9 @@ const initialFormData: CategoryFormData = {
   description: '',
   parentId: null,
   icon: '',
-  isActive: true
+  isActive: true,
+  iconFile: null,
+  iconPreview: null
 };
 
 const CategoryManagement: React.FC = () => {
@@ -43,6 +53,13 @@ const CategoryManagement: React.FC = () => {
   const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
   const [searchText, setSearchText] = useState('');
   const [expandedCategories, setExpandedCategories] = useState<{[key: string]: boolean}>({});
+  const [uploadStatus, setUploadStatus] = useState<{
+    uploading: boolean,
+    progress: number
+  }>({
+    uploading: false,
+    progress: 0
+  });
   
   // Fetch categories with RTK Query
   const { 
@@ -83,14 +100,18 @@ const CategoryManagement: React.FC = () => {
   
   // Handle form input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target;
+    const { name, value, type } = e.target as HTMLInputElement;
     
-    // Handle checkbox type separately
     if (type === 'checkbox') {
-      const checked = (e.target as HTMLInputElement).checked;
-      setFormData(prev => ({ ...prev, [name]: checked }));
+      setFormData({
+        ...formData,
+        [name]: (e.target as HTMLInputElement).checked
+      });
     } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
+      setFormData({
+        ...formData,
+        [name]: value
+      });
     }
   };
   
@@ -112,11 +133,31 @@ const CategoryManagement: React.FC = () => {
     }));
   };
   
+  // Handle file input change for icon
+  const handleIconChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      
+      // Create a preview URL for the selected image
+      const previewUrl = URL.createObjectURL(file);
+      
+      setFormData({
+        ...formData,
+        iconFile: file,
+        iconPreview: previewUrl
+      });
+    }
+  };
+  
   // Reset form
   const resetForm = () => {
     setFormData(initialFormData);
     setEditingCategoryId(null);
     setShowForm(false);
+    setUploadStatus({
+      uploading: false,
+      progress: 0
+    });
   };
   
   // Edit category
@@ -127,7 +168,9 @@ const CategoryManagement: React.FC = () => {
       description: category.description || '',
       parentId: category.parentId,
       icon: category.icon || '',
-      isActive: category.isActive
+      isActive: category.isActive,
+      iconFile: null,
+      iconPreview: category.icon ? (category.icon.startsWith('http') ? category.icon : getImageUrl(category.icon)) : null
     });
     setEditingCategoryId(category.id);
     setShowForm(true);
@@ -151,23 +194,69 @@ const CategoryManagement: React.FC = () => {
     e.preventDefault();
     
     try {
-      if (editingCategoryId) {
-        // Update existing category
-        await updateCategory({
-          id: editingCategoryId,
-          ...formData
-        }).unwrap();
-      } else {
-        // Create new category
-        await createCategory(formData).unwrap();
+      let iconPath = formData.icon;
+      
+      // Upload icon file if selected
+      if (formData.iconFile) {
+        setUploadStatus({
+          uploading: true,
+          progress: 0
+        });
+        
+        const formDataForIcon = new FormData();
+        formDataForIcon.append('images', formData.iconFile);
+        
+        const uploadResponse = await uploadImagesToServer(formDataForIcon, (progress) => {
+          setUploadStatus({
+            uploading: true,
+            progress
+          });
+        });
+        
+        if (uploadResponse.success && uploadResponse.files && uploadResponse.files.length > 0) {
+          // Get the first file's path or URL
+          const fileData = uploadResponse.files[0];
+          if (fileData.path) {
+            iconPath = fileData.path;
+          } else if (fileData.url) {
+            iconPath = fileData.url;
+          } else if (typeof fileData === 'string') {
+            iconPath = fileData;
+          }
+          console.log('Uploaded icon path:', iconPath);
+        } else {
+          console.error('Icon upload failed:', uploadResponse);
+          toast.error(t('admin.categories.iconUploadFailed', 'Failed to upload category icon'));
+        }
+        
+        setUploadStatus({
+          uploading: false,
+          progress: 100
+        });
       }
       
-      // Reset form and close it
-      resetForm();
+      const categoryData = {
+        name: formData.name,
+        slug: formData.slug,
+        description: formData.description,
+        parentId: formData.parentId || null,
+        icon: iconPath,
+        isActive: formData.isActive
+      };
       
-    } catch (err) {
-      console.error('Failed to save category:', err);
-      // Could add error notification here
+      if (editingCategoryId) {
+        await updateCategory({ id: editingCategoryId, ...categoryData });
+        toast.success(t('admin.categories.updateSuccess', 'Category updated successfully'));
+      } else {
+        await createCategory(categoryData).unwrap();
+        toast.success(t('admin.categories.createSuccess', 'Category created successfully'));
+      }
+      
+      resetForm();
+      refetch();
+    } catch (error) {
+      console.error('Category save error:', error);
+      toast.error(t('admin.categories.saveFailed', 'Failed to save category'));
     }
   };
   
@@ -397,15 +486,76 @@ const CategoryManagement: React.FC = () => {
                 </div>
                 
                 <div className="form-group">
-                  <label htmlFor="icon">{t('admin.categories.icon', 'Icon')}</label>
+                  <label>{t('admin.categories.iconUpload', 'Category Icon')}</label>
+                  
+                  <div className="icon-upload-container">
+                    <div className="icon-preview">
+                      {formData.iconPreview ? (
+                        <img 
+                          src={formData.iconPreview} 
+                          alt="Category icon preview" 
+                          className="icon-preview-image"
+                        />
+                      ) : (
+                        <div className="icon-placeholder">
+                          <FiGrid size={24} />
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="icon-upload-controls">
+                      <input
+                        type="file"
+                        id="icon-file"
+                        accept="image/*"
+                        onChange={handleIconChange}
+                        className="icon-file-input"
+                      />
+                      <label htmlFor="icon-file" className="icon-upload-button">
+                        {t('admin.categories.uploadIcon', 'Upload Icon')}
+                      </label>
+                      
+                      {formData.iconPreview && (
+                        <button
+                          type="button"
+                          className="icon-remove-button"
+                          onClick={() => setFormData({
+                            ...formData,
+                            iconFile: null,
+                            iconPreview: null,
+                            icon: ''
+                          })}
+                        >
+                          {t('admin.categories.removeIcon', 'Remove')}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {uploadStatus.uploading && (
+                    <div className="upload-progress">
+                      <div 
+                        className="progress-bar" 
+                        style={{ width: `${uploadStatus.progress}%` }}
+                      ></div>
+                      <span className="progress-text">{uploadStatus.progress}%</span>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="form-group">
+                  <label htmlFor="icon">{t('admin.categories.iconCode', 'Icon Code (optional)')}</label>
                   <input
                     type="text"
                     id="icon"
                     name="icon"
                     value={formData.icon}
                     onChange={handleInputChange}
-                    placeholder="e.g. FiHome (React Icons name)"
+                    placeholder="e.g. FiHome or URL to icon"
                   />
+                  <small className="help-text">
+                    {t('admin.categories.iconHelp', 'Enter an icon name from React Icons or use the uploader above')}
+                  </small>
                 </div>
                 
                 <div className="form-group checkbox-group">
@@ -431,12 +581,12 @@ const CategoryManagement: React.FC = () => {
                   <button 
                     type="submit"
                     className="save-button"
-                    disabled={isCreating || isUpdating}
+                    disabled={isCreating || isUpdating || uploadStatus.uploading}
                   >
-                    {isCreating || isUpdating ? (
+                    {isCreating || isUpdating || uploadStatus.uploading ? (
                       <div className="saving-spinner">
                         <LoadingSpinner />
-                        <span>{t('admin.categories.saving', 'Saving...')}</span>
+                        <span>{uploadStatus.uploading ? t('admin.categories.uploading', 'Uploading...') : t('admin.categories.saving', 'Saving...')}</span>
                       </div>
                     ) : (
                       <>

@@ -110,6 +110,116 @@
     }
   }
 
+  /* Image upload styles - aligned with CreateListingPage */
+  .image-upload-container {
+    margin-top: $spacing-4;
+  }
+
+  .image-upload-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed $gray-300;
+    border-radius: $border-radius-lg;
+    padding: $spacing-6;
+    cursor: pointer;
+    transition: all 0.2s;
+    background-color: rgba($gray-100, 0.5);
+
+    &:hover {
+      border-color: $primary-color;
+      background-color: rgba($primary-color, 0.05);
+    }
+
+    .upload-icon {
+      font-size: 2.5rem;
+      color: $primary-color;
+      margin-bottom: $spacing-3;
+    }
+
+    span {
+      color: $text-primary;
+      font-weight: $font-weight-medium;
+      margin-bottom: $spacing-2;
+    }
+
+    .image-count {
+      color: $text-muted;
+      font-size: $font-size-sm;
+    }
+  }
+
+  .hidden-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+  }
+
+  .image-previews {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: $spacing-3;
+    margin-top: $spacing-4;
+  }
+
+  .image-preview-item {
+    position: relative;
+    height: 120px;
+    border-radius: $border-radius-md;
+    overflow: hidden;
+    border: 1px solid $gray-200;
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .remove-image-btn {
+      position: absolute;
+      top: $spacing-2;
+      right: $spacing-2;
+      background-color: rgba($black, 0.6);
+      color: $white;
+      border: none;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover {
+        background-color: rgba($error, 0.8);
+        transform: scale(1.1);
+      }
+    }
+  }
+
+  .error-message {
+    display: flex;
+    align-items: center;
+    gap: $spacing-1;
+    color: $error;
+    margin-top: $spacing-2;
+    font-size: 0.875rem;
+  }
+
+  &__help-text {
+    color: $text-secondary;
+    font-size: 0.9rem;
+    margin-bottom: $spacing-3;
+  }
+
   &__images {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));

@@ -6,20 +6,9 @@
  */
 
 // Create a global cache to track failed image loads
-// Load previously failed images from localStorage
-const loadFailedImagesFromStorage = (): Record<string, boolean> => {
-  try {
-    const savedCache = localStorage.getItem('failedImageCache');
-    return savedCache ? JSON.parse(savedCache) : {};
-  } catch (e) {
-    console.error('Error loading failed image cache from localStorage:', e);
-    return {};
-  }
-};
+const failedImageCache: Record<string, boolean> = {};
 
-const failedImageCache: Record<string, boolean> = loadFailedImagesFromStorage();
-
-// Save the cache to localStorage (debounced to avoid excessive writes)
+// Save the cache to sessionStorage (more appropriate for navigation)
 const saveFailedImagesToStorage = (() => {
   let timeoutId: number | null = null;
   
@@ -30,44 +19,123 @@ const saveFailedImagesToStorage = (() => {
     
     timeoutId = window.setTimeout(() => {
       try {
-        localStorage.setItem('failedImageCache', JSON.stringify(failedImageCache));
+        sessionStorage.setItem('failedImageCache', JSON.stringify(failedImageCache));
         timeoutId = null;
       } catch (e) {
-        console.error('Error saving failed image cache to localStorage:', e);
+        console.error('Error saving failed image cache to sessionStorage:', e);
       }
     }, 500);
   };
 })();
 
+// Load failed images from sessionStorage on page load
+const loadFailedImagesFromStorage = (): void => {
+  try {
+    const savedCache = sessionStorage.getItem('failedImageCache');
+    if (savedCache) {
+      const parsed = JSON.parse(savedCache);
+      Object.assign(failedImageCache, parsed);
+    }
+  } catch (e) {
+    console.error('Error loading failed image cache from sessionStorage:', e);
+  }
+};
+
+// Initialize cache on module load
+loadFailedImagesFromStorage();
+
 // Image URL helpers
-const IMAGE_SERVER_BASE_URL = 'http://localhost:3000/api/images';
+const IMAGE_SERVER_URL = import.meta.env.VITE_IMAGE_SERVER_URL || 'http://localhost:3001/api/images';
+const IMAGE_SERVER_BASE_URL = IMAGE_SERVER_URL.endsWith('/') ? IMAGE_SERVER_URL.slice(0, -1) : IMAGE_SERVER_URL;
+const PLACEHOLDER_IMAGE = `${IMAGE_SERVER_BASE_URL}/placeholder.jpg`;
+
+// Cache for constructed image URLs
+const imageUrlCache = new Map<string, string>();
+
+/**
+ * Get the base URL for the image server
+ * @returns The base URL for the image server
+ */
+export function getImageServerBaseUrl(): string {
+  return IMAGE_SERVER_BASE_URL;
+}
+
+/**
+ * Get the URL for the placeholder image
+ * @returns The URL for the placeholder image
+ */
+export function getPlaceholderImageUrl(): string {
+  return PLACEHOLDER_IMAGE;
+}
 
 /**
  * Convert a relative path to a full image URL
+ * @param path - The image path or URL
+ * @returns The properly formatted URL
  */
-export function getImageUrl(path?: string | null): string {
-  if (!path) {
-    return `${IMAGE_SERVER_BASE_URL}/placeholder.jpg`;
+export function getImageUrl(path?: string | null, fallback: string = PLACEHOLDER_IMAGE): string {
+  // Check cache first to avoid repeated processing
+  if (path && imageUrlCache.has(path)) {
+    return imageUrlCache.get(path)!;
   }
-  
-  // If it's already a full URL, return it
-  if (path.startsWith('http://') || path.startsWith('https://')) {
-    return path;
+
+  try {
+    // Handle invalid inputs
+    if (!path || typeof path !== 'string' || path === 'null' || path === 'undefined' || path.trim() === '') {
+      return fallback;
+    }
+
+    // Clean the path
+    let cleanPath = path.trim()
+      .replace(/[{}]/g, '') // Remove curly braces
+      .replace(/^\/+/, '') // Remove leading slashes
+      .replace(/^(api\/images\/|uploads\/|tmp\/)/i, ''); // Remove common prefixes
+
+    // Handle special URLs
+    if (cleanPath.startsWith('data:') || cleanPath.startsWith('blob:')) {
+      return cleanPath;
+    }
+
+    // Handle full URLs
+    if (cleanPath.startsWith('http://') || cleanPath.startsWith('https://')) {
+      // If URL is from Vite dev server, redirect to image server
+      if (cleanPath.includes(':5173')) {
+        const filename = cleanPath.split('/').pop();
+        return filename ? `${IMAGE_SERVER_BASE_URL}/${filename}` : fallback;
+      }
+      return cleanPath;
+    }
+
+    // Handle UUID-style paths (with or without extension)
+    const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(\.[a-z]+)?$/i;
+    if (uuidPattern.test(cleanPath) || (cleanPath.includes('/') && uuidPattern.test(cleanPath.split('/').pop() || ''))) {
+      const filename = cleanPath.split('/').pop();
+      const url = filename ? `${IMAGE_SERVER_BASE_URL}/${filename}` : fallback;
+      
+      // Cache the result
+      if (path) {
+        imageUrlCache.set(path, url);
+      }
+      
+      return url;
+    }
+
+    // For all other cases, ensure full URL with base
+    const fullUrl = cleanPath.startsWith(IMAGE_SERVER_BASE_URL) 
+      ? cleanPath 
+      : `${IMAGE_SERVER_BASE_URL}/${cleanPath}`;
+    
+    // Cache the result
+    if (path) {
+      imageUrlCache.set(path, fullUrl);
+    }
+    
+    return fullUrl;
+
+  } catch (error) {
+    console.error('Error constructing image URL:', error, 'Path:', path);
+    return fallback;
   }
-  
-  // Handle /tmp/ paths
-  if (path.startsWith('/tmp/')) {
-    const filename = path.substring(5);
-    return `${IMAGE_SERVER_BASE_URL}/${filename}`;
-  }
-  
-  // Handle relative paths
-  if (path.startsWith('/')) {
-    return `${IMAGE_SERVER_BASE_URL}${path}`;
-  }
-  
-  // Default case - assume it's a filename
-  return `${IMAGE_SERVER_BASE_URL}/${path}`;
 }
 
 /**
@@ -119,12 +187,14 @@ export const formatDate = (date?: string | Date, locale: string = 'az'): string 
  * Marks an image URL as failed to prevent further loading attempts
  * @param url - The image URL that failed to load
  */
-export const markImageAsFailed = (url: string): void => {
-  if (url) {
-    failedImageCache[url] = true;
-    // Save to localStorage
+export const markImageAsFailed = (imagePath: string) => {
+  if (!imagePath) return;
+  
+  try {
+    failedImageCache[imagePath] = true;
     saveFailedImagesToStorage();
-    console.log(`Marked image as failed and won't request again: ${url}`);
+  } catch (e) {
+    console.error('Error marking image as failed:', e);
   }
 };
 
@@ -133,20 +203,23 @@ export const markImageAsFailed = (url: string): void => {
  * @param url - The image URL to check
  * @returns Boolean indicating if the image is known to fail
  */
-export const isFailedImage = (url: string): boolean => {
-  return !!failedImageCache[url];
+export const isFailedImage = (imagePath: string): boolean => {
+  return !!failedImageCache[imagePath];
 };
 
 /**
- * Clears the failed image cache
- * Useful for when you want to retry all failed images
+ * Clears the failed image cache and forces a reload of all images
  */
 export const clearFailedImageCache = (): void => {
   Object.keys(failedImageCache).forEach(key => {
     delete failedImageCache[key];
   });
-  localStorage.removeItem('failedImageCache');
-  console.log('Cleared failed image cache');
+  sessionStorage.removeItem('failedImageCache');
+  
+  // Clear any image URL caches
+  clearImageCaches();
+  
+  console.log('Image caches cleared');
 };
 
 /**
@@ -161,4 +234,37 @@ export const forceReloadImages = (): void => {
   window.location.reload();
   
   console.log('Forcing reload of all images...');
-}; 
+};
+
+// Utility to clear image caches if needed
+export const clearImageCaches = () => {
+  try {
+    // Clear failed images
+    sessionStorage.removeItem('failedImages');
+    
+    // Clear image URL caches
+    const keys = Object.keys(sessionStorage);
+    keys.forEach(key => {
+      if (key.startsWith('img_url_') || key.startsWith('img_path_')) {
+        sessionStorage.removeItem(key);
+      }
+    });
+    
+    console.log('Image caches cleared');
+  } catch (e) {
+    console.error('Error clearing image caches:', e);
+  }
+};
+
+// Add event listener for page visibility changes
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    // Reload failed images cache when page becomes visible again
+    loadFailedImagesFromStorage();
+  }
+});
+
+// Add a function to clear the URL cache if needed
+export function clearImageUrlCache(): void {
+  imageUrlCache.clear();
+} 

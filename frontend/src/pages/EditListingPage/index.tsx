@@ -12,13 +12,16 @@ import {
   useGetListingQuery, 
   useUpdateListingMutation, 
   useGetCategoriesQuery,
-  uploadListingImages
+  uploadListingImages,
+  axiosInstance
 } from '../../services/api';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ErrorMessage from '../../components/ErrorMessage';
+import ImageComponent from '../../components/common/ImageComponent';
 import { isUserAdmin } from '../../utils/auth';
 import { debugAuthState } from '../../services/authService';
 import { uploadImagesToServer } from '../../services/imageServer';
+import { getImageUrl } from '../../utils/imageUrl';
 import './styles.scss';
 
 // Define User interface
@@ -47,14 +50,19 @@ interface ListingFormData {
   status: string;
 }
 
-// Interface for form validation errors
+// Interface for form errors
 interface FormErrors {
-  title?: string;
-  description?: string;
-  price?: string;
-  location?: string;
-  categoryId?: string;
-  images?: string;
+  [key: string]: string;
+}
+
+interface UploadedFile {
+  originalName: string;
+  filename: string;
+  path: string;
+  size: number;
+  mimetype: string;
+  url?: string;
+  fullUrl?: string;
 }
 
 const EditListingPage: React.FC = () => {
@@ -103,6 +111,9 @@ const EditListingPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
   
+  // State for tracking which images are currently uploading
+  const [uploadingImages, setUploadingImages] = useState<boolean>(false);
+  
   // Fill form with listing data when it loads
   useEffect(() => {
     console.log('==== EDIT LISTING PAGE DEBUG ====');
@@ -115,6 +126,15 @@ const EditListingPage: React.FC = () => {
       const listingData = listingResponse.data;
       
       console.log('Listing data:', JSON.stringify(listingResponse.data));
+      console.log('Raw images array from API:', JSON.stringify(listingData.images));
+      console.log('Images array type:', typeof listingData.images);
+      console.log('Is images an array?', Array.isArray(listingData.images));
+      if (Array.isArray(listingData.images)) {
+        console.log('Images array length:', listingData.images.length);
+        listingData.images.forEach((img: any, idx: number) => {
+          console.log(`Image at index ${idx}:`, img, 'type:', typeof img);
+        });
+      }
       
       if (!listingData) {
         console.error('Listing data is missing or malformed');
@@ -166,13 +186,42 @@ const EditListingPage: React.FC = () => {
         status: listingData.status || 'active'
       });
       
-      // Store existing images
-      const images = listingData.images || [];
-      console.log('Setting existing images:', images.length);
+      // Store existing images - filter out null values with even more validation
+      const images = Array.isArray(listingData.images) 
+        ? listingData.images.filter((img: any) => {
+            // First, log the raw image for debugging
+            console.log('Processing existing image:', img, 'type:', typeof img);
+            
+            // Enhanced validation to filter out any invalid images
+            if (img === null || img === undefined) {
+              console.log('Filtering out null/undefined image');
+              return false;
+            }
+            
+            if (typeof img !== 'string') {
+              console.log(`Filtering out non-string image of type: ${typeof img}`);
+              return false;
+            }
+            
+            if (img.trim() === '') {
+              console.log('Filtering out empty string image');
+              return false;
+            }
+            
+            if (img === 'null' || img === 'undefined' || img === 'unknown') {
+              console.log(`Filtering out string "${img}" as image`);
+              return false;
+            }
+            
+            return true;
+          })
+        : [];
+      
+      console.log('Setting existing images after strict filtering:', images.length);
       setExistingImages(images);
       
-      // Create preview URLs for existing images
-      setImagesPreview(images);
+      // Create preview URLs for existing images - only for valid URLs
+      setImagesPreview(images); // All images are already filtered above
       
       // Reset new image files
       setImageFiles([]);
@@ -191,28 +240,41 @@ const EditListingPage: React.FC = () => {
     }
   }, [isUserAuthenticated, navigate, t, id]);
   
-  // Handle input changes
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
+  // Handle extracting clean filename from various path formats
+  const extractFilenameFromPath = (path: string): string => {
+    if (!path) return '';
     
-    // Clear any error for this field when the user types
-    setFormErrors(prev => ({ ...prev, [name]: '' }));
-    
-    if (name === 'price') {
-      const numValue = parseFloat(value);
-      setFormData(prev => ({
-        ...prev,
-        [name]: value === '' ? 0 : isNaN(numValue) ? 0 : numValue
-      }));
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
+    // Handle base paths like /api/images/filename.jpg
+    if (path.startsWith('/api/images/')) {
+      return path.substring('/api/images/'.length);
     }
+    
+    // Handle full URLs
+    if (path.startsWith('http')) {
+      const urlParts = path.split('/');
+      return urlParts[urlParts.length - 1];
+    }
+    
+    // Handle other path formats
+    if (path.includes('/')) {
+      const pathParts = path.split('/');
+      return pathParts[pathParts.length - 1];
+    }
+    
+    // Already just a filename
+    return path;
   };
   
   // Handle image upload
-  const handleImageUpload = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
-    if (!files) return;
+    if (!files || files.length === 0) return;
+    
+    // Check if we'd exceed the maximum number of images (10)
+    if (existingImages.length + files.length > 10) {
+      toast.error(t('listings.tooManyImages', 'Maximum 10 images allowed'));
+      return;
+    }
     
     const newFiles = Array.from(files);
     
@@ -225,15 +287,202 @@ const EditListingPage: React.FC = () => {
     
     if (invalidFiles.length > 0) {
       toast.error(t('listings.invalidImageFiles', 'Some files were rejected (max 5MB, jpg/png/webp only)'));
-      return;
     }
     
-    // Update files and previews - only add the new files
-    setImageFiles(prev => [...prev, ...newFiles]);
+    // Continue with valid files only
+    const validFiles = newFiles.filter(file => {
+      const isValidSize = file.size <= 5 * 1024 * 1024; // 5MB
+      const isValidType = ['image/jpeg', 'image/png', 'image/webp'].includes(file.type);
+      return isValidSize && isValidType;
+    });
     
-    // Generate previews for new files
-    const newPreviews = newFiles.map(file => URL.createObjectURL(file));
-    setImagesPreview(prev => [...prev, ...newPreviews]);
+    if (validFiles.length === 0) return; // Exit if no valid files
+    
+    console.log('Adding new valid image files:', validFiles.length);
+    
+    // Create FormData for immediate upload
+    const formDataForImages = new FormData();
+    validFiles.forEach((file, index) => {
+      console.log(`Image ${index+1}: ${file.name}, ${file.type}, ${file.size} bytes`);
+      formDataForImages.append('images', file);
+    });
+    
+    // Create safe preview URLs for valid files only
+    const safeNewPreviews = validFiles.map(file => URL.createObjectURL(file));
+    
+    try {
+      // Add previews for better user experience while uploading
+      setImagesPreview(prev => [...prev, ...safeNewPreviews]);
+      
+      // Set loading state
+      setUploadingImages(true);
+      
+      // Immediately upload the images
+      toast.info(t('listings.uploadingImages', 'Uploading images...'));
+      const imageUploadResponse = await uploadImagesToServer(formDataForImages);
+      
+      // Detailed logging of the response structure
+      console.log('Raw upload response:', imageUploadResponse);
+      
+      // Reset loading state
+      setUploadingImages(false);
+      
+      if (!imageUploadResponse.success) {
+        console.error('Upload failed:', imageUploadResponse.message);
+        toast.error(t('listings.imageUploadFailed', 'Failed to upload images'));
+        
+        // Remove the previews since upload failed
+        const previewsToRemove = safeNewPreviews.length;
+        setImagesPreview(prev => prev.slice(0, prev.length - previewsToRemove));
+        return;
+      }
+      
+      if (!imageUploadResponse.files || !Array.isArray(imageUploadResponse.files) || imageUploadResponse.files.length === 0) {
+        console.error('Invalid response format or empty files array:', imageUploadResponse);
+        toast.error(t('listings.invalidResponseFormat', 'Invalid response from server'));
+        
+        // Remove the previews since we got an invalid response
+        const previewsToRemove = safeNewPreviews.length;
+        setImagesPreview(prev => prev.slice(0, prev.length - previewsToRemove));
+        return;
+      }
+      
+      // Process each file in the response to extract filenames
+      const filenames = processUploadedImages(imageUploadResponse.files);
+      console.log('Extracted filenames:', filenames);
+      
+      // Final validation of filenames before adding to state
+      const validFilenames = filenames.filter(filename => {
+        if (!filename) {
+          console.log('Filtering out null/undefined filename');
+          return false;
+        }
+        
+        if (typeof filename !== 'string') {
+          console.log(`Filtering out non-string filename of type: ${typeof filename}`);
+          return false;
+        }
+        
+        if (filename.trim() === '') {
+          console.log('Filtering out empty string filename');
+          return false;
+        }
+        
+        if (filename === 'null' || filename === 'undefined' || filename === 'unknown') {
+          console.log(`Filtering out string "${filename}" as filename`);
+          return false;
+        }
+        
+        return true;
+      });
+      
+      console.log('Valid filenames after filtering:', validFilenames);
+      
+      if (validFilenames.length > 0) {
+        console.log('New filenames to add:', validFilenames);
+        
+        // SIMPLIFIED APPROACH: Send just the filenames as a direct JSON string
+        try {
+          console.log(`Attaching ${validFilenames.length} images to listing ${id}`);
+          
+          // Use the improved uploadListingImages function
+          const imageResponse = await uploadListingImages(
+            id || '',
+            validFilenames, 
+            true // append to existing images
+          );
+          
+          console.log('Image attachment response:', imageResponse);
+          
+          if (imageResponse.success) {
+            // Add new filenames to existing images
+            setExistingImages(prev => [...prev, ...validFilenames]);
+            toast.success(`${validFilenames.length} images uploaded`);
+            
+            // If this is the first image being added, set it as the featured image
+            if (existingImages.length === 0 && validFilenames.length > 0) {
+              console.log('Setting first uploaded image as featured image:', validFilenames[0]);
+              try {
+                await axiosInstance.put(`/listings/${id}`, {
+                  featuredImage: validFilenames[0]
+                });
+                toast.success(t('listings.featuredImageSet', 'First image set as featured image'));
+              } catch (error) {
+                console.error('Error setting featured image:', error);
+                // Don't show error toast as it's not critical
+              }
+            }
+            
+            // Since we have valid filenames, adjust preview URLs
+            // Remove the temporary previews and replace with proper URLs
+            setImagesPreview(prev => {
+              // Keep all existing previews except the temporary ones we added
+              const oldPreviews = prev.slice(0, prev.length - safeNewPreviews.length);
+              // Add the new valid filenames
+              return [...oldPreviews, ...validFilenames];
+            });
+          } else {
+            console.error('Failed to attach images to listing:', imageResponse.message);
+            toast.error(t('listings.attachFailed', 'Failed to attach images to listing'));
+            
+            // Remove the previews since attachment failed
+            const previewsToRemove = safeNewPreviews.length;
+            setImagesPreview(prev => prev.slice(0, prev.length - previewsToRemove));
+          }
+        } catch (error) {
+          console.error('Error attaching images to listing:', error);
+          toast.error(t('listings.attachFailed', 'Failed to attach images to listing'));
+          
+          // Remove the previews since attachment failed
+          const previewsToRemove = safeNewPreviews.length;
+          setImagesPreview(prev => prev.slice(0, prev.length - previewsToRemove));
+        }
+      } else {
+        console.error('No valid filenames extracted from response');
+        toast.error(t('listings.noValidImages', 'No valid images were processed'));
+        
+        // Remove the previews since we couldn't extract valid filenames
+        const previewsToRemove = safeNewPreviews.length;
+        setImagesPreview(prev => prev.slice(0, prev.length - previewsToRemove));
+      }
+      
+    } catch (error) {
+      console.error('Error handling image upload:', error);
+      setUploadingImages(false);
+      toast.error(t('listings.uploadError', 'Error uploading images'));
+      
+      // Remove previews in case of error
+      const previewsToRemove = safeNewPreviews.length;
+      if (previewsToRemove > 0) {
+        setImagesPreview(prev => prev.slice(0, prev.length - previewsToRemove));
+      }
+    }
+  };
+  
+  // Clean up object URLs on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      // Clean up function to revoke object URLs
+      imagesPreview.forEach(url => {
+        if (url && typeof url === 'string' && url.startsWith('blob:')) {
+          try {
+            URL.revokeObjectURL(url);
+          } catch (error) {
+            console.error('Error revoking object URL:', error);
+          }
+        }
+      });
+    };
+  }, [imagesPreview]);
+  
+  // Process the uploaded images to extract filenames
+  const processUploadedImages = (files: any[]): string[] => {
+    return files.map(file => {
+      if (file.filename) return file.filename;
+      if (file.url) return extractFilenameFromPath(file.url);
+      if (file.path) return extractFilenameFromPath(file.path);
+      return '';
+    }).filter(filename => filename.trim() !== '');
   };
   
   // Handle removing images 
@@ -261,57 +510,72 @@ const EditListingPage: React.FC = () => {
     }
   };
   
+  // Handle input changes
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    
+    // Clear any error for this field when the user types
+    setFormErrors(prev => ({ ...prev, [name]: '' }));
+    
+    if (name === 'price') {
+      const numValue = parseFloat(value);
+      setFormData(prev => ({
+        ...prev,
+        [name]: value === '' ? 0 : isNaN(numValue) ? 0 : numValue
+      }));
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }));
+    }
+  };
+  
   // Form validation
   const validateForm = () => {
     const errors: FormErrors = {};
     let isValid = true;
     
-    console.log('Validating form with data:', formData);
-    console.log('Existing images:', existingImages.length, 'New images:', imageFiles.length);
-
-    // Validate title
-    if (!formData.title || formData.title.length < 3) {
-      errors.title = t('listings.titleRequired', 'Title must be at least 3 characters');
+    // Title validation
+    if (!formData.title.trim()) {
+      errors.title = t('validation.required', 'This field is required');
       isValid = false;
-      console.log('Title validation failed:', formData.title);
+    } else if (formData.title.length < 5) {
+      errors.title = t('validation.minLength', 'Must be at least 5 characters');
+      isValid = false;
     }
     
-    // Validate description
-    if (!formData.description || formData.description.length < 10) {
-      errors.description = t('listings.descriptionRequired', 'Description must be at least 10 characters');
+    // Description validation
+    if (!formData.description.trim()) {
+      errors.description = t('validation.required', 'This field is required');
       isValid = false;
-      console.log('Description validation failed:', formData.description);
+    } else if (formData.description.length < 20) {
+      errors.description = t('validation.minLength', 'Must be at least 20 characters');
+      isValid = false;
     }
     
-    // Validate price
+    // Price validation
     if (formData.price <= 0) {
-      console.log('Price validation failed:', formData.price);
-      errors.price = t('listings.priceRequired', 'Price must be greater than 0');
+      errors.price = t('validation.positiveNumber', 'Price must be greater than 0');
       isValid = false;
     }
     
-    // Validate location
-    if (!formData.location) {
-      console.log('Location validation failed');
-      errors.location = t('listings.locationRequired', 'Location is required');
-      isValid = false;
-    }
-    
-    // Validate category
+    // Category validation
     if (!formData.categoryId) {
-      console.log('Category validation failed');
-      errors.categoryId = t('listings.categoryRequired', 'Category is required');
+      errors.categoryId = t('validation.required', 'Please select a category');
       isValid = false;
     }
     
-    // Require at least one image
-    if (existingImages.length === 0 && imageFiles.length === 0) {
-      console.log('Images validation failed - no images found');
-      errors.images = t('listings.imagesRequired', 'At least one image is required');
+    // Contact info validation
+    if (!formData.contactPhone && !formData.contactEmail) {
+      errors.contactPhone = t('validation.contactRequired', 'At least one contact method is required');
       isValid = false;
     }
     
-    // Store validation errors and return result
+    // Location validation
+    if (!formData.location.trim()) {
+      errors.location = t('validation.required', 'This field is required');
+      isValid = false;
+    }
+    
+    // Update form errors
     setFormErrors(errors);
     
     if (!isValid) {
@@ -363,63 +627,74 @@ const EditListingPage: React.FC = () => {
       
       console.log('Update listing response:', response);
       
-      // Now handle images separately
-      let hasImageChanges = imageFiles.length > 0 || 
-                           (listingResponse?.data?.images?.length !== existingImages.length);
-      
-      if (hasImageChanges) {
-        try {
-          // 1. If we have new images, upload them first
-          let newImagePaths: string[] = [];
-          
-          if (imageFiles.length > 0) {
-            toast.info(t('listings.uploadingImages'));
-            
-            const formDataForImages = new FormData();
-            imageFiles.forEach(file => {
-              formDataForImages.append('images', file);
-            });
-            
-            const imageUploadResponse = await uploadImagesToServer(formDataForImages);
-            console.log('Image upload response:', imageUploadResponse);
-            
-            if (!imageUploadResponse.success || !imageUploadResponse.files) {
-              throw new Error('Failed to upload new images');
-            }
-            
-            newImagePaths = imageUploadResponse.files.map(file => file.path);
+      // Now handle images separately - always update images if we have any
+      if (existingImages.length > 0) {
+        // Since images are already uploaded when selected, we just need to update the listing
+        console.log('Updating with pre-uploaded images');
+        console.log('Current existing images:', JSON.stringify(existingImages));
+        
+        // Filter out any invalid entries before sending with enhanced validation
+        const validExistingImages = existingImages.filter(img => {
+          // Very explicit validation to avoid NULL values in database
+          if (img === null || img === undefined) {
+            console.log('Filtering out null/undefined existing image');
+            return false;
           }
-          
-          // 2. Update the listing with the final list of images
-          const finalImagesList = [...existingImages, ...newImagePaths];
-          console.log('Final images list:', finalImagesList);
-          
-          // Update the listing with the new images list
-          await updateListing({
+          if (typeof img !== 'string') {
+            console.log(`Filtering out non-string existing image: ${typeof img}`);
+            return false;
+          }
+          if (img.trim() === '') {
+            console.log('Filtering out empty string existing image');
+            return false;
+          }
+          if (img === 'null' || img === 'undefined' || img === 'unknown') {
+            console.log(`Filtering out "${img}" string existing image`);
+            return false;
+          }
+          return true;
+        });
+        
+        console.log('Valid existing images after filtering:', JSON.stringify(validExistingImages));
+        
+        // Ensure we have at least one valid image
+        if (validExistingImages.length === 0) {
+          console.error('No valid existing images after filtering');
+          toast.error(t('listings.noValidImages', 'No valid images available'));
+          setIsSubmitting(false);
+          return;
+        }
+        
+        try {
+          console.log('Updating listing with images:', validExistingImages);
+          const imagesResponse = await updateListing({
             id: id || '',
             listing: {
-              ...listingUpdateData,
-              images: finalImagesList
+              images: validExistingImages
             }
           }).unwrap();
           
-          toast.success(t('listings.updateSuccess'));
-        } catch (error) {
-          console.error('Error updating images:', error);
-          toast.error(t('listings.imageUploadError'));
+          console.log('Image update response:', imagesResponse);
+          
+          // No need to check for errors here, if we made it past unwrap() it succeeded
+        } catch (imageError) {
+          console.error('Error updating images:', imageError);
+          toast.error(t('listings.imageUpdateError', 'Error updating images'));
+          // Continue with the flow despite image errors
         }
-      } else {
-        // No image changes, just show success message
-        toast.success(t('listings.updateSuccess'));
       }
       
-      // Redirect to the listing detail page
+      setIsSubmitting(false);
+      toast.success(t('listings.updateSuccess', 'Listing updated successfully'));
+      
+      // Navigate back to the listing page
       navigate(`/listings/${id}`);
     } catch (error) {
       console.error('Error updating listing:', error);
-      toast.error(t('listings.updateError'));
-    } finally {
       setIsSubmitting(false);
+      toast.error(
+        t('listings.updateError', 'There was an error updating your listing')
+      );
     }
   };
   
@@ -520,41 +795,39 @@ const EditListingPage: React.FC = () => {
               </div>
             </div>
             
-            <div className="create-listing-page__field-group">
-              <div className="create-listing-page__field">
-                <label htmlFor="condition">
-                  {t('listings.condition', 'Condition')}
-                </label>
-                <select
-                  id="condition"
-                  name="condition"
-                  value={formData.condition}
-                  onChange={handleInputChange}
-                >
-                  <option value="new">{t('condition.new', 'New')}</option>
-                  <option value="like-new">{t('condition.like-new', 'Like New')}</option>
-                  <option value="good">{t('condition.good', 'Good')}</option>
-                  <option value="fair">{t('condition.fair', 'Fair')}</option>
-                  <option value="poor">{t('condition.poor', 'Poor')}</option>
-                </select>
-              </div>
-              
-              <div className="create-listing-page__field">
-                <label htmlFor="location">
-                  {t('listings.location', 'Location')} <span className="required">*</span>
-                </label>
-                <input
-                  type="text"
-                  id="location"
-                  name="location"
-                  value={formData.location}
-                  onChange={handleInputChange}
-                  placeholder={t('listings.locationPlaceholder', 'e.g., Baku, Azerbaijan')}
-                  required
-                  className={formErrors.location ? 'error' : ''}
-                />
-                {formErrors.location && <span className="error-message">{formErrors.location}</span>}
-              </div>
+            <div className="create-listing-page__field">
+              <label htmlFor="condition">
+                {t('listings.condition', 'Condition')}
+              </label>
+              <select
+                id="condition"
+                name="condition"
+                value={formData.condition}
+                onChange={handleInputChange}
+              >
+                <option value="new">{t('conditions.new', 'New')}</option>
+                <option value="like_new">{t('conditions.likeNew', 'Like New')}</option>
+                <option value="good">{t('conditions.good', 'Good')}</option>
+                <option value="fair">{t('conditions.fair', 'Fair')}</option>
+                <option value="poor">{t('conditions.poor', 'Poor')}</option>
+              </select>
+            </div>
+            
+            <div className="create-listing-page__field">
+              <label htmlFor="location">
+                {t('listings.location', 'Location')} <span className="required">*</span>
+              </label>
+              <input
+                type="text"
+                id="location"
+                name="location"
+                value={formData.location}
+                onChange={handleInputChange}
+                placeholder={t('listings.locationPlaceholder', 'Enter the item location')}
+                required
+                className={formErrors.location ? 'error' : ''}
+              />
+              {formErrors.location && <span className="error-message">{formErrors.location}</span>}
             </div>
             
             <div className="create-listing-page__field">
@@ -570,7 +843,7 @@ const EditListingPage: React.FC = () => {
                 className={formErrors.categoryId ? 'error' : ''}
               >
                 <option value="">{t('listings.selectCategory', 'Select a category')}</option>
-                {categories && categories.map(category => (
+                {Array.isArray(categories) && categories.length > 0 && categories.map((category) => (
                   <option key={category.id} value={category.id}>
                     {category.name}
                   </option>
@@ -583,50 +856,70 @@ const EditListingPage: React.FC = () => {
           {/* Images Section */}
           <div className="create-listing-page__section">
             <h2>{t('listings.images', 'Images')}</h2>
-            
-            <div className="create-listing-page__images">
-              {imagesPreview.map((src, index) => (
-                <div className="create-listing-page__image-preview" key={index}>
-                  <img src={src} alt={`Preview ${index + 1}`} />
-                  <button
-                    type="button"
-                    className="create-listing-page__image-remove"
-                    onClick={() => handleRemoveImage(index)}
-                  >
-                    <FiX />
-                  </button>
-                </div>
-              ))}
-              
-              <label className="create-listing-page__image-upload">
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  multiple
-                  onChange={handleImageUpload}
-                />
-                <div className="create-listing-page__upload-content">
-                  <FiUpload size={24} />
-                  <span>{t('listings.uploadImages', 'Upload Images')}</span>
-                </div>
-              </label>
-            </div>
-            
-            {formErrors.images && <span className="error-message">{formErrors.images}</span>}
-            
-            <p className="create-listing-page__image-tip">
-              <FiAlertCircle />
-              {t('listings.imageHelp', 'Add clear photos to get more interest. Maximum 5MB per image, jpg/png formats.')}
+            <p className="create-listing-page__help-text">
+              {t('listings.imagesHelp', 'Upload up to 10 images. First image will be the main image shown in listings.')}
             </p>
+            
+            <div className="image-upload-container">
+              <label htmlFor="images" className="image-upload-label">
+                {uploadingImages ? (
+                  <>
+                    <LoadingSpinner size="small" /> {t('listings.uploading', 'Uploading...')}
+                  </>
+                ) : (
+                  <>
+                    <FiUpload className="upload-icon" />
+                    <span>{t('listings.uploadImages', 'Upload Images')}</span>
+                    <span className="image-count">
+                      {imagesPreview.length}/10 {t('listings.imagesUploaded')}
+                    </span>
+                  </>
+                )}
+              </label>
+              
+              <input
+                type="file"
+                id="images"
+                name="images"
+                onChange={handleImageUpload}
+                accept="image/jpeg, image/png, image/webp"
+                multiple
+                className="hidden-input"
+              />
+              
+              {imagesPreview.length > 0 && (
+                <div className="image-previews">
+                  {imagesPreview.map((imageSrc, index) => (
+                    <div className="image-preview-item" key={index}>
+                      <ImageComponent
+                        src={imageSrc.startsWith('blob:') ? imageSrc : getImageUrl(imageSrc)}
+                        alt={`Listing image ${index + 1}`}
+                        fallback="/placeholder.jpg"
+                        silent={true}
+                      />
+                      <button
+                        type="button"
+                        className="remove-image-btn"
+                        onClick={() => handleRemoveImage(index)}
+                      >
+                        <FiX />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              
+              {formErrors.images && <div className="error-message"><FiAlertCircle /> {formErrors.images}</div>}
+            </div>
           </div>
           
           {/* Contact Section */}
           <div className="create-listing-page__section">
-            <h2>{t('listings.contactInfo', 'Contact Information')}</h2>
+            <h2>{t('listings.contactDetails', 'Contact Details')}</h2>
             
             <div className="create-listing-page__field">
               <label htmlFor="contactPhone">
-                {t('listings.contactPhone', 'Phone Number')}
+                {t('listings.phone', 'Phone Number')}
               </label>
               <input
                 type="tel"
@@ -634,13 +927,15 @@ const EditListingPage: React.FC = () => {
                 name="contactPhone"
                 value={formData.contactPhone}
                 onChange={handleInputChange}
-                placeholder={t('listings.contactPhonePlaceholder', 'e.g., +994 50 123 4567')}
+                placeholder={t('listings.phonePlaceholder', 'Enter contact phone number')}
+                className={formErrors.contactPhone ? 'error' : ''}
               />
+              {formErrors.contactPhone && <span className="error-message">{formErrors.contactPhone}</span>}
             </div>
             
             <div className="create-listing-page__field">
               <label htmlFor="contactEmail">
-                {t('listings.contactEmail', 'Email')}
+                {t('listings.email', 'Email')}
               </label>
               <input
                 type="email"
@@ -648,12 +943,14 @@ const EditListingPage: React.FC = () => {
                 name="contactEmail"
                 value={formData.contactEmail}
                 onChange={handleInputChange}
-                placeholder={t('listings.contactEmailPlaceholder', 'e.g., name@example.com')}
+                placeholder={t('listings.emailPlaceholder', 'Enter contact email')}
+                className={formErrors.contactEmail ? 'error' : ''}
               />
+              {formErrors.contactEmail && <span className="error-message">{formErrors.contactEmail}</span>}
             </div>
           </div>
           
-          {/* Admin only status field */}
+          {/* Admin-only status section */}
           {currentUser && isUserAdmin(currentUser) && (
             <div className="create-listing-page__section">
               <h2>{t('listings.status', 'Listing Status')}</h2>

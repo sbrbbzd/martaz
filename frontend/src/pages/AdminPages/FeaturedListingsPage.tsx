@@ -20,7 +20,7 @@ const FeaturedListingsPage: React.FC = () => {
   const query = {
     page,
     limit,
-    isFeatured: true
+    isPromoted: true
   };
   
   // Fetch featured listings
@@ -42,9 +42,9 @@ const FeaturedListingsPage: React.FC = () => {
   };
   
   // Get time remaining for featured status
-  const getTimeRemaining = (featuredUntil: string) => {
+  const getTimeRemaining = (promotionEndDate: string) => {
     const now = new Date();
-    const end = new Date(featuredUntil);
+    const end = new Date(promotionEndDate);
     const diff = end.getTime() - now.getTime();
     
     if (diff <= 0) return t('admin.featuredExpired');
@@ -108,7 +108,7 @@ const FeaturedListingsPage: React.FC = () => {
                       <th>{t('admin.category')}</th>
                       <th>{t('admin.price')}</th>
                       <th>{t('admin.seller')}</th>
-                      <th>{t('admin.featuredUntil')}</th>
+                      <th>{t('admin.promotionEndDate')}</th>
                       <th>{t('admin.timeRemaining')}</th>
                       <th>{t('admin.actions')}</th>
                     </tr>
@@ -136,11 +136,11 @@ const FeaturedListingsPage: React.FC = () => {
                         <td>
                           {listing.user ? `${listing.user.firstName} ${listing.user.lastName}` : '-'}
                         </td>
-                        <td>{listing.featuredUntil ? formatDate(listing.featuredUntil) : '-'}</td>
+                        <td>{listing.promotionEndDate ? formatDate(listing.promotionEndDate) : '-'}</td>
                         <td>
-                          {listing.featuredUntil ? (
+                          {listing.promotionEndDate ? (
                             <span className="admin-table__featured-time">
-                              {getTimeRemaining(listing.featuredUntil)}
+                              {getTimeRemaining(listing.promotionEndDate)}
                             </span>
                           ) : '-'}
                         </td>

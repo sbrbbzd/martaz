@@ -3,12 +3,15 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Layout from '@components/Layout';
 import LoadingSpinner from '@components/common/LoadingSpinner';
+import { useDispatch } from 'react-redux';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import AdminProtected from '@components/AdminProtected';
 import AdminFeaturedListingsPage from './pages/AdminPages/FeaturedListingsPage';
-import { clearFailedImageCache } from './utils/helpers';
-import { ensureMaterialIconsLoaded } from './utils/material-icons';
+import ImageDebug from './components/common/ImageDebug';
+
+// Theme action creator function (simplified)
+const setTheme = (theme: 'light' | 'dark') => ({ type: 'theme/setTheme', payload: theme });
 
 // Lazy-loaded pages for better performance
 const HomePage = React.lazy(() => import('@pages/HomePage'));
@@ -23,105 +26,121 @@ const NotFoundPage = React.lazy(() => import('@pages/NotFoundPage'));
 const AdminDashboard = React.lazy(() => import('@pages/Admin/Dashboard'));
 const AdminUsers = React.lazy(() => import('@pages/Admin/Users'));
 const AdminListings = React.lazy(() => import('@pages/Admin/Listings'));
+const AdminPendingListings = React.lazy(() => import('@pages/Admin/Listings/PendingListingsPage'));
+const AdminReportedListings = React.lazy(() => import('@pages/Admin/Listings/ReportedListingsPage'));
 const AdminCategories = React.lazy(() => import('@pages/Admin/Categories'));
 const CategoryPage = React.lazy(() => import('@pages/ListingsPage')); // Reusing ListingsPage for category view
-const TestImagePage = React.lazy(() => import('./pages/TestImagePage'));
+const FavoritesPage = React.lazy(() => import('@pages/Favorites'));
+// Remove or comment out the ImageDebugPage import until the module is available
+// const ImageDebugPage = React.lazy(() => import('./pages/ImageDebugPage'));
+
+// Declare global type augmentation at the file top level
+declare global {
+  interface Window {
+    __placeholderImage?: string;
+  }
+}
 
 const App: React.FC = () => {
   const { t } = useTranslation();
   const [hasFailedImages, setHasFailedImages] = useState(false);
+  const [showErrorNotification, setShowErrorNotification] = useState(false);
+  const dispatch = useDispatch();
+  
+  // Get the static placeholder path
+  const staticPlaceholder = '/placeholder.jpg';
 
-  // Ensure Material Icons are loaded
   useEffect(() => {
-    ensureMaterialIconsLoaded();
-  }, []);
-
-  // Check if there are failed images in localStorage
-  useEffect(() => {
+    // Check for failed images and show notification if needed
     const checkFailedImages = () => {
-      try {
-        const failedImagesCache = localStorage.getItem('failedImageCache');
-        if (failedImagesCache) {
-          const parsedCache = JSON.parse(failedImagesCache);
-          const hasImages = Object.keys(parsedCache).length > 0;
-          setHasFailedImages(hasImages);
-        } else {
-          setHasFailedImages(false);
-        }
-      } catch (e) {
-        console.error('Error checking failed images cache:', e);
-        setHasFailedImages(false);
+      const failedImages = JSON.parse(localStorage.getItem('failedImages') || '[]');
+      setHasFailedImages(failedImages.length > 0);
+      
+      if (failedImages.length > 0) {
+        setShowErrorNotification(true);
+        
+        // Auto-hide the notification after 5 seconds
+        const timeoutId = setTimeout(() => {
+          setShowErrorNotification(false);
+        }, 5000);
+        
+        return () => clearTimeout(timeoutId);
       }
+      
+      // Return a default value to ensure all code paths return a value
+      return undefined;
     };
     
+    // Check for failed images on app load and every minute
     checkFailedImages();
-    
-    // Check again when storage changes
-    window.addEventListener('storage', checkFailedImages);
-    return () => window.removeEventListener('storage', checkFailedImages);
-  }, []);
-
-  // Handle clearing the failed images cache
-  const handleClearFailedImages = () => {
-    clearFailedImageCache();
-    setHasFailedImages(false);
-    
-    // Force a hard reload to clear browser cache
-    window.location.href = window.location.href + '?cache=' + Date.now();
-  };
-
-  // Add global image error handler
-  useEffect(() => {
-    // Clear failed images cache on first load
-    clearFailedImageCache();
-    console.log('Cleared failed images cache on initial page load');
-    
-    const originalAddEventListener = window.EventTarget.prototype.addEventListener;
-    window.EventTarget.prototype.addEventListener = function(type, listener, options) {
-      if (type === 'error' && this instanceof HTMLImageElement) {
-        console.error('[DEBUG IMAGE ERROR]', {
-          url: this.src || 'unknown',
-          element: this.outerHTML,
-          target: this
-        });
-      }
-      originalAddEventListener.call(this, type, listener, options);
-    };
+    const intervalId = setInterval(checkFailedImages, 60000);
     
     return () => {
-      window.EventTarget.prototype.addEventListener = originalAddEventListener;
+      clearInterval(intervalId);
     };
   }, []);
-
-  // Check if image server is running
+  
+  // Handle clearing the failed images registry
+  const handleClearFailedImages = () => {
+    localStorage.removeItem('failedImages');
+    setHasFailedImages(false);
+    setShowErrorNotification(false);
+    
+    // Force a reload to clear any stale image states
+    window.location.reload();
+  };
+  
+  // Check theme preference and set initial theme
+  useEffect(() => {
+    const savedTheme = localStorage.getItem('theme');
+    if (savedTheme) {
+      document.documentElement.classList.toggle('dark', savedTheme === 'dark');
+      dispatch(setTheme(savedTheme as 'light' | 'dark'));
+    } else {
+      // Check for system theme preference
+      const isDarkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      document.documentElement.classList.toggle('dark', isDarkMode);
+      dispatch(setTheme(isDarkMode ? 'dark' : 'light'));
+    }
+  }, [dispatch]);
+  
+  // Check if the image server is available
   useEffect(() => {
     const checkImageServer = async () => {
+      const imageServerUrl = import.meta.env.VITE_IMAGE_SERVER_URL || 'http://localhost:3001/api/images';
+      
+      // Set a timeout for the check - don't block the app startup
+      const timeoutId = setTimeout(() => {
+        console.log('Image server check timed out');
+        // Use the static placeholder as fallback
+        window.__placeholderImage = staticPlaceholder;
+      }, 3000);
+      
       try {
-        // Determine the image server URL based on environment
-        const isDevelopment = import.meta.env.MODE === 'development';
-        const imageServerUrl = isDevelopment 
-          ? 'http://localhost:3000/api/images/health'
-          : '/api/images/health';
-          
-        console.log(`Checking image server at: ${imageServerUrl}`);
-        
-        // Try to fetch the test endpoint
-        const response = await fetch(imageServerUrl, {
-          method: 'GET',
-          headers: {
-            'Accept': 'application/json'
-          }
+        const response = await fetch(`${imageServerUrl}/placeholder.jpg`, {
+          method: 'HEAD',
+          cache: 'no-store',
         });
+        
+        clearTimeout(timeoutId);
         
         if (response.ok) {
           console.log('Image server is running correctly');
+          // Use the server's placeholder
+          window.__placeholderImage = `${imageServerUrl}/placeholder.jpg`;
         } else {
-          console.error('Image server returned an error:', response.status);
-          console.warn('Warning: Image server is not responding correctly. Images may not load.');
+          console.log('Note: Image server check returned status:', response.status);
+          console.log('Image server not available - using static placeholder instead');
+          // Store the static placeholder for use throughout the app
+          window.__placeholderImage = staticPlaceholder;
         }
       } catch (error) {
-        console.error('Failed to connect to image server:', error);
-        console.warn('Warning: Cannot connect to image server. Images may not load.');
+        // Log as info instead of error to avoid alarming console messages
+        // This is just a diagnostic check and doesn't affect core functionality
+        console.log('Info: Image server check failed, but this will not affect the app functionality.');
+        console.log('Using static placeholder for all placeholder images');
+        // Store the static placeholder for use throughout the app  
+        window.__placeholderImage = staticPlaceholder;
       }
     };
     
@@ -144,27 +163,17 @@ const App: React.FC = () => {
         aria-label="notifications"
       />
       
-      {/* Image reload banner */}
-      {hasFailedImages && (
-        <div className="image-reload-banner">
-          <p>Some images failed to load. Click to retry loading all images.</p>
-          <button 
-            className="image-reload-button"
-            onClick={handleClearFailedImages}
-          >
-            Reload Images
-          </button>
-        </div>
-      )}
       
       <Suspense fallback={<LoadingSpinner />}>
         <Routes>
           {/* Admin routes - notice these are outside the main Layout */}
           <Route path="/admin" element={<AdminProtected />}>
-            <Route index element={<AdminFeaturedListingsPage />} />
+            <Route index element={<AdminDashboard />} />
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="users" element={<AdminUsers />} />
             <Route path="listings" element={<AdminListings />} />
+            <Route path="listings/pending" element={<AdminPendingListings />} />
+            <Route path="listings/reported" element={<AdminReportedListings />} />
             <Route path="categories" element={<AdminCategories />} />
             <Route path="featured" element={<AdminFeaturedListingsPage />} />
           </Route>
@@ -176,6 +185,7 @@ const App: React.FC = () => {
             <Route path="listings/create" element={<CreateListingPage />} />
             <Route path="listings/:id/edit" element={<EditListingPage />} />
             <Route path="listings/:idOrSlug" element={<ListingDetailPage />} />
+            <Route path="favorites" element={<FavoritesPage />} />
             
             {/* Keep existing category routes for backward compatibility */}
             <Route path="categories/:categorySlug" element={<ListingsPage />} />
@@ -187,7 +197,7 @@ const App: React.FC = () => {
             <Route path="profile" element={<ProfilePage />} />
             <Route path="login" element={<LoginPage />} />
             <Route path="register" element={<RegisterPage />} />
-            <Route path="test/images" element={<TestImagePage />} />
+            <Route path="debug/images" element={<ImageDebug />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes>

@@ -83,6 +83,19 @@ const authService = {
   },
 
   /**
+   * Get current authenticated user
+   * @returns User data
+   */
+  async getCurrentUser(): Promise<User> {
+    const response = await axiosInstance.get<{ success: boolean; data: { user: User } }>('/auth/me');
+    console.log('GET /auth/me response:', response.data);
+    if (response.data && response.data.data && response.data.data.user) {
+      return response.data.data.user;
+    }
+    throw new Error('Invalid user data received from server');
+  },
+
+  /**
    * Logout user
    */
   async logout(): Promise<void> {

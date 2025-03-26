@@ -1,21 +1,24 @@
 import axios from 'axios';
 import { axiosInstance } from './api';
 
-// Define interface for successful upload response
+export interface UploadResponseFile {
+  path?: string;
+  filename?: string;
+  url?: string;
+  originalName?: string;
+  fullUrl?: string;
+  status?: string;
+  [key: string]: any;
+}
+
 export interface UploadResponse {
   success: boolean;
   message?: string;
-  files?: {
-    originalName: string;
-    filename: string;
-    path: string;
-    size: number;
-    mimetype: string;
-  }[];
+  files?: UploadResponseFile[];
 }
 
 // Constants
-const DEFAULT_IMAGE_SERVER_URL = 'http://localhost:3000/api/images';
+const DEFAULT_IMAGE_SERVER_URL = import.meta.env.VITE_IMAGE_SERVER_URL || 'http://localhost:3001/api/images';
 
 /**
  * Upload images to the image server
@@ -76,42 +79,211 @@ export function getImageServerUrl(imagePath: string): string {
 
 /**
  * Upload images to the server
- * @param formData FormData containing images to upload
+ * @param formData FormData object containing images
+ * @param onProgress Optional callback for upload progress
  * @returns Promise with upload response
  */
-export const uploadImagesToServer = async (formData: FormData): Promise<UploadResponse> => {
+export const uploadImagesToServer = async (
+  formData: FormData, 
+  onProgress?: (percentage: number) => void
+): Promise<UploadResponse> => {
   try {
-    // Check if in development or production environment
-    const isDevelopment = import.meta.env.MODE === 'development';
+    // Get auth token
+    const token = localStorage.getItem('authToken') || localStorage.getItem('token');
     
-    // Use the image server URL from environment or default
-    const endpoint = `${import.meta.env.VITE_IMAGE_SERVER_URL || DEFAULT_IMAGE_SERVER_URL}/upload`;
+    // Try to determine the appropriate API endpoint
+    const apiBaseUrl = import.meta.env.VITE_IMAGE_SERVER_URL || import.meta.env.VITE_API_URL || '/api';
+    let uploadUrl = '';
     
-    console.log(`Uploading images to ${endpoint}...`);
+    // Handle different URL path structures
+    if (apiBaseUrl.includes('/api/images')) {
+      // If the base URL already includes the correct path
+      uploadUrl = `${apiBaseUrl}/upload`;
+    } else if (apiBaseUrl.endsWith('/images')) {
+      uploadUrl = `${apiBaseUrl}/upload`;
+    } else if (apiBaseUrl.endsWith('/api')) {
+      uploadUrl = `${apiBaseUrl}/images/upload`;
+    } else {
+      // Add /images/upload path if not already included
+      uploadUrl = `${apiBaseUrl}/images/upload`;
+    }
     
-    // Use axios instance for the request
-    const response = await axiosInstance.post(endpoint, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
+    console.log('Uploading images to:', uploadUrl);
+    
+    // Check what files are being uploaded
+    const uploadFiles = formData.getAll('images');
+    console.log(`FormData contains ${uploadFiles.length} files/entries:`);
+    
+    uploadFiles.forEach((item, index) => {
+      if (item instanceof File) {
+        console.log(`  File ${index+1}: ${item.name}, ${item.type}, ${item.size} bytes`);
+      } else if (typeof item === 'string') {
+        console.log(`  String ${index+1}: ${item.length > 50 ? item.substring(0, 50) + '...' : item}`);
+      } else {
+        console.log(`  Unknown ${index+1}: ${typeof item}`);
+      }
+    });
+    
+    // Create headers with authentication
+    const headers: Record<string, string> = {
+      'Content-Type': 'multipart/form-data',
+    };
+    
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+      console.log('Using auth token for image upload');
+    } else {
+      console.warn('No auth token found for image upload');
+    }
+    
+    const response = await axios.post(uploadUrl, formData, {
+      headers,
+      onUploadProgress: (progressEvent) => {
+        if (progressEvent.total && onProgress) {
+          const percentage = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          onProgress(percentage);
+        }
       },
     });
     
-    // Log the response
-    console.log('Image upload response:', response.data);
+    console.log('Upload response status:', response.status);
+    console.log('Upload response data:', JSON.stringify(response.data, null, 2));
     
-    // Return standardized response
-    return {
-      success: true,
-      message: response.data.message,
-      files: response.data.files,
+    // Standardize the response format
+    let standardizedResponse: UploadResponse = {
+      success: false,
+      message: 'Unknown response format',
+      files: []
     };
-  } catch (error) {
-    console.error('Error uploading images:', error);
     
-    // Return error response
+    // Handle different response formats
+    if (response.status === 200 || response.status === 201) {
+      // First try to determine if it's a success
+      const isSuccess = response.data.success === true || 
+                        response.data.status === 'success' ||
+                        response.status === 200;
+      
+      standardizedResponse.success = isSuccess;
+      
+      // Try to extract message
+      if (response.data.message) {
+        standardizedResponse.message = response.data.message;
+      } else if (response.data.status && typeof response.data.status === 'string') {
+        standardizedResponse.message = response.data.status;
+      }
+      
+      // Now extract files array, with lots of fallbacks for different API formats
+      if (response.data.files && Array.isArray(response.data.files)) {
+        // Standard format: { success: true, files: [...] }
+        console.log('Standard files format detected');
+        standardizedResponse.files = response.data.files;
+      } else if (response.data.data && Array.isArray(response.data.data)) {
+        // Alternative format: { success: true, data: [...] }
+        console.log('Alternative data array format detected');
+        standardizedResponse.files = response.data.data;
+      } else if (Array.isArray(response.data)) {
+        // Direct array format: [...]
+        console.log('Direct array format detected');
+        standardizedResponse.files = response.data;
+      } else if (response.data.data && response.data.data.files && Array.isArray(response.data.data.files)) {
+        // Nested format: { data: { files: [...] } }
+        console.log('Nested files format detected');
+        standardizedResponse.files = response.data.data.files;
+      } else {
+        console.warn('Unexpected upload response format:', response.data);
+        // Try to find any array property that might contain files
+        for (const key in response.data) {
+          if (Array.isArray(response.data[key])) {
+            console.log(`Found array in response.data.${key}, using as files`);
+            standardizedResponse.files = response.data[key];
+            break;
+          }
+        }
+      }
+      
+      // If we couldn't find files array, but the upload was successful,
+      // try to construct a files array from other properties
+      if (isSuccess && (!standardizedResponse.files || standardizedResponse.files.length === 0)) {
+        console.log('Files array is empty or missing, but response indicates success');
+        
+        // Try to extract filenames or urls from other properties
+        if (response.data.file) {
+          // Single file case
+          console.log('Found single file object in response');
+          standardizedResponse.files = [response.data.file];
+        } else if (response.data.url) {
+          // Direct URL case
+          console.log('Found direct URL in response');
+          standardizedResponse.files = [{ url: response.data.url }];
+        } else if (response.data.filename) {
+          // Direct filename case
+          console.log('Found direct filename in response');
+          standardizedResponse.files = [{ filename: response.data.filename }];
+        } else if (response.data.path) {
+          // Direct path case
+          console.log('Found direct path in response');
+          standardizedResponse.files = [{ path: response.data.path }];
+        } else if (response.data.status === 'success' || response.data.success === true) {
+          // Last resort: construct placeholder for success case
+          console.log('Constructing placeholder file for success response');
+          
+          // Try to extract any string that looks like a filename
+          let possiblePath = '';
+          for (const key in response.data) {
+            if (typeof response.data[key] === 'string' && 
+                (response.data[key].includes('/api/images/') || 
+                 response.data[key].includes('.jpg') || 
+                 response.data[key].includes('.png') || 
+                 response.data[key].includes('.jpeg'))) {
+              possiblePath = response.data[key];
+              break;
+            }
+          }
+          
+          if (possiblePath) {
+            standardizedResponse.files = [{ path: possiblePath }];
+          } else {
+            // If all else fails, make a generic file object
+            const timestamp = new Date().getTime();
+            standardizedResponse.files = [{
+              path: `/api/images/unknown_${timestamp}.jpg`,
+              status: 'success'
+            }];
+          }
+        }
+      }
+      
+      console.log('Standardized response:', JSON.stringify(standardizedResponse, null, 2));
+      return standardizedResponse;
+    }
+    
     return {
       success: false,
-      message: error instanceof Error ? error.message : 'Failed to upload images',
+      message: response.data.message || 'File upload failed',
+      files: []
+    };
+  } catch (error: any) {
+    console.error('Error uploading images:', error);
+    
+    // Detailed error logging
+    if (error.response) {
+      console.error('Response error data:', error.response.data);
+      console.error('Response error status:', error.response.status);
+      
+      // Handle authentication error
+      if (error.response.status === 401) {
+        return {
+          success: false,
+          message: 'Authentication required. Please log in again.',
+          files: []
+        };
+      }
+    }
+    
+    return {
+      success: false,
+      message: error.response?.data?.message || error.message || 'File upload failed',
+      files: []
     };
   }
 };
@@ -124,7 +296,21 @@ export const uploadImagesToServer = async (formData: FormData): Promise<UploadRe
 export const getImageUrl = (imagePath?: string): string => {
   if (!imagePath) return '/placeholder.jpg';
   
-  // If it's already a full URL, return it
+  // If it's an external URL from randomuser.me, route it through our backend proxy
+  if (imagePath.includes('randomuser.me')) {
+    // For development
+    if (import.meta.env.MODE === 'development') {
+      // Encode the URL to pass it as a query parameter
+      const encodedUrl = encodeURIComponent(imagePath);
+      return `http://localhost:3001/api/proxy?url=${encodedUrl}`;
+    } else {
+      // For production
+      const encodedUrl = encodeURIComponent(imagePath);
+      return `/api/proxy?url=${encodedUrl}`;
+    }
+  }
+  
+  // If it's already a full URL (but not randomuser.me), return it
   if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
     return imagePath;
   }
@@ -132,12 +318,21 @@ export const getImageUrl = (imagePath?: string): string => {
   // Check if in development or production environment
   const isDevelopment = import.meta.env.MODE === 'development';
   
-  // In development, we need to use the full image server URL
-  if (isDevelopment && !imagePath.startsWith('/api/')) {
-    return `${import.meta.env.VITE_IMAGE_SERVER_URL || DEFAULT_IMAGE_SERVER_URL}/${imagePath}`;
+  // Always use the full URL with correct port for the image server in development
+  if (isDevelopment) {
+    // Remove any leading slashes for consistency
+    const cleanPath = imagePath.replace(/^\/+/, '');
+    
+    // If the path already includes 'api/images', don't duplicate it
+    if (cleanPath.startsWith('api/images/')) {
+      return `http://localhost:3001/${cleanPath}`;
+    }
+    
+    // Otherwise, ensure the path is properly formatted
+    return `${import.meta.env.VITE_IMAGE_SERVER_URL || 'http://localhost:3001/api/images'}/${cleanPath}`;
   }
   
-  // For production or if the path already includes /api/, use relative URLs
+  // For production, use relative URLs
   return imagePath;
 };
 

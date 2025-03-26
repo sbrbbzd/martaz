@@ -48,13 +48,12 @@ export interface Listing {
   description: string;
   price: number;
   currency: string;
-  condition?: string;
+  condition: string;
   location: string;
-  images?: string[];
+  images: string[];
   featuredImage?: string;
   status: string;
-  isFeatured?: boolean;
-  isPromoted: boolean;
+  isPromoted?: boolean;
   promotionEndDate?: string;
   views: number;
   contactPhone?: string;
@@ -63,11 +62,10 @@ export interface Listing {
   expiryDate?: string;
   userId: string;
   categoryId: string;
-  user?: User;
-  category?: Category;
   createdAt: string;
   updatedAt: string;
-  featuredUntil?: string;
+  category?: Category;
+  user?: User;
 }
 
 // Admin Dashboard Types
@@ -197,7 +195,50 @@ export interface ListingQueryParams {
   search?: string;
   userId?: string;
   favorites?: boolean;
+  promoted?: boolean;
+  random?: boolean;
 }
+
+// Define missing interfaces
+interface ApiResponse<T = any> {
+  success: boolean;
+  message: string;
+  data: T | null;
+}
+
+// Import or define missing interfaces
+interface UploadListingImagesResponse {
+  images: string[];
+  listing: {
+    id: string;
+    images: string[];
+  };
+}
+
+interface UploadImagesResponse {
+  files: Array<{
+    filename?: string;
+    url?: string;
+    path?: string;
+  }>;
+}
+
+// Export axios instance for direct use in components
+export const axiosInstance = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Add auth token to all requests
+axiosInstance.interceptors.request.use((config) => {
+  const token = localStorage.getItem('authToken') || localStorage.getItem('token') || store.getState().auth.token;
+  if (token) {
+    config.headers['Authorization'] = `Bearer ${token}`;
+  }
+  return config;
+});
 
 // Create the API
 export const api = createApi({
@@ -234,7 +275,7 @@ export const api = createApi({
       throw new Error('Non-JSON response received from API');
     }
   }),
-  tagTypes: ['Listing', 'Category', 'User', 'FeaturedListings'],
+  tagTypes: ['Listing', 'Category', 'User', 'FeaturedListings', 'Favorites'],
   endpoints: (builder) => ({
     // Auth endpoints
     login: builder.mutation<AuthResponse, LoginRequest>({
@@ -346,7 +387,7 @@ export const api = createApi({
         if (params.page) queryParams.append('page', params.page.toString());
         if (params.limit) queryParams.append('limit', params.limit.toString());
         if (params.sort) queryParams.append('sort', params.sort);
-        if (params.order) queryParams.append('order', params.order.toUpperCase());
+        if (params.order) queryParams.append('order', typeof params.order === 'string' ? params.order.toUpperCase() : 'DESC');
         // If category is provided and looks like a slug (not a UUID), use the category slug endpoint
         if (params.category) {
           // Check if the category is a UUID (categoryId) or a slug
@@ -368,9 +409,14 @@ export const api = createApi({
         if (params.search) queryParams.append('search', params.search);
         if (params.userId) queryParams.append('userId', params.userId);
         if (params.favorites) queryParams.append('favorites', 'true');
+        if (params.promoted) queryParams.append('promoted', 'true');
+        if (params.random) queryParams.append('random', 'true');
         
         const queryString = queryParams.toString();
-        console.log('Listings API query:', `/listings${queryString ? `?${queryString}` : ''}`);
+        console.log('getListings API call:', {
+          url: `/listings${queryString ? `?${queryString}` : ''}`,
+          params: params
+        });
         
         return {
           url: `/listings${queryString ? `?${queryString}` : ''}`,
@@ -472,7 +518,8 @@ export const api = createApi({
           }
         });
         
-        return `/listings/user/my-listings?${queryParams.toString()}`;
+        // Fix path to match the backend route directly
+        return `/users/listings?${queryParams.toString()}`;
       },
       providesTags: [{ type: 'Listing', id: 'MY_LISTINGS' }],
     }),
@@ -540,15 +587,58 @@ export const api = createApi({
     }),
     
     // Favorites endpoints
+    getFavorites: builder.query<PaginatedResponse<Listing>, { page?: number; limit?: number; sort?: string }>({
+      query: (params) => ({
+        url: 'favorites',
+        method: 'GET',
+        params,
+      }),
+      providesTags: ['Favorites'],
+    }),
+
+    addFavorite: builder.mutation<any, { itemId: string | number; itemType: 'product' | 'listing' }>({
+      query: (body) => ({
+        url: 'favorites',
+        method: 'POST',
+        body,
+      }),
+      invalidatesTags: ['Favorites'],
+    }),
+
+    removeFavorite: builder.mutation<any, string | number>({
+      query: (id) => ({
+        url: `favorites/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Favorites'],
+    }),
+
+    checkFavorite: builder.query<{ isFavorite: boolean }, { itemId: string | number; itemType: 'product' | 'listing' }>({
+      query: ({ itemId, itemType }) => ({
+        url: 'favorites/check',
+        method: 'GET',
+        params: { itemId, itemType },
+      }),
+      providesTags: ['Favorites'],
+    }),
+
+    getFavorite: builder.query<{ id: string }, { itemId: string | number; itemType: 'product' | 'listing' }>({
+      query: ({ itemId, itemType }) => ({
+        url: 'favorites/get',
+        method: 'GET',
+        params: { itemId, itemType },
+      }),
+      providesTags: ['Favorites'],
+    }),
+    
+    // Legacy toggleFavorite endpoint that uses the new favorites API
     toggleFavorite: builder.mutation<{ status: string; message: string }, string>({
       query: (id) => ({
-        url: `/listings/${id}/favorite`,
+        url: 'favorites',
         method: 'POST',
+        body: { itemId: id, itemType: 'listing' },
       }),
-      invalidatesTags: (result, error, id) => [
-        { type: 'Listing', id },
-        { type: 'Listing', id: 'LIST' },
-      ],
+      invalidatesTags: ['Favorites', 'Listing'],
     }),
     
     // Admin endpoints
@@ -714,8 +804,8 @@ export const api = createApi({
               status: index % 3 === 0 ? 'active' : index % 3 === 1 ? 'pending' : 'inactive',
               images: ['/placeholder-listing.jpg'],
               featuredImage: '/placeholder-listing.jpg',
-              isFeatured: index % 7 === 0,
               isPromoted: index % 5 === 0,
+              promotionEndDate: index % 5 === 0 ? new Date(Date.now() + 86400000).toISOString() : undefined,
               views: index * 10,
               userId: `mock-user-${index % 3}`,
               categoryId: `mock-category-${index % 5}`,
@@ -857,7 +947,6 @@ export const {
   useUpdateListingMutation,
   useDeleteListingMutation,
   useChangeListingStatusMutation,
-  useToggleFavoriteMutation,
   useGetAdminDashboardDataQuery,
   useGetAdminUsersQuery,
   useUpdateUserStatusMutation,
@@ -872,41 +961,16 @@ export const {
   useImportFromUrlMutation,
   useGetSupportedImportSourcesQuery,
   useFeatureListingMutation,
+  useGetFavoritesQuery,
+  useAddFavoriteMutation,
+  useRemoveFavoriteMutation,
+  useCheckFavoriteQuery,
+  useToggleFavoriteMutation,
+  useGetFavoriteQuery,
 } = api;
-
-// Create axios instance with configuration
-export const axiosInstance = axios.create({
-  // Using import.meta.env for Vite environment variables
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
-  timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json'
-  }
-});
 
 // Comment out the debug logging
 // console.log('API URL:', import.meta.env.VITE_API_URL || 'http://localhost:3000/api');
-
-// Add request interceptor to include auth token
-axiosInstance.interceptors.request.use(
-  (config) => {
-    const state = store.getState();
-    const token = state.auth?.token;
-    
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    
-    // Don't override content-type if it's a FormData object
-    if (config.data instanceof FormData) {
-      // Delete any existing content type so the browser can set the correct one with boundary
-      delete config.headers['Content-Type'];
-    }
-    
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
 
 // Add response interceptor for error handling
 axiosInstance.interceptors.response.use(
@@ -1050,33 +1114,161 @@ interface ImageUploadResponse {
  * @param listingId ID of the listing to upload images for
  * @returns Promise with image URLs if successful
  */
-export const uploadListingImages = async (formData: FormData, listingId: string): Promise<ImageUploadResponse> => {
-  try {
-    // Use the existing axios instance which handles auth tokens
-    const response = await axiosInstance.post(`/listings/${listingId}/images`, formData);
-    
-    // Transform the backend response format to match what the frontend expects
-    if (response.data && response.data.status === 'success' && response.data.data?.listing) {
-      return {
-        success: true,
-        imageUrls: response.data.data.listing.images,
-        data: response.data.data
-      };
-    }
-    
-    return response.data;
-  } catch (error) {
-    console.error('Error uploading images:', error);
-    // Transform error to a consistent format
-    if (axios.isAxiosError(error) && error.response) {
-      return {
-        success: false,
-        message: error.response.data?.message || error.message
-      };
-    }
+export const uploadListingImages = async (
+  listingId: string,
+  images: FileList | File[] | string[] | null,
+  appendToExisting: boolean = false
+): Promise<ApiResponse<UploadListingImagesResponse>> => {
+  console.log(`Starting image upload to listing ${listingId}`);
+  console.log(`Images type:`, typeof images, Array.isArray(images) ? 'array' : 'not array');
+  console.log(`Append to existing:`, appendToExisting);
+  
+  // If no images, return an error
+  if (!images || (Array.isArray(images) && images.length === 0)) {
+    console.error('No images provided to uploadListingImages');
     return {
       success: false,
-      message: error instanceof Error ? error.message : 'Failed to upload images'
+      message: 'No images provided',
+      data: null,
+    };
+  }
+  
+  try {
+    // CASE 1: Handle direct FileList/File[] upload
+    if (images instanceof FileList || (Array.isArray(images) && images[0] instanceof File)) {
+      console.log(`Uploading ${images.length} files directly`);
+      
+      // First upload the files to get URLs
+      const formData = new FormData();
+      
+      // Use a type-safe way to add files to FormData
+      if (images instanceof FileList) {
+        Array.from(images as FileList).forEach((file: File) => {
+          console.log(`Adding file to FormData: ${file.name} (${file.size} bytes)`);
+          formData.append('images', file);
+        });
+      } else {
+        // It's a File[] array
+        (images as File[]).forEach((file: File) => {
+          console.log(`Adding file to FormData: ${file.name} (${file.size} bytes)`);
+          formData.append('images', file);
+        });
+      }
+      
+      console.log('Sending files to /images endpoint');
+      const uploadResponse = await axiosInstance.post<ApiResponse<UploadImagesResponse>>(
+        '/images',
+        formData,
+        {
+          headers: {
+            // Let browser set this automatically for multipart/form-data
+            'Content-Type': 'multipart/form-data',
+          },
+        }
+      );
+      
+      if (!uploadResponse.data.success) {
+        console.error('Error uploading images to image server:', uploadResponse.data.message);
+        return {
+          success: false,
+          message: uploadResponse.data.message || 'Error uploading images',
+          data: null,
+        };
+      }
+      
+      // Extract image URLs from response
+      const imageUrls = uploadResponse.data.data?.files.map(
+        (file) => {
+          // Get just the filename, without path
+          if (file.filename) {
+            return file.filename;
+          } else if (file.url) {
+            // Extract filename from URL if possible
+            const urlParts = file.url.split('/');
+            return urlParts[urlParts.length - 1];
+          } else if (file.path) {
+            // Extract filename from path if possible
+            const pathParts = file.path.split('/');
+            return pathParts[pathParts.length - 1];
+          } else {
+            // Fallback to full path/URL if we can't extract just the filename
+            return file.url || file.path || `/images/${file.filename}`;
+          }
+        }
+      ) || [];
+      
+      console.log(`Extracted ${imageUrls.length} image URLs:`, imageUrls);
+      if (imageUrls.length === 0) {
+        console.error('No image URLs returned from image server');
+        return {
+          success: false,
+          message: 'No images returned from server',
+          data: null,
+        };
+      }
+      
+      // Now attach these URLs to the listing using JSON approach (more reliable)
+      console.log(`Sending ${imageUrls.length} image URLs to listing ${listingId}`);
+      const listingResponse = await axiosInstance.post<ApiResponse<UploadListingImagesResponse>>(
+        `/listings/${listingId}/images`,
+        {
+          images: imageUrls,
+          appendToExisting,
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      
+      console.log('Listing response:', listingResponse.data);
+      return {
+        success: listingResponse.data.success,
+        message: listingResponse.data.message,
+        data: listingResponse.data.data || null,
+      };
+    }
+    // CASE 2: Handle string URLs directly
+    else if (Array.isArray(images) && typeof images[0] === 'string') {
+      console.log(`Sending ${images.length} URLs directly to listing ${listingId}`);
+      
+      // Send the URLs directly to the listing endpoint
+      const response = await axiosInstance.post<ApiResponse<UploadListingImagesResponse>>(
+        `/listings/${listingId}/images`,
+        {
+          images: images,
+          appendToExisting,
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+      
+      console.log('Listing response with direct URLs:', response.data);
+      return {
+        success: response.data.success,
+        message: response.data.message,
+        data: response.data.data || null,
+      };
+    }
+    // CASE 3: Handle unexpected input
+    else {
+      console.error('Unsupported images format:', images);
+      return {
+        success: false,
+        message: 'Unsupported images format',
+        data: null,
+      };
+    }
+  } catch (error) {
+    console.error('Error in uploadListingImages:', error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : 'Unknown error',
+      data: null,
     };
   }
 };
@@ -1085,6 +1277,9 @@ export const uploadListingImages = async (formData: FormData, listingId: string)
 const convertImageUrls = (data: any) => {
   if (!data) return data;
   
+  // Get the image server URL from environment variables
+  const imageServerUrl = import.meta.env.VITE_IMAGE_SERVER_URL || 'http://localhost:3001/api/images';
+  
   // Process a single image URL
   const processImage = (url: string) => {
     if (!url) return url;
@@ -1092,13 +1287,13 @@ const convertImageUrls = (data: any) => {
     // If already an absolute URL but pointing to the backend server
     if (url.startsWith('http://localhost:3000/tmp/')) {
       const filename = url.substring('http://localhost:3000/tmp/'.length);
-      return `http://localhost:3000/api/images/${filename}`;
+      return `${imageServerUrl}/${filename}`;
     }
     
     // If it's a relative /tmp/ path
     if (url.startsWith('/tmp/')) {
       const filename = url.substring(5);
-      return `http://localhost:3000/api/images/${filename}`;
+      return `${imageServerUrl}/${filename}`;
     }
     
     return url;

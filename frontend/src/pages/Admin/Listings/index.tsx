@@ -14,6 +14,7 @@ import {
   FiStar,
   FiFlag
 } from 'react-icons/fi';
+import { toast } from 'react-toastify';
 import AdminLayout from '../../../components/Admin/AdminLayout';
 import LoadingSpinner from '../../../components/common/LoadingSpinner';
 import { 
@@ -79,10 +80,10 @@ const ListingManagement: React.FC = () => {
   const handleApproveListing = async (id: string) => {
     try {
       await approveListing(id).unwrap();
-      // Could add notification here
+      toast.success(t('admin.listings.approveSuccess', 'Listing approved successfully'));
     } catch (err) {
       console.error('Failed to approve listing:', err);
-      // Could add error notification here
+      toast.error(t('admin.listings.approveFailed', 'Failed to approve listing'));
     }
   };
   
@@ -92,10 +93,10 @@ const ListingManagement: React.FC = () => {
     
     try {
       await rejectListing({ id, reason: reason || undefined }).unwrap();
-      // Could add notification here
+      toast.success(t('admin.listings.rejectSuccess', 'Listing rejected successfully'));
     } catch (err) {
       console.error('Failed to reject listing:', err);
-      // Could add error notification here
+      toast.error(t('admin.listings.rejectFailed', 'Failed to reject listing'));
     }
   };
   
@@ -104,25 +105,30 @@ const ListingManagement: React.FC = () => {
     if (window.confirm(t('admin.listings.deleteConfirmation', 'Are you sure you want to delete this listing? This action cannot be undone.'))) {
       try {
         await deleteListing(id).unwrap();
-        // Could add notification here
+        toast.success(t('admin.listings.deleteSuccess', 'Listing deleted successfully'));
       } catch (err) {
         console.error('Failed to delete listing:', err);
-        // Could add error notification here
+        toast.error(t('admin.listings.deleteFailed', 'Failed to delete listing'));
       }
     }
   };
   
   // Handle toggling featured status
-  const handleToggleFeatured = async (id: string, isFeatured: boolean) => {
+  const handleToggleFeatured = async (id: string, isPromoted: boolean) => {
     try {
       await updateListing({ 
         id, 
-        listing: { isFeatured: !isFeatured } 
+        listing: { isPromoted: !isPromoted } 
       }).unwrap();
-      // Could add notification here
+      
+      if (isPromoted) {
+        toast.success(t('admin.listings.unpromoteSuccess', 'Listing promotion removed successfully'));
+      } else {
+        toast.success(t('admin.listings.promoteSuccess', 'Listing promoted successfully'));
+      }
     } catch (err) {
-      console.error('Failed to update featured status:', err);
-      // Could add error notification here
+      console.error('Failed to update promotion status:', err);
+      toast.error(t('admin.listings.togglePromoteFailed', 'Failed to update promotion status'));
     }
   };
   
@@ -240,7 +246,6 @@ const ListingManagement: React.FC = () => {
           <table className="listings-table">
             <thead>
               <tr>
-                <th>{t('admin.listings.image', 'Image')}</th>
                 <th>{t('admin.listings.title', 'Title')}</th>
                 <th>{t('admin.listings.price', 'Price')}</th>
                 <th>{t('admin.listings.category', 'Category')}</th>
@@ -253,20 +258,12 @@ const ListingManagement: React.FC = () => {
             <tbody>
               {listingsData?.listings?.map((listing) => (
                 <tr key={listing.id}>
-                  <td className="image-cell">
-                    <div className="listing-image">
-                      <img 
-                        src={listing.featuredImage || listing.images?.[0] || '/placeholder-image.jpg'} 
-                        alt={listing.title} 
-                      />
-                    </div>
-                  </td>
                   <td>
                     <div className="listing-title">
                       <Link to={`/listings/${listing.slug}`} target="_blank">
                         {listing.title}
                       </Link>
-                      {listing.isFeatured && (
+                      {listing.isPromoted && (
                         <span className="featured-badge">
                           <FiStar />
                           {t('admin.listings.featured', 'Featured')}
@@ -298,9 +295,9 @@ const ListingManagement: React.FC = () => {
                     
                     <button 
                       className="action-button star"
-                      onClick={() => handleToggleFeatured(listing.id, !!listing.isFeatured)}
+                      onClick={() => handleToggleFeatured(listing.id, !!listing.isPromoted)}
                       disabled={isUpdating}
-                      title={listing.isFeatured ? t('admin.listings.unfeature', 'Remove Featured') : t('admin.listings.feature', 'Mark as Featured')}
+                      title={listing.isPromoted ? t('admin.listings.unfeature', 'Remove Featured') : t('admin.listings.feature', 'Mark as Featured')}
                     >
                       <FiStar />
                     </button>

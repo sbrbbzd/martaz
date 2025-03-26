@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import ImageComponent from '../ImageComponent';
 import './Avatar.scss';
 
 export type AvatarSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl';
@@ -74,7 +75,13 @@ const Avatar: React.FC<AvatarProps> = ({
       title={name || alt}
     >
       {src ? (
-        <img className="avatar__image" src={src} alt={alt || name || 'Avatar'} />
+        <ImageComponent 
+          className="avatar__image" 
+          src={src} 
+          alt={alt || name || 'Avatar'} 
+          fallbackImage="/placeholder.jpg"
+          silent={true}
+        />
       ) : name ? (
         <div className={`avatar__initials avatar__initials--color-${getColorIndex()}`}>
           {getInitials()}

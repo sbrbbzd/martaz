@@ -6,7 +6,7 @@ const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 // Enable CORS for all routes
 app.use(cors({
@@ -14,15 +14,25 @@ app.use(cors({
   methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
   preflightContinue: false,
   optionsSuccessStatus: 204,
-  credentials: true
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept']
 }));
+
+// Add CORS headers directly to image responses as well
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET,HEAD,PUT,PATCH,POST,DELETE');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+});
 
 // Add body parser for JSON
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Directory to serve files from
-const UPLOADS_DIR = '/Users/sabirbabazade/Mart.az/tmp';
+const UPLOADS_DIR = '/Users/sabirbabazade/Mart.az/uploads';
 
 // Ensure uploads directory exists
 if (!fs.existsSync(UPLOADS_DIR)) {
@@ -92,7 +102,7 @@ app.post('/upload', upload.array('images', 10), (req, res) => {
         filename: file.filename,
         size: file.size,
         mimetype: file.mimetype,
-        path: `/tmp/${file.filename}`
+        path: `/uploads/${file.filename}`
       };
     });
 
@@ -146,11 +156,16 @@ app.use('/images', (req, res, next) => {
     if (fs.existsSync(filePath)) {
       console.log(`[DEBUG] File exists: ${filePath}`);
       
-      // Add additional headers to prevent caching
+      // Add additional headers to prevent caching and allow CORS for images
       res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
       res.setHeader('Surrogate-Control', 'no-store');
+      
+      // Add CORS headers specifically for images
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+      res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless');
       
       next(); // Continue to the static middleware
     } else {

@@ -177,8 +177,20 @@
   &__main-image {
     position: relative;
     width: 100%;
-    padding-bottom: 66.67%;
+    padding-bottom: 66.67%; /* Default 2:3 aspect ratio */
     background-color: #f3f4f6;
+    border-radius: 6px;
+    overflow: hidden; /* Ensure content doesn't overflow */
+    
+    @media (min-width: 768px) {
+      padding-bottom: 60%; /* Slightly shorter on larger screens */
+      max-height: 600px; /* Set a max height on larger screens */
+    }
+    
+    @media (min-width: 1200px) {
+      padding-bottom: 56.25%; /* 16:9 aspect ratio on very large screens */
+      max-height: 700px;
+    }
     
     .image-container {
       position: absolute;
@@ -186,6 +198,10 @@
       left: 0;
       width: 100%;
       height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden; /* Additional safeguard */
     }
     
     img {
@@ -194,8 +210,11 @@
       left: 0;
       width: 100%;
       height: 100%;
-      object-fit: contain;
+      object-fit: contain; /* Use contain to ensure the whole image is visible */
+      object-position: center; /* Center the image */
       transition: opacity 0.3s;
+      max-width: 100%; /* Limit the width to container */
+      max-height: 100%; /* Limit the height to container */
       
       &.is-loading {
         opacity: 0;
@@ -336,6 +355,16 @@
       border-color: #3b82f6;
     }
     
+    img {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center;
+    }
+    
     &--more {
       display: flex;
       align-items: center;
@@ -354,15 +383,6 @@
         left: 50%;
         transform: translate(-50%, -50%);
       }
-    }
-    
-    img {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
     }
   }
 
@@ -414,20 +434,89 @@
     }
   }
 
+  // Title row with favorite button
+  &__title-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    width: 100%;
+  }
+
   &__title {
     font-size: 1.75rem;
     font-weight: 600;
-    color: #111827;
-    margin-bottom: 1rem;
+    color: $text-primary;
+    margin-bottom: 0.75rem;
     line-height: 1.2;
+    flex: 1;
+    margin-right: 1rem;
     
-    @media (max-width: 768px) {
+    @media (max-width: $breakpoint-md) {
       font-size: 1.5rem;
     }
     
-    @media (max-width: 480px) {
+    @media (max-width: $breakpoint-sm) {
       font-size: 1.25rem;
-      margin-bottom: 0.75rem;
+    }
+  }
+
+  // Favorite button
+  &__favorite-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    background-color: $white;
+    box-shadow: $shadow-sm;
+    flex-shrink: 0;
+
+    svg {
+      width: 1.25rem;
+      height: 1.25rem;
+      color: $error;
+      transition: all 0.2s ease;
+    }
+
+    &:hover {
+      background-color: rgba($error, 0.1);
+      transform: scale(1.05);
+      
+      svg {
+        transform: scale(1.1);
+      }
+    }
+
+    &.is-favorite {
+      background-color: rgba($error, 0.1);
+      
+      svg {
+        color: $error;
+        animation: heart-beat 0.3s ease-in-out;
+      }
+    }
+
+    &:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+  }
+
+  @keyframes heart-beat {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.2);
+    }
+    100% {
+      transform: scale(1);
     }
   }
   
@@ -514,6 +603,7 @@
     padding: 2rem;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     
+    
     @media (max-width: 768px) {
       padding: 1.5rem;
     }
@@ -527,6 +617,10 @@
       margin-top: 1rem;
       line-height: 1.6;
       color: #4a4a4a;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      white-space: pre-wrap;
+      word-break: break-all;
       
       @media (max-width: 480px) {
         margin-top: 0.75rem;
@@ -535,6 +629,9 @@
 
       p {
         margin-bottom: 1rem;
+        word-wrap: break-word;
+        overflow-wrap: break-word;
+        word-break: break-all;
 
         &:last-child {
           margin-bottom: 0;

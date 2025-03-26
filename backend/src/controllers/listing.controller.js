@@ -19,11 +19,18 @@ exports.getListings = async (req, res, next) => {
       condition,
       location,
       search,
-      userId
+      userId,
+      promoted,
+      random
     } = req.query;
 
     // Build where clause for filtering
     const where = { status };
+    
+    // If promoted is true, filter for promoted listings only
+    if (promoted === 'true') {
+      where.isPromoted = true;
+    }
     
     // Handle category filtering
     if (categoryId) {
@@ -92,6 +99,12 @@ exports.getListings = async (req, res, next) => {
 
     console.log('Filtering with where clause:', JSON.stringify(where, null, 2));
     
+    // Prepare ordering - if random is true, use random order
+    let orderCriteria = [[sort, order]];
+    if (random === 'true') {
+      orderCriteria = [[Listing.sequelize.literal('RANDOM()')]]
+    }
+    
     const listings = await Listing.findAndCountAll({
       where,
       include: [
@@ -100,7 +113,7 @@ exports.getListings = async (req, res, next) => {
       ],
       limit: parseInt(limit),
       offset: (page - 1) * limit,
-      order: [[sort, order]]
+      order: orderCriteria
     });
 
     res.json({
@@ -125,6 +138,11 @@ exports.getListing = async (req, res, next) => {
     
     if (!idOrSlug) {
       throw new ApiError(400, 'Missing listing identifier');
+    }
+
+    // Special case for "new" - commonly used in frontend routes for creating new items
+    if (idOrSlug === 'new') {
+      throw new ApiError(404, 'This is a route for creating a new listing, not viewing an existing one');
     }
     
     // Determine if it's a UUID or slug
@@ -192,6 +210,8 @@ exports.createListing = async (req, res, next) => {
       ...req.body,
       userId: req.user.id,
       status: 'pending',
+      // Ensure images is an array if provided
+      images: req.body.images ? (Array.isArray(req.body.images) ? req.body.images : []) : [],
       expiryDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
     });
     
@@ -268,150 +288,245 @@ exports.deleteListing = async (req, res, next) => {
   }
 };
 
-exports.uploadImages = async (req, res, next) => {
+exports.uploadImages = async (req, res) => {
   try {
-    // Debug incoming request
-    console.log('uploadImages request received');
-    console.log('Request headers:', req.headers);
-    console.log('Request body:', req.body);
-    console.log('req.files exists:', !!req.files);
+    console.log('=== UPLOAD IMAGES REQUEST ===');
+    console.log('Request content-type:', req.headers['content-type']);
+    console.log('Request body type:', typeof req.body);
+    console.log('Request body keys:', Object.keys(req.body));
     
-    // Get listing ID from URL parameter
-    const { id } = req.params;
-    console.log('Updating listing with ID:', id);
+    // Handle direct JSON request (not multipart/form-data)
+    const contentType = req.headers['content-type'] || '';
+    const isJson = contentType.includes('application/json');
     
-    // Find the listing
-    const listing = await Listing.findOne({
-      where: { id }
-    });
-    
-    // If no listing found, return 404
-    if (!listing) {
-      console.error(`Listing with ID ${id} not found`);
-      throw new ApiError(404, 'Listing not found');
-    }
-    
-    // Debug authentication info
-    console.log('Auth user ID:', req.user.id);
-    console.log('Listing user ID:', listing.userId);
-    console.log('User roles:', req.user.role);
-    
-    // Check if the user owns this listing
-    if (listing.userId !== req.user.id) {
-      // For admin, allow access
-      const isAdmin = req.user.role === 'admin';
+    if (isJson) {
+      console.log('Handling JSON request');
+      console.log('Request body:', req.body);
       
-      if (!isAdmin) {
-        console.error(`User ${req.user.id} not authorized to update listing ${listing.id}`);
-        throw new ApiError(403, 'You do not have permission to upload images to this listing');
+      // If this is a direct JSON request, process the images array directly
+      if (req.body.images && Array.isArray(req.body.images)) {
+        const imageUrls = req.body.images.filter(url => url && typeof url === 'string' && url.trim() !== '');
+        console.log(`Found ${imageUrls.length} image URLs in JSON request:`, imageUrls);
+        
+        // Get the listing ID from the route params
+        const { id } = req.params;
+        console.log('Looking up listing with ID:', id);
+        
+        // Find the listing
+        const listing = await Listing.findByPk(id);
+        
+        if (!listing) {
+          console.log('Listing not found with ID:', id);
+          return res.status(404).json({ success: false, message: 'Listing not found' });
+        }
+        
+        console.log('Listing found:', listing.id);
+        console.log('Listing user ID:', listing.userId);
+        console.log('Current user ID:', req.user.id);
+        
+        // Check if the user has permission to update the listing
+        if (listing.userId !== req.user.id && req.user.role !== 'admin') {
+          console.log('Permission denied - user is not owner or admin');
+          return res.status(403).json({ success: false, message: 'Not authorized to update this listing' });
+        }
+        
+        // Check if we have any valid images
+        if (imageUrls.length === 0) {
+          console.log('No valid image URLs found in the request');
+          return res.status(400).json({ success: false, message: 'No images provided' });
+        }
+        
+        // Append to existing images if requested
+        let finalImageUrls = [...imageUrls];
+        if (req.body.appendToExisting === true || req.body.appendToExisting === 'true') {
+          const currentImages = listing.images || [];
+          console.log('Current listing images:', currentImages);
+          finalImageUrls = [...currentImages, ...imageUrls];
+          console.log('Appending to existing images, new total:', finalImageUrls.length);
+        }
+        
+        // Update the listing with the new images
+        console.log('Updating listing with images:', finalImageUrls);
+        await listing.update({ images: finalImageUrls });
+        
+        return res.status(200).json({
+          success: true,
+          message: 'Listing images updated successfully',
+          data: {
+            images: finalImageUrls,
+            listing: {
+              id: listing.id,
+              images: finalImageUrls
+            }
+          }
+        });
       }
     }
-
-    // Check if we have files from multer
-    if (!req.files || req.files.length === 0) {
-      console.log('No files found in request, checking for JSON image paths');
-      console.log('Request body keys:', Object.keys(req.body));
+    
+    // For multipart/form-data or other request formats, use the existing code...
+    console.log('Handling multipart/form-data request');
+    console.log('Request files:', req.files ? req.files.length : 'No files');
+    
+    // Detailed request analysis for debugging
+    if (req.files && req.files.length > 0) {
+      console.log('Files found:', req.files.length);
+      req.files.forEach((file, index) => {
+        console.log(`File ${index}: ${file.originalname}, ${file.mimetype}, ${file.size} bytes`);
+      });
+    }
+    
+    if (req.body.images) {
+      console.log('Images in body:', typeof req.body.images);
+      if (typeof req.body.images === 'string') {
+        try {
+          const parsedImages = JSON.parse(req.body.images);
+          console.log('Parsed images from body:', Array.isArray(parsedImages) ? 
+                     `Array with ${parsedImages.length} items` : 
+                     typeof parsedImages);
+        } catch (e) {
+          console.log('Images is not valid JSON:', req.body.images.substring(0, 100));
+        }
+      }
+    }
+    
+    const { id } = req.params;
+    
+    // Verify listing exists and user owns it
+    console.log('Looking up listing with ID:', id);
+    console.log('Auth user ID:', req.user.id);
+    
+    const listing = await Listing.findByPk(id);
+    
+    if (!listing) {
+      console.log('Listing not found with ID:', id);
+      return res.status(404).json({ success: false, message: 'Listing not found' });
+    }
+    
+    console.log('Listing user ID:', listing.userId);
+    
+    if (listing.userId !== req.user.id && req.user.role !== 'admin') {
+      console.log('Permission denied - user is not owner or admin');
+      return res.status(403).json({ success: false, message: 'Not authorized to update this listing' });
+    }
+    
+    // Process images - check both req.files (direct uploads) and req.body.images (URLs)
+    let imageUrls = [];
+    
+    // Check for direct file uploads via multipart form
+    if (req.files && Array.isArray(req.files) && req.files.length > 0) {
+      console.log('Found files in req.files array:', req.files.length);
+      imageUrls = req.files.map(file => `/api/images/${file.filename}`);
+    } 
+    // Check for image URLs in request body
+    else if (req.body.images) {
+      console.log('Looking for images in request body');
+      console.log('Type of images in body:', typeof req.body.images);
       
-      // If images are provided as JSON in the request body
-      if (req.body && req.body.images) {
-        console.log('Found images in request body:', req.body.images);
+      try {
+        // If it's a string, try to parse it as JSON
+        let parsedImages = req.body.images;
         
-        // Make sure images is an array
-        let imagePaths = req.body.images;
-        if (typeof imagePaths === 'string') {
+        if (typeof req.body.images === 'string') {
+          console.log('Parsing images JSON:', req.body.images.substring(0, 100) + (req.body.images.length > 100 ? '...' : ''));
           try {
-            // Try to parse if it's a JSON string
-            imagePaths = JSON.parse(imagePaths);
-          } catch(e) {
-            console.error('Failed to parse images JSON:', e);
+            parsedImages = JSON.parse(req.body.images);
+            console.log('Successfully parsed images JSON');
+          } catch (parseError) {
+            console.error('Error parsing JSON, treating as a single URL:', parseError);
+            // If parsing fails, treat it as a single URL string
+            if (req.body.images.trim()) {
+              parsedImages = [req.body.images.trim()];
+            }
+          }
+          console.log('Parsed images result type:', typeof parsedImages);
+          if (Array.isArray(parsedImages)) {
+            console.log('Parsed images length:', parsedImages.length);
+            console.log('Parsed images content:', JSON.stringify(parsedImages).substring(0, 200));
+          } else {
+            console.log('Parsed images result:', parsedImages);
           }
         }
         
-        console.log('Processed image paths:', imagePaths);
-        
-        if (Array.isArray(imagePaths)) {
-          console.log(`Processing ${imagePaths.length} image paths`);
+        // Handle array of image URLs
+        if (Array.isArray(parsedImages)) {
+          console.log('Found image array, filtering nulls');
           
-          // Add new images to existing ones
-          const currentImages = listing.images || [];
-          console.log('Current images:', currentImages);
-          
-          const updatedImages = [...currentImages, ...imagePaths];
-          console.log('Updated images array:', updatedImages);
-          
-          // Update the listing with new images
-          await listing.update({
-            images: updatedImages,
-            featuredImage: listing.featuredImage || imagePaths[0]
-          });
-          
-          console.log('Listing updated successfully with image paths');
-          
-          return res.json({
-            status: 'success',
-            data: {
-              listing: {
-                id: listing.id,
-                images: updatedImages,
-                featuredImage: listing.featuredImage || imagePaths[0]
-              }
-            }
-          });
-        } else {
-          console.error('Images in request body is not an array:', imagePaths);
-          throw new ApiError(400, 'Images must be provided as an array');
+          // Filter out null, undefined, or empty values
+          imageUrls = parsedImages.filter(url => url && url !== 'null' && url !== '');
+          console.log(`Found ${imageUrls.length} valid URLs after filtering`);
+          if (imageUrls.length > 0) {
+            console.log('Sample URL:', imageUrls[0]);
+          }
         }
-      } else {
-        console.error('No images provided in request body');
-        throw new ApiError(400, 'No images provided');
+        // Handle direct URL string (not in array)
+        else if (parsedImages && typeof parsedImages === 'string' && parsedImages.trim() !== '') {
+          console.log('Found single image URL string');
+          imageUrls = [parsedImages];
+        }
+        // Handle raw files upload response format
+        else if (parsedImages && parsedImages.files && Array.isArray(parsedImages.files)) {
+          console.log('Found files array in parsed images', parsedImages.files.length);
+          imageUrls = parsedImages.files
+            .filter(file => file && (file.filename || file.url || file.path))
+            .map(file => file.url || file.path || `/api/images/${file.filename}`);
+        }
+      } catch (error) {
+        console.error('Error parsing image URLs:', error);
+      }
+      
+      // Last resort - scan for filenames directly in the body
+      if (imageUrls.length === 0) {
+        console.log('Scanning request body for image filenames');
+        
+        // Look for any properties that might contain image filenames
+        Object.keys(req.body).forEach(key => {
+          if (typeof req.body[key] === 'string' && 
+              (req.body[key].includes('/api/images/') || 
+               req.body[key].includes('.jpg') || 
+               req.body[key].includes('.png') || 
+               req.body[key].includes('.jpeg'))) {
+            imageUrls.push(req.body[key]);
+          }
+        });
       }
     }
-
-    console.log(`Received ${req.files.length} files for upload`);
-    console.log('File details:', req.files.map(f => ({ 
-      name: f.originalname, 
-      size: f.size, 
-      mimetype: f.mimetype 
-    })));
-
-    // Upload each file to local storage and get the URLs
-    const uploadPromises = req.files.map(file => {
-      try {
-        return uploadToS3(file); // This function now only uses local storage
-      } catch (err) {
-        console.error(`Error uploading file ${file.originalname}:`, err);
-        throw new ApiError(500, `Error uploading file ${file.originalname}: ${err.message}`);
-      }
-    });
     
-    const uploadedImages = await Promise.all(uploadPromises);
-    console.log('Uploaded images:', uploadedImages);
+    console.log('Final image URLs for update:', imageUrls);
     
-    // Get current images
-    const currentImages = listing.images || [];
+    // Ensure we have at least one image
+    if (imageUrls.length === 0) {
+      console.log('No images found in request - looking at raw body');
+      console.log('Raw body:', JSON.stringify(req.body, null, 2));
+      return res.status(400).json({ success: false, message: 'No images provided' });
+    }
     
-    // Add new images to existing ones
-    const updatedImages = [...currentImages, ...uploadedImages];
+    // Merge with existing images if needed
+    if (req.body.appendToExisting === 'true' || req.body.appendToExisting === true) {
+      const currentImages = listing.images || [];
+      console.log('Current listing images:', currentImages);
+      imageUrls = [...currentImages, ...imageUrls];
+      console.log('Appending to existing images, new total:', imageUrls.length);
+    }
     
-    // Update the listing with new images
-    await listing.update({
-      images: updatedImages,
-      // If there's no featured image yet, use the first uploaded image
-      featuredImage: listing.featuredImage || uploadedImages[0]
-    });
+    // Update listing with image URLs
+    console.log('Updating listing with images:', imageUrls);
+    await listing.update({ images: imageUrls });
     
-    res.json({
-      status: 'success',
-      data: {
+    return res.status(200).json({ 
+      success: true, 
+      message: 'Listing images updated successfully',
+      data: { 
+        images: imageUrls,
         listing: {
           id: listing.id,
-          images: updatedImages,
-          featuredImage: listing.featuredImage || uploadedImages[0]
+          images: imageUrls
         }
       }
     });
+    
   } catch (error) {
-    next(error);
+    console.error('Error uploading images:', error);
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
@@ -475,6 +590,131 @@ exports.getFeaturedListings = async (req, res, next) => {
       data: featuredListings
     });
   } catch (error) {
+    next(error);
+  }
+};
+
+/**
+ * Change listing status (active, pending, sold, etc.)
+ */
+exports.changeListingStatus = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    
+    if (!['active', 'pending', 'sold', 'expired', 'deleted'].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid status'
+      });
+    }
+    
+    const listing = await Listing.findByPk(id);
+    
+    if (!listing) {
+      return res.status(404).json({
+        success: false,
+        message: 'Listing not found'
+      });
+    }
+    
+    // Debug log for authorization check
+    console.log('Change status authorization check:');
+    console.log('Listing userId:', listing.userId, 'type:', typeof listing.userId);
+    console.log('Request user id:', req.user.id, 'type:', typeof req.user.id);
+    
+    // Check if user is admin or owns the listing
+    const isOwner = String(listing.userId) === String(req.user.id);
+    const isAdmin = req.user.role === 'admin';
+    
+    if (!isAdmin && !isOwner) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not authorized to change this listing status'
+      });
+    }
+    
+    // Only admin can activate a pending listing
+    if (status === 'active' && listing.status === 'pending' && !isAdmin) {
+      return res.status(403).json({
+        success: false,
+        message: 'Only admins can approve pending listings'
+      });
+    }
+    
+    await listing.update({ status });
+    
+    res.status(200).json({
+      success: true,
+      message: `Listing status updated to ${status}`,
+      data: listing
+    });
+  } catch (error) {
+    console.error('Error changing listing status:', error);
+    next(error);
+  }
+};
+
+/**
+ * Feature a listing for increased visibility
+ */
+exports.featureListing = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { duration } = req.body;
+    
+    if (!duration || !['day', 'week', 'month'].includes(duration)) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid duration. Must be day, week, or month.'
+      });
+    }
+    
+    // Get the listing
+    const listing = await Listing.findByPk(id);
+    
+    if (!listing) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Listing not found'
+      });
+    }
+    
+    // Check if user is authorized (owner or admin)
+    if (listing.userId !== req.user.id && req.user.role !== 'admin') {
+      return res.status(403).json({
+        status: 'error',
+        message: 'Not authorized to feature this listing'
+      });
+    }
+    
+    // Calculate the end date based on duration
+    let endDate = new Date();
+    
+    switch (duration) {
+      case 'day':
+        endDate.setDate(endDate.getDate() + 1);
+        break;
+      case 'week':
+        endDate.setDate(endDate.getDate() + 7);
+        break;
+      case 'month':
+        endDate.setMonth(endDate.getMonth() + 1);
+        break;
+    }
+    
+    // Update the listing
+    await listing.update({
+      isPromoted: true,
+      promotionEndDate: endDate
+    });
+    
+    res.json({
+      status: 'success',
+      data: listing
+    });
+  } catch (error) {
+    console.error('Error featuring listing:', error);
     next(error);
   }
 }; 

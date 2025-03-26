@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const logger = require('../utils/logger');
+const axios = require('axios');
 
 // Helper function to safely require modules with fallbacks
 function safeRequire(paths) {
@@ -22,6 +23,7 @@ const listingRoutes = safeRequire(['./listing.routes', './listing.routes.js', '.
 const categoryRoutes = safeRequire(['./category.routes', './category.routes.js', './categories', './categories.js', './categoryRoutes', './categoryRoutes.js']);
 const adminRoutes = safeRequire(['./admin.routes', './admin.routes.js', './admin', './admin.js']);
 const importRoutes = safeRequire(['./import.js', './import']);
+const favoriteRoutes = safeRequire(['./favorite.routes', './favorite.routes.js', './favorites', './favorites.js']);
 
 // API health check
 router.get('/', (req, res) => {
@@ -35,7 +37,8 @@ router.get('/', (req, res) => {
       listings: listingRoutes ? 'loaded' : 'missing',
       categories: categoryRoutes ? 'loaded' : 'missing',
       admin: adminRoutes ? 'loaded' : 'missing',
-      import: importRoutes ? 'loaded' : 'missing'
+      import: importRoutes ? 'loaded' : 'missing',
+      favorites: favoriteRoutes ? 'loaded' : 'missing'
     }
   });
 });
@@ -48,6 +51,37 @@ router.get('/test', (req, res) => {
     originalUrl: req.originalUrl,
     baseUrl: req.baseUrl
   });
+});
+
+// Proxy endpoint for external images (to avoid CORS issues)
+router.get('/proxy', async (req, res) => {
+  try {
+    const { url } = req.query;
+    
+    if (!url) {
+      return res.status(400).json({ message: 'URL parameter is required' });
+    }
+    
+    // Log the proxy request
+    console.log(`Proxying external image: ${url}`);
+    
+    // Fetch the image from the external source
+    const response = await axios({
+      method: 'get',
+      url: url,
+      responseType: 'stream'
+    });
+    
+    // Set headers from the response
+    res.set('Content-Type', response.headers['content-type']);
+    res.set('Cache-Control', 'public, max-age=86400'); // Cache for 24 hours
+    
+    // Pipe the image data to our response
+    response.data.pipe(res);
+  } catch (error) {
+    console.error('Image proxy error:', error.message);
+    res.status(500).json({ message: 'Failed to proxy image' });
+  }
 });
 
 // Mount routes that were successfully loaded
@@ -75,5 +109,6 @@ mountRoutes('listings', listingRoutes);
 mountRoutes('categories', categoryRoutes);
 mountRoutes('admin', adminRoutes);
 mountRoutes('import', importRoutes);
+mountRoutes('favorites', favoriteRoutes);
 
 module.exports = router; 

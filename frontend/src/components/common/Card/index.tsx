@@ -1,6 +1,14 @@
 import React from 'react';
 import './Card.scss';
 import { getImageUrl } from '../../../utils/helpers';
+import ImageComponent from '../ImageComponent';
+
+// Import image server config
+const imageServerUrl = import.meta.env.VITE_IMAGE_SERVER_URL || 
+  `http://${import.meta.env.VITE_IMAGE_SERVER_HOST || 'localhost'}:${import.meta.env.VITE_IMAGE_SERVER_PORT || '3001'}${import.meta.env.VITE_IMAGE_SERVER_PATH || '/api/images'}`;
+
+// Default placeholder image
+const PLACEHOLDER_IMAGE = `${imageServerUrl}/placeholder.jpg`;
 
 interface CardProps {
   children: React.ReactNode;
@@ -74,7 +82,13 @@ export const CardMedia: React.FC<{
     className={`card__media ${className}`} 
     style={height ? { height: typeof height === 'number' ? `${height}px` : height } : undefined}
   >
-    <img src={getImageUrl(src)} alt={alt} loading={loading} />
+    <ImageComponent 
+      src={src} 
+      alt={alt} 
+      fallbackImage={PLACEHOLDER_IMAGE}
+      silent={true}
+      className="card__media-image"
+    />
   </div>
 );
 

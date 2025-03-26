@@ -3,13 +3,15 @@ import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+// Material Icons imports
+import 'material-icons/iconfont/material-icons.css';
 import SearchBox from '../../components/common/SearchBox';
 import CategoryCard from '../../components/CategoryCard';
 import ListingCard from '../../components/ListingCard';
 import Container from '../../components/common/Container';
 import { Button, LinkButton } from '../../components/common/Button';
 import { useGetListingsQuery, useGetCategoriesQuery } from '../../services/api';
-import { getCategoryMaterialIcon } from '../../utils/material-icons';
+import { getCategoryMaterialIcon, ensureMaterialIconsLoaded } from '../../utils/material-icons';
 import './HomePage.scss';
 
 // Define Category interface
@@ -28,6 +30,11 @@ const HomePage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('all');
   const [forceRender, setForceRender] = useState(0);
   const trendingSearches = ['iPhone', 'Laptop', 'Apartment', 'Toyota', 'Sofa'];
+
+  // Ensure Material Icons are loaded
+  useEffect(() => {
+    ensureMaterialIconsLoaded();
+  }, []);
 
   // Fetch real data from the API - use regular listings instead of featured
   const { data: listingsData, isLoading: isListingsLoading, isError: isListingsError } = 
@@ -257,7 +264,6 @@ const HomePage: React.FC = () => {
           featuredImage={listing.featuredImage}
           categoryName={listing.category?.name}
           categorySlug={listing.category?.slug}
-          isFeatured={listing.isFeatured}
           isPromoted={listing.isPromoted}
           createdAt={listing.createdAt}
         />
@@ -310,7 +316,10 @@ const HomePage: React.FC = () => {
         <section className="categories">
           <Container>
             <div className="section-header">
-              <h2 className="section-title">{t('exploreCategories')}</h2>
+              <h2 className="section-title">
+                <span className="material-icons">category</span>
+                {t('exploreCategories')}
+              </h2>
               <p className="section-subtitle">{t('exploreCategoriesSubtitle')}</p>
             </div>
             
@@ -329,10 +338,7 @@ const HomePage: React.FC = () => {
                 to="/categories" 
                 variant="outline" 
                 icon={
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                    <polyline points="12 5 19 12 12 19"></polyline>
-                  </svg>
+                  <span className="material-icons">arrow_forward</span>
                 }
               >
                 {t('viewAllCategories')}
@@ -345,7 +351,10 @@ const HomePage: React.FC = () => {
         <section className="featured-listings">
           <Container>
             <div className="section-header">
-              <h2 className="section-title">{t('featuredListings')}</h2>
+              <h2 className="section-title">
+                <span className="material-icons">featured_play_list</span>
+                {t('featuredListings')}
+              </h2>
               <p className="section-subtitle">{t('featuredListingsSubtitle')}</p>
               
               <div className="featured-tabs">
@@ -353,24 +362,28 @@ const HomePage: React.FC = () => {
                   className={`featured-tab ${activeTab === 'all' ? 'featured-tab--active' : ''}`}
                   onClick={() => handleTabChange('all')}
                 >
+                  <span className="material-icons">apps</span>
                   {t('all')}
                 </button>
                 <button 
                   className={`featured-tab ${activeTab === 'latest' ? 'featured-tab--active' : ''}`}
                   onClick={() => handleTabChange('latest')}
                 >
+                  <span className="material-icons">new_releases</span>
                   {t('latest')}
                 </button>
                 <button 
                   className={`featured-tab ${activeTab === 'popular' ? 'featured-tab--active' : ''}`}
                   onClick={() => handleTabChange('popular')}
                 >
+                  <span className="material-icons">trending_up</span>
                   {t('popular')}
                 </button>
                 <button 
                   className={`featured-tab ${activeTab === 'featured' ? 'featured-tab--active' : ''}`}
                   onClick={() => handleTabChange('featured')}
                 >
+                  <span className="material-icons">star</span>
                   {t('featured')}
                 </button>
               </div>
@@ -391,10 +404,7 @@ const HomePage: React.FC = () => {
                 to="/listings" 
                 variant="primary" 
                 icon={
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="5" y1="12" x2="19" y2="12"></line>
-                    <polyline points="12 5 19 12 12 19"></polyline>
-                  </svg>
+                  <span className="material-icons">arrow_forward</span>
                 }
               >
                 {t('viewAllListings')}
@@ -407,7 +417,10 @@ const HomePage: React.FC = () => {
         <section className="how-it-works">
           <Container>
             <div className="section-header">
-              <h2 className="section-title">{t('howItWorks')}</h2>
+              <h2 className="section-title">
+                <span className="material-icons">info</span>
+                {t('howItWorks')}
+              </h2>
               <p className="section-subtitle">{t('howItWorksSubtitle')}</p>
             </div>
             
@@ -424,12 +437,7 @@ const HomePage: React.FC = () => {
                 transition={{ duration: 0.3 }}
               >
                 <div className="step-card__icon">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="8.5" cy="7" r="4"></circle>
-                    <line x1="20" y1="8" x2="20" y2="14"></line>
-                    <line x1="23" y1="11" x2="17" y2="11"></line>
-                  </svg>
+                  <span className="material-icons">person_add</span>
                 </div>
                 <h3 className="step-card__title">{t('createAccount')}</h3>
                 <p className="step-card__description">
@@ -449,12 +457,7 @@ const HomePage: React.FC = () => {
                 transition={{ duration: 0.3, delay: 0.1 }}
               >
                 <div className="step-card__icon">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                    <line x1="12" y1="18" x2="12" y2="12"></line>
-                    <line x1="9" y1="15" x2="15" y2="15"></line>
-                  </svg>
+                  <span className="material-icons">post_add</span>
                 </div>
                 <h3 className="step-card__title">{t('common.postAd')}</h3>
                 <p className="step-card__description">
@@ -474,12 +477,7 @@ const HomePage: React.FC = () => {
                 transition={{ duration: 0.3, delay: 0.2 }}
               >
                 <div className="step-card__icon">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M20.42 4.58a5.4 5.4 0 0 0-7.65 0l-.77.78-.77-.78a5.4 5.4 0 0 0-7.65 0C1.46 6.7 1.33 10.28 4 13l8 8 8-8c2.67-2.72 2.54-6.3.42-8.42z"></path>
-                    <path d="M12 5.36V8"></path>
-                    <path d="M12 12v3"></path>
-                    <path d="M12 20v1"></path>
-                  </svg>
+                  <span className="material-icons">handshake</span>
                 </div>
                 <h3 className="step-card__title">{t('connectWithBuyers')}</h3>
                 <p className="step-card__description">
@@ -526,10 +524,7 @@ const HomePage: React.FC = () => {
                   variant="accent" 
                   size="lg" 
                   icon={
-                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="5" y1="12" x2="19" y2="12"></line>
-                      <polyline points="12 5 19 12 12 19"></polyline>
-                    </svg>
+                    <span className="material-icons">arrow_forward</span>
                   }
                   className="cta__button"
                 >
@@ -540,64 +535,17 @@ const HomePage: React.FC = () => {
           </Container>
         </section>
         
-        {/* Testimonials Section */}
-        <section className="testimonials">
-          <Container>
-            <div className="section-header">
-              <h2 className="section-title">{t('happyUsers')}</h2>
-              <p className="section-subtitle">{t('happyUsersSubtitle')}</p>
-            </div>
-            
-            <div className="testimonials__slider">
-              <div className="testimonial-card">
-                <div className="testimonial-card__rating">
-                  <span className="material-icons">star</span>
-                  <span className="material-icons">star</span>
-                  <span className="material-icons">star</span>
-                  <span className="material-icons">star</span>
-                  <span className="material-icons">star</span>
-                </div>
-                <p className="testimonial-card__text">
-                  "I sold my car within 2 days of posting. The process was so simple and I got multiple inquiries right away!"
-                </p>
-                <div className="testimonial-card__author">
-                  <img src="https://randomuser.me/api/portraits/men/32.jpg" alt="User" className="testimonial-card__avatar" />
-                  <div className="testimonial-card__info">
-                    <h4 className="testimonial-card__name">Eldar Mammadov</h4>
-                    <p className="testimonial-card__location">Baku, Azerbaijan</p>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="testimonial-card">
-                <div className="testimonial-card__rating">
-                  <span className="material-icons">star</span>
-                  <span className="material-icons">star</span>
-                  <span className="material-icons">star</span>
-                  <span className="material-icons">star</span>
-                  <span className="material-icons">star_half</span>
-                </div>
-                <p className="testimonial-card__text">
-                  "I found my apartment through Mart.az and the whole experience was great. The interface is easy to use and filters really helped narrow down my search."
-                </p>
-                <div className="testimonial-card__author">
-                  <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="User" className="testimonial-card__avatar" />
-                  <div className="testimonial-card__info">
-                    <h4 className="testimonial-card__name">Aysel Huseynova</h4>
-                    <p className="testimonial-card__location">Ganja, Azerbaijan</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </Container>
-        </section>
+
         
         {/* Download App Section */}
         <section className="download-app">
           <Container>
             <div className="download-app__content">
               <div className="download-app__info">
-                <h2 className="download-app__title">{t('downloadOurApp')}</h2>
+                <h2 className="download-app__title">
+                  <span className="material-icons">get_app</span>
+                  {t('downloadOurApp')}
+                </h2>
                 <p className="download-app__description">{t('downloadAppDescription')}</p>
                 <div className="download-app__buttons">
                   <a href="#" className="app-button">
@@ -608,7 +556,6 @@ const HomePage: React.FC = () => {
                   </a>
                 </div>
               </div>
-        
             </div>
           </Container>
         </section>

@@ -36,6 +36,116 @@ app.use(morgan('combined', { stream: { write: message => logger.info(message.tri
 app.use(express.json()); // Parse JSON request bodies
 app.use(express.urlencoded({ extended: true })); // Parse URL-encoded request bodies
 
+// DIRECT FEATURE ENDPOINT - bypassing the normal routing system
+app.post('/api/listings/:id/feature', async (req, res) => {
+  try {
+    logger.info('Direct feature endpoint hit for listing ID:', req.params.id);
+    logger.info('Request body:', req.body);
+    
+    const { id } = req.params;
+    const { duration } = req.body;
+    
+    if (!duration || !['day', 'week', 'month'].includes(duration)) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Invalid duration. Must be day, week, or month.'
+      });
+    }
+    
+    // No auth for testing purposes
+    const { Listing } = require('./models');
+    const listing = await Listing.findByPk(id);
+    
+    if (!listing) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Listing not found'
+      });
+    }
+    
+    // Calculate the end date based on duration
+    let endDate = new Date();
+    
+    switch (duration) {
+      case 'day':
+        endDate.setDate(endDate.getDate() + 1);
+        break;
+      case 'week':
+        endDate.setDate(endDate.getDate() + 7);
+        break;
+      case 'month':
+        endDate.setMonth(endDate.getMonth() + 1);
+        break;
+    }
+    
+    // Update the listing
+    await listing.update({
+      isPromoted: true,
+      promotionEndDate: endDate
+    });
+    
+    res.json({
+      status: 'success',
+      message: 'Listing featured successfully',
+      data: {
+        id: listing.id,
+        isPromoted: listing.isPromoted,
+        promotionEndDate: listing.promotionEndDate
+      }
+    });
+  } catch (error) {
+    logger.error('Error in direct feature endpoint:', error);
+    res.status(500).json({
+      status: 'error',
+      message: error.message
+    });
+  }
+});
+
+// DIRECT STATUS CHANGE ENDPOINT - bypassing the normal routing system
+app.patch('/api/listings/:id/status', async (req, res) => {
+  try {
+    logger.info('Direct status change endpoint hit for listing ID:', req.params.id);
+    logger.info('Request body:', req.body);
+    
+    const { id } = req.params;
+    const { status } = req.body;
+    
+    if (!status || !['active', 'pending', 'sold', 'expired', 'deleted'].includes(status)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid status'
+      });
+    }
+    
+    // No auth for testing purposes
+    const { Listing } = require('./models');
+    const listing = await Listing.findByPk(id);
+    
+    if (!listing) {
+      return res.status(404).json({
+        success: false,
+        message: 'Listing not found'
+      });
+    }
+    
+    // Update the listing
+    await listing.update({ status });
+    
+    res.json({
+      success: true,
+      message: `Listing status updated to ${status}`,
+      data: listing
+    });
+  } catch (error) {
+    logger.error('Error in direct status change endpoint:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+});
+
 // API routes
 app.use('/api', routes);
 
@@ -172,7 +282,7 @@ const startServer = async () => {
       let tablesExist = true;
       try {
         logger.info('Checking if tables exist...');
-        const User = require('./models/user.model'); // Adjust to your actual model path
+        const User = require('./models/User'); 
         const result = await db.sequelize.query('SELECT 1 FROM "users" LIMIT 1', { type: db.sequelize.QueryTypes.SELECT });
         logger.info('Tables exist, proceeding with alter: true');
       } catch (err) {

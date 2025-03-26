@@ -1,6 +1,6 @@
 // Base URL for API requests - can be overridden by environment variables
 export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000/api';
-export const IMAGE_SERVER_URL = process.env.REACT_APP_IMAGE_SERVER_URL || 'http://localhost:3000/api/images';
+export const IMAGE_SERVER_URL = process.env.REACT_APP_IMAGE_SERVER_URL || 'http://localhost:3001/api/images';
 
 /**
  * Get a properly formatted image URL that works across environments

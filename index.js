@@ -134,9 +134,42 @@ app.get('/api', (req, res) => {
       '/api/listings',
       '/api/users',
       '/api/auth',
-      '/api/images'
+      '/api/images',
+      '/api/health'
     ]
   });
+});
+
+// Add a health check endpoint for monitoring server status
+app.get('/api/health', (req, res) => {
+  const healthData = {
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    services: {
+      api: true,
+      imageServer: true
+    }
+  };
+  
+  // Check if image server is working
+  try {
+    const fs = require('fs');
+    const imageDir = imageServerConfig.uploadsDir;
+    
+    // Check if uploads directory exists and is accessible
+    const dirExists = fs.existsSync(imageDir);
+    if (!dirExists) {
+      healthData.services.imageServer = false;
+      healthData.status = 'degraded';
+    }
+  } catch (error) {
+    logger.error(`Health check error: ${error.message}`);
+    healthData.services.imageServer = false;
+    healthData.status = 'degraded';
+  }
+  
+  res.json(healthData);
 });
 
 // For API routes not handled by direct handlers, use the backend app middleware

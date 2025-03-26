@@ -8,24 +8,12 @@ export default defineConfig({
   base: '/',
   plugins: [react()],
   server: {
-    port: 5173,
+    port: 3000,
     proxy: {
       '/api': {
         target: 'http://localhost:3000',
         changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path,
-        configure: (proxy, _options) => {
-          proxy.on('error', (err, _req, _res) => {
-            console.log('proxy error', err);
-          });
-          proxy.on('proxyReq', (proxyReq, req, _res) => {
-            console.log('Sending Request:', req.method, req.url);
-          });
-          proxy.on('proxyRes', (proxyRes, req, _res) => {
-            console.log('Received Response:', proxyRes.statusCode, req.url);
-          });
-        },
+        rewrite: (path) => path.replace(/^\/api/, '')
       },
     },
     // Tarayıcıyı otomatik olarak aç
@@ -43,11 +31,9 @@ export default defineConfig({
     },
   },
   define: {
-    // Provide a shim for process.env
-    'process.env': {
-      NODE_ENV: JSON.stringify(process.env.NODE_ENV),
-      REACT_APP_API_URL: JSON.stringify(process.env.VITE_API_URL),
-    }
+    // Ensure environment variables are properly passed to the client
+    'import.meta.env.VITE_API_URL': JSON.stringify(process.env.VITE_API_URL || 'http://localhost:3000/api'),
+    'import.meta.env.VITE_IMAGE_SERVER_URL': JSON.stringify(process.env.VITE_IMAGE_SERVER_URL || 'http://localhost:3001/api/images'),
   },
   build: {
     outDir: 'dist',

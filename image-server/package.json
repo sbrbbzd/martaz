@@ -4,7 +4,8 @@
   "description": "Simple image server for Mart.az",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "PORT=3001 node server.js"
   },
   "dependencies": {
     "express": "^4.17.1",

@@ -27,6 +27,7 @@ if (config.database.url) {
 const User = require('./User')(sequelize);
 const Listing = require('./Listing')(sequelize);
 const Category = require('./Category')(sequelize);
+const Favorite = require('./Favorite')(sequelize, Sequelize.DataTypes);
 
 // Define associations
 User.hasMany(Listing, {
@@ -60,9 +61,21 @@ Category.hasMany(Category, {
   as: 'subcategories'
 });
 
+// Favorites associations
+User.hasMany(Favorite, {
+  foreignKey: 'userId',
+  as: 'favorites'
+});
+
+Favorite.belongsTo(User, {
+  foreignKey: 'userId',
+  as: 'user'
+});
+
 module.exports = {
   sequelize,
   User,
   Listing,
-  Category
+  Category,
+  Favorite
 }; 

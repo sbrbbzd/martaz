@@ -40,6 +40,12 @@
     justify-content: space-between;
     height: $header-height;
     
+    @media (max-width: $breakpoint-lg) {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      padding: 0 $spacing-2;
+    }
+    
     @media (min-width: $breakpoint-lg) {
       display: grid;
       grid-template-columns: auto 1fr auto;
@@ -47,8 +53,25 @@
     }
   }
 
+  // Mobile left section - contains menu toggle and create button
+  &__mobile-left {
+    display: none;
+    align-items: center;
+    gap: $spacing-3;
+    
+    @media (max-width: $breakpoint-lg) {
+      display: flex;
+      justify-self: start;
+    }
+  }
+
   &__logo {
     flex-shrink: 0;
+    
+    @media (max-width: $breakpoint-lg) {
+      justify-self: center;
+      text-align: center;
+    }
     
     img {
       height: 36px;
@@ -70,6 +93,7 @@
     cursor: pointer;
     padding: 0;
     transition: all $transition-fast $transition-ease;
+    z-index: $z-fixed + 10;
     
     @media (max-width: $breakpoint-lg) {
       display: flex;
@@ -89,33 +113,157 @@
     }
   }
 
-  // Navigation
-  &__nav {
-    display: flex;
+  // Mobile create listing button
+  &__post-btn-mobile {
+    display: none;
     align-items: center;
+    background-color: $accent-color;
+    color: $white;
+    font-size: $font-size-sm;
+    font-weight: $font-weight-medium;
+    padding: $spacing-2 $spacing-3;
+    border-radius: $border-radius-md;
+    text-decoration: none;
     
-    @media (min-width: $breakpoint-lg) {
-      justify-content: flex-start;
-      padding-left: $spacing-8;
+    @media (max-width: $breakpoint-lg) {
+      display: flex;
+    }
+    
+    svg {
+      margin-right: $spacing-2;
+    }
+    
+    @media (max-width: $breakpoint-sm) {
+      span {
+        display: none;
+      }
+      
+      svg {
+        margin-right: 0;
+      }
+      
+      padding: $spacing-2;
+      border-radius: $border-radius-full;
+      width: 36px;
+      height: 36px;
+      justify-content: center;
+    }
+  }
+
+  // Mobile Navigation Container
+  &__nav-container {
+    position: fixed;
+    top: $header-height;
+    left: 0;
+    width: 100%;
+    max-width: 320px;
+    height: calc(100vh - #{$header-height});
+    background-color: $white;
+    z-index: $z-fixed + 5;
+    box-shadow: $shadow-lg;
+    overflow-y: auto;
+    
+    // Ensure the menu is visible
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    
+    // Make sure background color is explicitly set
+    background-color: #ffffff !important;
+    
+    // Ensure content within is visible
+    * {
+      visibility: visible;
     }
     
     @media (max-width: $breakpoint-lg) {
-      position: fixed;
-      top: $header-height;
-      left: 0;
-      width: 100%;
-      height: calc(100vh - #{$header-height});
-      background-color: $white;
-      padding: $spacing-6;
-      transform: translateX(-100%);
-      transition: transform $transition-normal $transition-ease;
-      z-index: $z-fixed;
-      overflow-y: auto;
+      width: 85%;
+      max-width: 320px;
+    }
+  }
+
+  // Desktop Navigation
+  &__nav-desktop {
+    display: none;
+    align-items: center;
+    
+    @media (min-width: $breakpoint-lg) {
       display: flex;
-      flex-direction: column;
+      justify-content: flex-start;
+      padding-left: $spacing-8;
+    }
+  }
+
+  // Navigation
+  &__nav {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    overflow-y: auto;
+    // Ensure content is visible
+    background-color: #ffffff;
+    visibility: visible;
+    
+    // Add padding for better spacing
+    padding-top: $spacing-4;
+  }
+
+  // Mobile section styles
+  &__mobile-section-title {
+    font-size: $font-size-md;
+    font-weight: $font-weight-semibold;
+    color: $gray-700;
+    padding: 0 $spacing-4 $spacing-2;
+    margin: 0 0 $spacing-2;
+    border-bottom: 1px solid $gray-100;
+  }
+
+  &__mobile-user-section {
+    padding: $spacing-4;
+    border-bottom: 1px solid $gray-100;
+  }
+  
+  &__mobile-auth-section {
+    padding: $spacing-4;
+    border-bottom: 1px solid $gray-100;
+  }
+  
+  &__mobile-nav-section {
+    padding: $spacing-4 0;
+    border-bottom: 1px solid $gray-100;
+  }
+  
+  &__mobile-account-section {
+    padding: $spacing-4 0;
+    border-bottom: 1px solid $gray-100;
+  }
+  
+  &__mobile-language-section {
+    padding: $spacing-4;
+    margin-top: auto;
+  }
+
+  // Mobile auth buttons
+  &__mobile-auth-buttons {
+    display: flex;
+    gap: $spacing-3;
+    
+    .header__mobile-auth-btn {
+      @include button-base;
+      flex: 1;
+      padding: $spacing-3 0;
+      font-size: $font-size-md;
+      text-align: center;
       
-      &--active {
-        transform: translateX(0);
+      &--primary {
+        background-color: $primary-color;
+        color: $white;
+      }
+      
+      &--secondary {
+        background-color: $gray-100;
+        color: $gray-800;
       }
     }
   }
@@ -129,7 +277,7 @@
     @media (max-width: $breakpoint-lg) {
       flex-direction: column;
       width: 100%;
-      align-items: center;
+      padding: 0 $spacing-4;
     }
   }
 
@@ -138,8 +286,7 @@
     
     @media (max-width: $breakpoint-lg) {
       margin-right: 0;
-      margin-bottom: $spacing-4;
-      text-align: center;
+      margin-bottom: $spacing-3;
     }
     
     &:last-child {
@@ -148,7 +295,8 @@
   }
 
   &__menu-link {
-    display: block;
+    display: flex;
+    align-items: center;
     font-size: $font-size-md;
     font-weight: $font-weight-medium;
     color: $gray-700;
@@ -156,6 +304,10 @@
     position: relative;
     transition: color $transition-fast $transition-ease;
     text-decoration: none;
+    
+    svg {
+      margin-right: $spacing-2;
+    }
     
     &::after {
       content: '';
@@ -178,35 +330,72 @@
     }
     
     @media (max-width: $breakpoint-lg) {
-      font-size: $font-size-lg;
+      font-size: $font-size-md;
       padding: $spacing-3 0;
+    }
+    
+    // Highlight style for mobile menu
+    &--highlight {
+      color: $primary-color;
+      font-weight: $font-weight-semibold;
+      
+      svg {
+        color: $primary-color;
+      }
+    }
+    
+    // Logout button style
+    &--logout {
+      width: 100%;
+      text-align: left;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: $spacing-3 0;
+      color: $error;
+      
+      svg {
+        color: $error;
+      }
     }
   }
 
-  &__mobile-features {
-    display: none;
+  &__mobile-user {
+    display: flex;
+    align-items: center;
+    width: 100%;
     
-    @media (max-width: $breakpoint-lg) {
-      display: flex;
-      flex-direction: column;
-      width: 100%;
-      margin-top: $spacing-6;
-      gap: $spacing-4;
-      align-items: center;
+    &-info {
+      margin-left: $spacing-3;
     }
   }
   
   &__mobile-language {
     display: flex;
-    justify-content: center;
+    align-items: center;
+    justify-content: flex-start;
   }
 
   // Right Side Actions
+  &__navigation {
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+    
+    @media (max-width: 768px) {
+      display: none;
+    }
+  }
+  
   &__actions {
     display: flex;
     align-items: center;
     gap: $spacing-4;
-    justify-content: flex-end;
+    margin-left: 20px;
+    
+    @media (max-width: $breakpoint-lg) {
+      justify-self: end;
+    }
   }
   
   &__language {
@@ -225,7 +414,7 @@
     gap: $spacing-3;
     
     @media (max-width: $breakpoint-md) {
-      gap: $spacing-2;
+      display: none;
     }
   }
   
@@ -273,6 +462,10 @@
   // User menu for authenticated users
   &__user {
     position: relative;
+    
+    @media (max-width: $breakpoint-md) {
+      display: none;
+    }
   }
 
   &__user-button {
@@ -460,48 +653,36 @@
 
   // Post Ad Button
   &__post-btn {
-    @include button-base;
-    background: linear-gradient(45deg, $accent-color, color.adjust($accent-color, $lightness: 10%));
-    color: $white;
-    font-weight: $font-weight-semibold;
-    padding: $spacing-2 $spacing-5;
-    box-shadow: 0 4px 6px rgba($accent-color, 0.3);
-    position: relative;
-    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #27ae60; // Green color that matches the screenshot
+    color: white;
+    font-weight: 500;
+    padding: 12px 24px;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    text-decoration: none;
+    font-size: 16px;
+    margin-left: 12px;
     
     &:hover {
-      background: linear-gradient(45deg, color.adjust($accent-color, $lightness: -5%), color.adjust($accent-color, $lightness: 5%));
-      box-shadow: 0 6px 10px rgba($accent-color, 0.4);
+      background-color: darken(#27ae60, 8%);
       transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
     }
     
     &:active {
       transform: translateY(0);
-      box-shadow: 0 2px 4px rgba($accent-color, 0.3);
     }
     
-    &-icon {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-right: $spacing-2;
-      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    span {
+      margin-left: 8px;
     }
     
-    &:hover &-icon {
-      transform: rotate(90deg);
-    }
-    
-    @media (max-width: $breakpoint-sm) {
-      padding: $spacing-2 $spacing-3;
-      
-      span {
-        display: none;
-      }
-      
-      &-icon {
-        margin-right: 0;
-      }
+    @media (max-width: 768px) {
+      display: none;
     }
   }
 } 

@@ -254,6 +254,29 @@ exports.changePassword = async (req, res, next) => {
 };
 
 /**
+ * Get user profile
+ */
+exports.getProfile = async (req, res, next) => {
+  try {
+    const user = await User.findByPk(req.user.id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      data: user.toJSON()
+    });
+  } catch (error) {
+    logger.error('Get profile error:', error);
+    next(error);
+  }
+};
+
+/**
  * Logout user (may be used for token blacklisting)
  */
 exports.logout = (req, res) => {
