@@ -80,7 +80,8 @@ const config = {
   supabase: {
     enabled: isSupabase,
     url: process.env.SUPABASE_URL,
-    key: process.env.SUPABASE_KEY
+    key: process.env.SUPABASE_API_KEY || process.env.SUPABASE_KEY,
+    serviceKey: process.env.SUPABASE_SERVICE_KEY
   },
   aws: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
