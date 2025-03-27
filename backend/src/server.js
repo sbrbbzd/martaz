@@ -225,34 +225,27 @@ const startServer = async () => {
     // Log config information
     logger.info(`Starting server in ${config.env} mode...`);
     
-    // ===== RENDER EMERGENCY TABLE CREATION =====
-    // In production Render environment, run the emergency table creation script first
+    // ===== DIRECT DATABASE INITIALIZATION =====
+    // In production Render environment, use our direct initialization approach
     if (config.env === 'production' && process.env.RENDER === 'true') {
       logger.info('🚨 Render production environment detected');
-      logger.info('Running emergency table creation script...');
+      logger.info('Running direct database initialization...');
       
       try {
-        // We need to execute this as a child process to ensure it completes before continuing
-        const { execSync } = require('child_process');
+        // Import our direct initialization module
+        const initializer = require('./database/initialize');
+        const result = await initializer.initializeDatabase();
         
-        logger.info('Creating database tables with emergency script...');
-        const output = execSync('node scripts/force-create-tables.js', { 
-          encoding: 'utf8',
-          cwd: process.cwd().replace(/\/src$/, '') // Ensure we're in the backend directory
-        });
-        
-        logger.info('Emergency table creation output:');
-        logger.info(output);
-        
-        // Add a small delay to ensure database operations are complete
-        await delay(2000);
-        logger.success('✅ Emergency table creation completed');
+        if (result.success) {
+          logger.success('✅ Direct database initialization completed successfully');
+        } else {
+          logger.error('❌ Direct database initialization failed');
+        }
       } catch (error) {
-        logger.error('❌ Emergency table creation failed:');
+        logger.error('❌ Direct database initialization failed:');
         logger.error(error.message);
-        if (error.stdout) logger.info('Process output:', error.stdout);
-        if (error.stderr) logger.error('Process errors:', error.stderr);
-        // Continue with server startup even if table creation fails
+        logger.error(error.stack);
+        // Continue with server startup even if initialization fails
       }
     }
     
@@ -296,7 +289,7 @@ const startServer = async () => {
       throw new Error(`Failed to connect to database after ${maxAttempts} attempts`);
     }
 
-    // Sync database models
+    // Sync database models with special handling for production
     try {
       logger.info('Syncing database models...');
       
@@ -308,6 +301,7 @@ const startServer = async () => {
       try {
         logger.info('Checking if tables exist...');
         await db.sequelize.query('SELECT 1 FROM "users" LIMIT 1', { type: db.sequelize.QueryTypes.SELECT });
+        logger.info('Users table exists ✅');
         
         // Also check if seo_settings table exists
         try {
@@ -325,28 +319,30 @@ const startServer = async () => {
         logger.info('Tables exist, proceeding with alter: true');
       } catch (err) {
         if (err.message.includes('relation') && err.message.includes('does not exist')) {
-          logger.warn('Tables do not exist, using force: true to create them');
+          logger.warn('⚠️ Tables do not exist, despite initialization attempt');
           tablesExist = false;
         } else {
           throw err;
         }
       }
       
-      // In Render environment, if tables still don't exist after emergency script,
-      // default to ALTER rather than FORCE to prevent data loss
-      const force = process.env.DB_FORCE_SYNC === 'true';
-      const alter = force ? false : true;
-      
-      // If we're in production on Render, prefer alter over force to avoid data loss
-      const shouldForce = !tablesExist || force;
-      const shouldAlter = tablesExist && alter;
-      
-      // Special case for Render production to avoid destructive operations
+      // In Render production, don't use force: true to prevent data loss
+      // Only use alter: true to make schema updates
       if (config.env === 'production' && process.env.RENDER === 'true') {
         logger.info('Using safe sync options for Render production environment');
+        // Only use alter: true in production to preserve data
         await db.sequelize.sync({ force: false, alter: true });
       } else {
-        await db.sequelize.sync({ force: shouldForce, alter: shouldAlter });
+        // Use standard options in development
+        const force = process.env.DB_FORCE_SYNC === 'true';
+        const alter = force ? false : true;
+        const shouldForce = !tablesExist || force;
+        const shouldAlter = tablesExist && alter;
+        
+        await db.sequelize.sync({ 
+          force: shouldForce, 
+          alter: shouldAlter 
+        });
       }
       
       logger.success('✅ Database models synchronized successfully');
