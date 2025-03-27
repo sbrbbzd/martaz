@@ -46,11 +46,11 @@ const getEnvVar = (...possibleNames) => {
 
 // Hard-coded production fallbacks - USE ONLY IN EMERGENCY
 const EMERGENCY_FALLBACKS = env === 'production' ? {
-  DB_HOST: 'dpg-cvcsk38gph6c739d97cg-a',
+  DB_HOST: 'dpg-cvi8s6pr0fns73c407tg-a',
   DB_PORT: '5432',
-  DB_NAME: 'martaz',
-  DB_USER: 'martaz_user',
-  DB_PASSWORD: 'EbGHQceGDGNI94ddo08v3c6Ia4TGMtOK'
+  DB_NAME: 'martaz_cxju',
+  DB_USER: 'martaz',
+  DB_PASSWORD: '510O4GNI0s70CRxsgvr5Rpe2B1UCi2Q8'
 } : {};
 
 // Base configuration object
