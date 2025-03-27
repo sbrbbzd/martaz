@@ -16,7 +16,7 @@ This guide provides step-by-step instructions for setting up and using Supabase 
 
 1. Go to Project Settings → Database → Connection Pooling
 2. Note down the following connection information:
-   - Host: usually in the format `db.[project-ref].supabase.co`
+   - Host: usually in the format `[project-ref].supabase.co` (without the `db.` prefix)
    - Port: `5432`
    - Database Name: `postgres`
    - User: `postgres`
@@ -28,7 +28,7 @@ This guide provides step-by-step instructions for setting up and using Supabase 
 
 ```
 # Database Connection
-DB_HOST=db.YOUR_PROJECT_REF.supabase.co
+DB_HOST=[YOUR_PROJECT_REF].supabase.co
 DB_PORT=5432
 DB_NAME=postgres
 DB_USER=postgres
@@ -78,7 +78,7 @@ NODE_ENV=supabase node test-supabase-connection.js
 
 1. **SSL Problems**: Supabase requires SSL. Make sure `DB_SSL=true` is set.
 2. **Wrong Credentials**: Double-check your host, username, and password.
-3. **Host Format**: Make sure you're using the correct host format: `db.[project-ref].supabase.co`
+3. **Host Format**: Make sure you're using the correct host format: `[project-ref].supabase.co`
 4. **IP Restrictions**: By default, Supabase allows connections from any IP. If you've changed this, make sure your server's IP is allowed.
 
 ### Schema Issues

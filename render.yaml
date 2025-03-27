@@ -41,7 +41,7 @@ services:
         value: true
       # Supabase Database configuration
       - key: DB_HOST
-        value: db.ltwqmnffgrrigyeujyvc.supabase.co
+        value: ltwqmnffgrrigyeujyvc.supabase.co
       - key: DB_PORT
         value: 5432
       - key: DB_NAME

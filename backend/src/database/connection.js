@@ -28,50 +28,78 @@ if (isSupabase) {
   logger.info('Supabase database detected - configuring connection accordingly');
 }
 
-// Create Sequelize instance
-const sequelize = new Sequelize(
-  dbName,
-  dbUser,
-  dbPassword,
-  {
-    host: dbHost,
-    port: dbPort,
+// For Supabase, use the connection string format
+let dbConfig;
+if (isSupabase) {
+  // Use direct connection string for Supabase
+  const connectionString = `postgres://${dbUser}:${encodeURIComponent(dbPassword)}@${dbHost}:${dbPort}/${dbName}`;
+  dbConfig = {
     dialect: 'postgres',
     logging: (msg) => logger.debug(msg),
     dialectOptions: {
-      ssl: useSSL ? {
+      ssl: {
         require: true,
-        rejectUnauthorized: false // Required for Supabase & Render's PostgreSQL
-      } : false,
-      // Add additional options
-      application_name: 'mart-az-app'
+        rejectUnauthorized: false
+      }
     },
     pool: {
       max: 5,
       min: 0,
       acquire: 30000,
       idle: 10000
-    },
-    define: {
-      timestamps: true,
-      underscored: false
-    },
-    // Add retry logic for connection
-    retry: {
-      max: 3,
-      match: [
-        /SequelizeConnectionError/,
-        /SequelizeConnectionRefusedError/,
-        /SequelizeHostNotFoundError/,
-        /SequelizeHostNotReachableError/,
-        /SequelizeInvalidConnectionError/,
-        /SequelizeConnectionTimedOutError/,
-        /TimeoutError/
-      ],
-      timeout: 5000
     }
-  }
-);
+  };
+  
+  logger.debug(`Using connection string format for Supabase`);
+  
+  // Create sequelize instance with connection string
+  sequelize = new Sequelize(connectionString, dbConfig);
+} else {
+  // Standard connection for other databases
+  sequelize = new Sequelize(
+    dbName,
+    dbUser,
+    dbPassword,
+    {
+      host: dbHost,
+      port: dbPort,
+      dialect: 'postgres',
+      logging: (msg) => logger.debug(msg),
+      dialectOptions: {
+        ssl: useSSL ? {
+          require: true,
+          rejectUnauthorized: false
+        } : false,
+        // Add additional options
+        application_name: 'mart-az-app'
+      },
+      pool: {
+        max: 5,
+        min: 0,
+        acquire: 30000,
+        idle: 10000
+      },
+      define: {
+        timestamps: true,
+        underscored: false
+      },
+      // Add retry logic for connection
+      retry: {
+        max: 3,
+        match: [
+          /SequelizeConnectionError/,
+          /SequelizeConnectionRefusedError/,
+          /SequelizeHostNotFoundError/,
+          /SequelizeHostNotReachableError/,
+          /SequelizeInvalidConnectionError/,
+          /SequelizeConnectionTimedOutError/,
+          /TimeoutError/
+        ],
+        timeout: 5000
+      }
+    }
+  );
+}
 
 // Test connection function
 const testConnection = async () => {
@@ -86,15 +114,15 @@ const testConnection = async () => {
     
     return true;
   } catch (error) {
-    logger.error('Unable to connect to the database:');
-    logger.error(`Error name: ${error.name}`);
-    logger.error(`Error message: ${error.message}`);
+    logger.error('❌ Unable to connect to the database:');
+    logger.error(`❌ Error name: ${error.name}`);
+    logger.error(`❌ Error message: ${error.message}`);
     
     // Log detailed connection info (without password)
-    logger.error(`Connection details: ${dbHost}:${dbPort}/${dbName} as ${dbUser}`);
+    logger.error(`❌ Connection details: ${dbHost}:${dbPort}/${dbName} as ${dbUser}`);
     
     if (error.original) {
-      logger.error(`Original error: ${error.original.message}`);
+      logger.error(`❌ Original error: ${error.original.message}`);
     }
     
     return false;

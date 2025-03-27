@@ -16,6 +16,9 @@
 // Set Supabase mode
 process.env.USE_SUPABASE = 'true';
 
+// Force DB_HOST to correct format for this test
+process.env.DB_HOST = 'ltwqmnffgrrigyeujyvc.supabase.co';
+
 // Load environment variables from .env.supabase
 require('dotenv').config({ path: '.env.supabase' });
 
