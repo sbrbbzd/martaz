@@ -1,210 +1,294 @@
-const { sequelize, testConnection } = require('./connection');
-const { User, Category, Listing, ListingReport } = require('../models');
+/**
+ * Direct database initialization module
+ * This will be loaded at the very beginning of the application
+ */
+const { Sequelize, DataTypes } = require('sequelize');
 const logger = require('../utils/logger');
 
-/**
- * Initialize the database
- * This will sync all models with the database
- */
-const initDatabase = async () => {
-  try {
-    logger.info('Starting database initialization...');
-    
-    // Test connection first before proceeding
-    logger.info('Testing database connection...');
-    const connectionSuccessful = await testConnection();
-    
-    if (!connectionSuccessful) {
-      logger.error('❌ Database connection test failed');
-      return false;
-    }
-    
-    // Sync models with database
-    logger.info('Syncing database models...');
-    try {
-      await sequelize.sync({ alter: true });
-      logger.success('Database synchronized successfully');
-    } catch (syncError) {
-      logger.error('❌ Failed to sync database models:');
-      logger.error(`Error name: ${syncError.name}`);
-      logger.error(`Error message: ${syncError.message}`);
-      if (syncError.original) {
-        logger.error(`Original error: ${syncError.original.message}`);
-      }
-      return false;
-    }
-    
-    // Verify that the listing_reports table was created
-    try {
-      logger.info('Verifying listing_reports table...');
-      const tables = await sequelize.getQueryInterface().showAllTables();
-      if (!tables.includes('listing_reports')) {
-        logger.warn('⚠️ listing_reports table not found after sync. Will attempt to create it directly.');
-        // This will execute if the model sync didn't create the table
-        try {
-          // Require the direct table creation script
-          require('../../scripts/force-create-report-table');
-          logger.info('Forced creation of listing_reports table');
-        } catch (tableError) {
-          logger.error('❌ Failed to force create listing_reports table:');
-          logger.error(`Error: ${tableError.message}`);
-        }
-      } else {
-        logger.success('listing_reports table exists ✅');
-      }
-    } catch (tableCheckError) {
-      logger.error('❌ Failed to verify tables:');
-      logger.error(`Error: ${tableCheckError.message}`);
-    }
-    
-    // Check if we need to create initial admin user
-    logger.info('Checking for admin user...');
-    try {
-      const adminCount = await User.count({ where: { role: 'admin' } });
-      
-      if (adminCount === 0) {
-        logger.info('No admin user found. Creating default admin user...');
-        await User.create({
-          email: 'admin@mart.az',
-          password: 'Admin123!',  // Will be hashed by the model
-          firstName: 'Admin',
-          lastName: 'User',
-          phone: '+994501234567',
-          role: 'admin',
-          status: 'active'
-        });
-        logger.success('Admin user created successfully');
-      } else {
-        logger.info(`Found ${adminCount} existing admin user(s)`);
-      }
-    } catch (userError) {
-      logger.error('❌ Failed to check/create admin user:');
-      logger.error(`Error: ${userError.message}`);
-      // Continue initialization even if admin user creation fails
-    }
-    
-    // Check if we need to create initial categories
-    logger.info('Checking for existing categories...');
-    try {
-      const categoryCount = await Category.count();
-      
-      if (categoryCount === 0) {
-        logger.info('No categories found. Creating initial categories...');
-        
-        // Create main categories
-        logger.debug('Creating main categories...');
-        const electronics = await Category.create({
-          name: 'Electronics',
-          slug: 'electronics',
-          description: 'All electronic devices and gadgets',
-          icon: 'computer',
-          order: 1,
-          isActive: true
-        });
-        
-        const vehicles = await Category.create({
-          name: 'Vehicles',
-          slug: 'vehicles',
-          description: 'Cars, motorcycles, and other vehicles',
-          icon: 'car',
-          order: 2,
-          isActive: true
-        });
-        
-        const realEstate = await Category.create({
-          name: 'Real Estate',
-          slug: 'real-estate',
-          description: 'Properties for sale and rent',
-          icon: 'home',
-          order: 3,
-          isActive: true
-        });
-        
-        const jobs = await Category.create({
-          name: 'Jobs',
-          slug: 'jobs',
-          description: 'Job listings and opportunities',
-          icon: 'work',
-          order: 4,
-          isActive: true
-        });
-        
-        // Create subcategories for Electronics
-        logger.debug('Creating subcategories for Electronics...');
-        await Category.bulkCreate([
-          {
-            name: 'Smartphones',
-            slug: 'smartphones',
-            description: 'Mobile phones and accessories',
-            icon: 'smartphone',
-            parentId: electronics.id,
-            order: 1,
-            isActive: true
-          },
-          {
-            name: 'Laptops & Computers',
-            slug: 'laptops-computers',
-            description: 'Laptops, desktops, and accessories',
-            icon: 'laptop',
-            parentId: electronics.id,
-            order: 2,
-            isActive: true
-          },
-          {
-            name: 'TVs & Audio',
-            slug: 'tvs-audio',
-            description: 'Televisions, speakers, and audio equipment',
-            icon: 'tv',
-            parentId: electronics.id,
-            order: 3,
-            isActive: true
-          }
-        ]);
-        
-        // Create subcategories for Vehicles
-        logger.debug('Creating subcategories for Vehicles...');
-        await Category.bulkCreate([
-          {
-            name: 'Cars',
-            slug: 'cars',
-            description: 'New and used cars',
-            icon: 'directions_car',
-            parentId: vehicles.id,
-            order: 1,
-            isActive: true
-          },
-          {
-            name: 'Motorcycles',
-            slug: 'motorcycles',
-            description: 'Motorcycles and scooters',
-            icon: 'motorcycle',
-            parentId: vehicles.id,
-            order: 2,
-            isActive: true
-          }
-        ]);
-        
-        logger.success('Initial categories created successfully');
-      } else {
-        logger.info(`Found ${categoryCount} existing categories`);
-      }
-    } catch (categoryError) {
-      logger.error('❌ Failed to check/create categories:');
-      logger.error(`Error: ${categoryError.message}`);
-      // Continue initialization even if category creation fails
-    }
-    
-    logger.success('Database initialization completed successfully');
-    return true;
-  } catch (error) {
-    logger.error('❌ Database initialization failed');
-    logger.error(`Error name: ${error.name}`);
-    logger.error(`Error message: ${error.message}`);
-    if (error.stack) {
-      logger.error(`Stack trace: ${error.stack}`);
-    }
-    return false;
+// Get database config directly from environment variables
+const dbHost = process.env.DB_HOST || process.env.DATABASE_HOST || process.env.PGHOST;
+const dbPort = process.env.DB_PORT || process.env.DATABASE_PORT || process.env.PGPORT || 5432;
+const dbName = process.env.DB_NAME || process.env.DATABASE_NAME || process.env.PGDATABASE;
+const dbUser = process.env.DB_USERNAME || process.env.DB_USER || process.env.PGUSER;
+const dbPassword = process.env.DB_PASSWORD || process.env.DATABASE_PASSWORD || process.env.PGPASSWORD;
+const dbUrl = process.env.DATABASE_URL;
+
+logger.info('🚀 Direct database initialization module loaded');
+
+// Create a function that initializes the database
+async function initializeDatabase() {
+  logger.info('🔧 Starting direct database initialization...');
+  logger.info(`Database: ${dbName} at ${dbHost}:${dbPort}`);
+  
+  // Skip in development mode unless forced
+  if (process.env.NODE_ENV !== 'production' && process.env.FORCE_INIT !== 'true') {
+    logger.info('Skipping direct initialization in development mode');
+    return { success: true, skipped: true };
   }
+  
+  // Create Sequelize instance
+  let sequelize;
+  try {
+    if (dbUrl) {
+      logger.info('Using database connection URL');
+      sequelize = new Sequelize(dbUrl, {
+        dialect: 'postgres',
+        logging: (msg) => logger.debug(msg),
+        dialectOptions: {
+          ssl: {
+            require: true,
+            rejectUnauthorized: false
+          }
+        }
+      });
+    } else {
+      logger.info('Using individual connection parameters');
+      sequelize = new Sequelize(
+        dbName,
+        dbUser,
+        dbPassword,
+        {
+          host: dbHost,
+          port: dbPort,
+          dialect: 'postgres',
+          logging: (msg) => logger.debug(msg),
+          dialectOptions: {
+            ssl: process.env.NODE_ENV === 'production' ? {
+              require: true,
+              rejectUnauthorized: false
+            } : false
+          }
+        }
+      );
+    }
+  } catch (error) {
+    logger.error(`❌ Failed to create Sequelize instance: ${error.message}`);
+    return { success: false, error };
+  }
+  
+  // Test connection
+  try {
+    logger.info('Testing database connection...');
+    await sequelize.authenticate();
+    logger.success('✅ Database connection successful');
+  } catch (error) {
+    logger.error(`❌ Database connection failed: ${error.message}`);
+    return { success: false, error };
+  }
+  
+  // Create raw SQL queries to create tables directly
+  // This ensures the tables exist before any ORM operations
+  const createTablesSQL = `
+  -- First create ENUM types
+  DO $$
+  BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'enum_users_role') THEN
+      CREATE TYPE "enum_users_role" AS ENUM ('user', 'admin');
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'enum_users_status') THEN
+      CREATE TYPE "enum_users_status" AS ENUM ('active', 'inactive', 'banned');
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'enum_listings_currency') THEN
+      CREATE TYPE "enum_listings_currency" AS ENUM ('AZN', 'USD', 'EUR');
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'enum_listings_condition') THEN
+      CREATE TYPE "enum_listings_condition" AS ENUM ('new', 'like-new', 'good', 'fair', 'poor');
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'enum_listings_status') THEN
+      CREATE TYPE "enum_listings_status" AS ENUM ('active', 'pending', 'sold', 'expired', 'deleted');
+    END IF;
+  END
+  $$;
+
+  -- Users table
+  CREATE TABLE IF NOT EXISTS "users" (
+    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "email" VARCHAR(255) NOT NULL UNIQUE,
+    "password" VARCHAR(255) NOT NULL,
+    "firstName" VARCHAR(255) NOT NULL,
+    "lastName" VARCHAR(255) NOT NULL,
+    "phone" VARCHAR(255),
+    "role" "enum_users_role" DEFAULT 'user',
+    "status" "enum_users_status" DEFAULT 'active',
+    "lastLogin" TIMESTAMP WITH TIME ZONE,
+    "resetPasswordToken" VARCHAR(255),
+    "resetPasswordExpires" TIMESTAMP WITH TIME ZONE,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  );
+
+  -- Categories table
+  CREATE TABLE IF NOT EXISTS "categories" (
+    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "name" VARCHAR(255) NOT NULL,
+    "slug" VARCHAR(255) NOT NULL UNIQUE,
+    "description" TEXT,
+    "icon" VARCHAR(255),
+    "parentId" UUID,
+    "order" INTEGER DEFAULT 0,
+    "isActive" BOOLEAN DEFAULT TRUE,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT "categories_parentId_fkey" FOREIGN KEY ("parentId") 
+      REFERENCES "categories" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+  );
+
+  -- Listings table
+  CREATE TABLE IF NOT EXISTS "listings" (
+    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "title" VARCHAR(255) NOT NULL,
+    "slug" VARCHAR(255) NOT NULL UNIQUE,
+    "description" TEXT NOT NULL,
+    "price" DECIMAL(10, 2) NOT NULL,
+    "currency" "enum_listings_currency" DEFAULT 'AZN' NOT NULL,
+    "condition" "enum_listings_condition",
+    "location" VARCHAR(255) NOT NULL,
+    "images" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "featuredImage" VARCHAR(255),
+    "status" "enum_listings_status" DEFAULT 'pending' NOT NULL,
+    "isFeatured" BOOLEAN DEFAULT FALSE,
+    "featuredUntil" TIMESTAMP WITH TIME ZONE,
+    "isPromoted" BOOLEAN DEFAULT FALSE,
+    "promotionEndDate" TIMESTAMP WITH TIME ZONE,
+    "views" INTEGER DEFAULT 0,
+    "contactPhone" VARCHAR(255),
+    "contactEmail" VARCHAR(255),
+    "attributes" JSONB DEFAULT '{}'::JSONB,
+    "expiryDate" TIMESTAMP WITH TIME ZONE,
+    "userId" UUID NOT NULL,
+    "categoryId" UUID,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT "listings_userId_fkey" FOREIGN KEY ("userId") 
+      REFERENCES "users" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "listings_categoryId_fkey" FOREIGN KEY ("categoryId") 
+      REFERENCES "categories" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+  );
+
+  -- Listing Reports table
+  CREATE TABLE IF NOT EXISTS "listing_reports" (
+    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "reason" VARCHAR(255) NOT NULL,
+    "description" TEXT,
+    "status" VARCHAR(50) DEFAULT 'pending',
+    "listingId" UUID NOT NULL,
+    "reporterId" UUID NOT NULL,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT "listing_reports_listingId_fkey" FOREIGN KEY ("listingId") 
+      REFERENCES "listings" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "listing_reports_reporterId_fkey" FOREIGN KEY ("reporterId") 
+      REFERENCES "users" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+  );
+
+  -- Favorites table
+  CREATE TABLE IF NOT EXISTS "favorites" (
+    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "userId" UUID NOT NULL,
+    "listingId" UUID NOT NULL,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT "favorites_userId_fkey" FOREIGN KEY ("userId") 
+      REFERENCES "users" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "favorites_listingId_fkey" FOREIGN KEY ("listingId") 
+      REFERENCES "listings" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    UNIQUE ("userId", "listingId")
+  );
+
+  -- SEO Settings table
+  CREATE TABLE IF NOT EXISTS "seo_settings" (
+    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "pagePath" VARCHAR(255) NOT NULL UNIQUE,
+    "title" VARCHAR(255) NOT NULL,
+    "description" TEXT,
+    "keywords" TEXT,
+    "ogTitle" VARCHAR(255),
+    "ogDescription" TEXT,
+    "ogImage" VARCHAR(255),
+    "isActive" BOOLEAN DEFAULT TRUE,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+  );
+  `;
+  
+  // Create admin user SQL
+  const createAdminUserSQL = `
+  INSERT INTO "users" ("id", "email", "password", "firstName", "lastName", "phone", "role", "status")
+  SELECT gen_random_uuid(), 'admin@mart.az', '$2a$10$ywMNY5xyRABjDu/OGtS.XuI5rc2t0RFFRooBr0hQBt2mCpMQYQQPK', 'Admin', 'User', '+994501234567', 'admin', 'active'
+  WHERE NOT EXISTS (SELECT 1 FROM "users" WHERE "email" = 'admin@mart.az');
+  `;
+  
+  // Create sample category SQL
+  const createSampleCategorySQL = `
+  INSERT INTO "categories" ("id", "name", "slug", "description", "icon", "isActive")
+  SELECT gen_random_uuid(), 'Electronics', 'electronics', 'Electronic devices and gadgets', 'laptop', true
+  WHERE NOT EXISTS (SELECT 1 FROM "categories" WHERE "slug" = 'electronics');
+  `;
+  
+  // Execute SQL directly for maximum reliability
+  try {
+    // Begin transaction
+    await sequelize.transaction(async (transaction) => {
+      // Create tables
+      logger.info('Creating database tables...');
+      await sequelize.query(createTablesSQL, { transaction });
+      logger.success('✅ Tables created successfully');
+      
+      // Create admin user
+      logger.info('Creating admin user...');
+      await sequelize.query(createAdminUserSQL, { transaction });
+      logger.success('✅ Admin user created or already exists');
+      
+      // Create sample category
+      logger.info('Creating sample category...');
+      await sequelize.query(createSampleCategorySQL, { transaction });
+      logger.success('✅ Sample category created or already exists');
+    });
+    
+    logger.success('✅ Database initialization completed successfully');
+    return { success: true };
+  } catch (error) {
+    logger.error(`❌ Failed to initialize database: ${error.message}`);
+    logger.error(error.stack);
+    return { success: false, error };
+  } finally {
+    // Close the connection
+    try {
+      await sequelize.close();
+    } catch (error) {
+      logger.error(`❌ Error closing connection: ${error.message}`);
+    }
+  }
+}
+
+// Export the initialization function
+module.exports = {
+  initializeDatabase
 };
 
-module.exports = initDatabase; 
+// Run directly if this module is executed standalone
+if (require.main === module) {
+  initializeDatabase()
+    .then(result => {
+      if (result.success) {
+        if (result.skipped) {
+          logger.info('Database initialization skipped');
+        } else {
+          logger.success('🎉 Database initialized successfully');
+        }
+        process.exit(0);
+      } else {
+        logger.error('❌ Database initialization failed');
+        process.exit(1);
+      }
+    })
+    .catch(error => {
+      logger.error(`❌ Unhandled error: ${error.message}`);
+      logger.error(error.stack);
+      process.exit(1);
+    });
+} 
