@@ -31,52 +31,137 @@ const pool = new pg.Pool({
   }
 });
 
+logger.info('🔧 Starting emergency table creation script');
+logger.info(`Database: ${dbName} at ${dbHost}:${dbPort}`);
+
 // SQL queries to create tables in the correct order
 const createTableQueries = [
-  // Users table (create first as it's a dependency for other tables)
-  `CREATE TABLE IF NOT EXISTS users (
-    id SERIAL PRIMARY KEY,
-    username VARCHAR(255) NOT NULL UNIQUE,
-    email VARCHAR(255) NOT NULL UNIQUE,
-    password VARCHAR(255) NOT NULL,
-    role VARCHAR(50) DEFAULT 'user',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  // First create ENUM types
+  `DO $$
+  BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'enum_users_role') THEN
+      CREATE TYPE "enum_users_role" AS ENUM ('user', 'admin');
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'enum_users_status') THEN
+      CREATE TYPE "enum_users_status" AS ENUM ('active', 'inactive', 'banned');
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'enum_listings_currency') THEN
+      CREATE TYPE "enum_listings_currency" AS ENUM ('AZN', 'USD', 'EUR');
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'enum_listings_condition') THEN
+      CREATE TYPE "enum_listings_condition" AS ENUM ('new', 'like-new', 'good', 'fair', 'poor');
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'enum_listings_status') THEN
+      CREATE TYPE "enum_listings_status" AS ENUM ('active', 'pending', 'sold', 'expired', 'deleted');
+    END IF;
+  END
+  $$;`,
+
+  // Users table - using the actual schema from User.js
+  `CREATE TABLE IF NOT EXISTS "users" (
+    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "email" VARCHAR(255) NOT NULL UNIQUE,
+    "password" VARCHAR(255) NOT NULL,
+    "firstName" VARCHAR(255) NOT NULL,
+    "lastName" VARCHAR(255) NOT NULL,
+    "phone" VARCHAR(255),
+    "role" "enum_users_role" DEFAULT 'user',
+    "status" "enum_users_status" DEFAULT 'active',
+    "lastLogin" TIMESTAMP WITH TIME ZONE,
+    "resetPasswordToken" VARCHAR(255),
+    "resetPasswordExpires" TIMESTAMP WITH TIME ZONE,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
   );`,
 
-  // Categories table (independent table)
-  `CREATE TABLE IF NOT EXISTS categories (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(255) NOT NULL,
-    slug VARCHAR(255) NOT NULL UNIQUE,
-    parent_id INTEGER REFERENCES categories(id),
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  // Categories table - using the actual schema from Category.js
+  `CREATE TABLE IF NOT EXISTS "categories" (
+    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "name" VARCHAR(255) NOT NULL,
+    "slug" VARCHAR(255) NOT NULL UNIQUE,
+    "description" TEXT,
+    "icon" VARCHAR(255),
+    "parentId" UUID,
+    "order" INTEGER DEFAULT 0,
+    "isActive" BOOLEAN DEFAULT TRUE,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT "categories_parentId_fkey" FOREIGN KEY ("parentId") REFERENCES "categories" ("id") ON DELETE CASCADE ON UPDATE CASCADE
   );`,
 
-  // Listings table (depends on users and categories)
-  `CREATE TABLE IF NOT EXISTS listings (
-    id SERIAL PRIMARY KEY,
-    title VARCHAR(255) NOT NULL,
-    description TEXT,
-    price DECIMAL(10,2),
-    user_id INTEGER REFERENCES users(id),
-    category_id INTEGER REFERENCES categories(id),
-    status VARCHAR(50) DEFAULT 'active',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  // Listings table - using the actual schema from Listing.js
+  `CREATE TABLE IF NOT EXISTS "listings" (
+    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "title" VARCHAR(255) NOT NULL,
+    "slug" VARCHAR(255) NOT NULL UNIQUE,
+    "description" TEXT NOT NULL,
+    "price" DECIMAL(10, 2) NOT NULL,
+    "currency" "enum_listings_currency" DEFAULT 'AZN' NOT NULL,
+    "condition" "enum_listings_condition",
+    "location" VARCHAR(255) NOT NULL,
+    "images" TEXT[] DEFAULT ARRAY[]::TEXT[],
+    "featuredImage" VARCHAR(255),
+    "status" "enum_listings_status" DEFAULT 'pending' NOT NULL,
+    "isFeatured" BOOLEAN DEFAULT FALSE,
+    "featuredUntil" TIMESTAMP WITH TIME ZONE,
+    "isPromoted" BOOLEAN DEFAULT FALSE,
+    "promotionEndDate" TIMESTAMP WITH TIME ZONE,
+    "views" INTEGER DEFAULT 0,
+    "contactPhone" VARCHAR(255),
+    "contactEmail" VARCHAR(255),
+    "attributes" JSONB DEFAULT '{}'::JSONB,
+    "expiryDate" TIMESTAMP WITH TIME ZONE,
+    "userId" UUID NOT NULL,
+    "categoryId" UUID,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT "listings_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "listings_categoryId_fkey" FOREIGN KEY ("categoryId") REFERENCES "categories" ("id") ON DELETE SET NULL ON UPDATE CASCADE
   );`,
 
-  // Create listing_reports table (depends on listings)
-  `CREATE TABLE IF NOT EXISTS listing_reports (
-    id SERIAL PRIMARY KEY,
-    listing_id INTEGER REFERENCES listings(id),
-    reporter_id INTEGER REFERENCES users(id),
-    reason VARCHAR(255) NOT NULL,
-    description TEXT,
-    status VARCHAR(50) DEFAULT 'pending',
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+  // Listing Reports table 
+  `CREATE TABLE IF NOT EXISTS "listing_reports" (
+    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "reason" VARCHAR(255) NOT NULL,
+    "description" TEXT,
+    "status" VARCHAR(50) DEFAULT 'pending',
+    "listingId" UUID NOT NULL,
+    "reporterId" UUID NOT NULL,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT "listing_reports_listingId_fkey" FOREIGN KEY ("listingId") REFERENCES "listings" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "listing_reports_reporterId_fkey" FOREIGN KEY ("reporterId") REFERENCES "users" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+  );`,
+
+  // Favorites table
+  `CREATE TABLE IF NOT EXISTS "favorites" (
+    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "userId" UUID NOT NULL,
+    "listingId" UUID NOT NULL,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    CONSTRAINT "favorites_userId_fkey" FOREIGN KEY ("userId") REFERENCES "users" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "favorites_listingId_fkey" FOREIGN KEY ("listingId") REFERENCES "listings" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    UNIQUE ("userId", "listingId")
+  );`,
+
+  // SEO Settings table
+  `CREATE TABLE IF NOT EXISTS "seo_settings" (
+    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "pagePath" VARCHAR(255) NOT NULL UNIQUE,
+    "title" VARCHAR(255) NOT NULL,
+    "description" TEXT,
+    "keywords" TEXT,
+    "ogTitle" VARCHAR(255),
+    "ogDescription" TEXT,
+    "ogImage" VARCHAR(255),
+    "isActive" BOOLEAN DEFAULT TRUE,
+    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
   );`
 ];
 
@@ -90,7 +175,7 @@ async function createTables() {
     await client.query('BEGIN');
     
     for (const query of createTableQueries) {
-      logger.info(`Executing query: ${query.split('\n')[0]}...`);
+      logger.info(`Executing query: ${query.substring(0, 50)}...`);
       await client.query(query);
     }
     
@@ -102,6 +187,7 @@ async function createTables() {
     // Rollback on error
     await client.query('ROLLBACK');
     logger.error(`❌ Error creating tables: ${error.message}`);
+    logger.error(error.stack);
     throw error;
   } finally {
     client.release();
