@@ -41,6 +41,9 @@ async function initializeDatabase() {
   
   // Create Sequelize instance
   let sequelize;
+  // Default UUID generation function - will be updated based on PostgreSQL version
+  let uuidDefault = 'gen_random_uuid()';
+  
   try {
     if (dbUrl) {
       logger.info('Using database connection URL');
@@ -102,7 +105,38 @@ async function initializeDatabase() {
     return { success: false, error };
   }
   
-  // Create raw SQL queries to create tables directly
+  // Check PostgreSQL version and UUID function availability
+  try {
+    logger.info('Testing UUID function compatibility...');
+    try {
+      await sequelize.query('SELECT gen_random_uuid()');
+      logger.success('✅ gen_random_uuid() function is available');
+    } catch (uuidError) {
+      logger.warn('⚠️ gen_random_uuid() not available, using fallback');
+      uuidDefault = "md5(random()::text || clock_timestamp()::text)::uuid";
+      
+      // Try to test the fallback
+      try {
+        await sequelize.query(`SELECT ${uuidDefault}`);
+        logger.success(`✅ Fallback UUID function works: ${uuidDefault}`);
+      } catch (fallbackError) {
+        logger.error(`❌ Fallback UUID function failed: ${fallbackError.message}`);
+        // Last resort, use a simplified version
+        uuidDefault = "md5(random()::text)::uuid";
+        logger.warn(`⚠️ Using simplified UUID fallback: ${uuidDefault}`);
+      }
+    }
+  } catch (error) {
+    logger.error(`❌ Failed to test UUID functions: ${error.message}`);
+    // Use the safest fallback
+    uuidDefault = "md5(random()::text)::uuid";
+    logger.warn(`⚠️ Using safe UUID fallback: ${uuidDefault}`);
+  }
+  
+  // Log the final UUID function we'll use
+  logger.info(`Using UUID default: ${uuidDefault}`);
+  
+  // Create raw SQL queries to create tables directly with dynamic UUID function
   // This ensures the tables exist before any ORM operations
   const createTablesSQL = `
   -- First create ENUM types
@@ -129,132 +163,8 @@ async function initializeDatabase() {
     END IF;
   END
   $$;
-
-  -- Users table
-  CREATE TABLE IF NOT EXISTS "users" (
-    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    "email" VARCHAR(255) NOT NULL UNIQUE,
-    "password" VARCHAR(255) NOT NULL,
-    "firstName" VARCHAR(255) NOT NULL,
-    "lastName" VARCHAR(255) NOT NULL,
-    "phone" VARCHAR(255),
-    "role" "enum_users_role" DEFAULT 'user',
-    "status" "enum_users_status" DEFAULT 'active',
-    "lastLogin" TIMESTAMP WITH TIME ZONE,
-    "resetPasswordToken" VARCHAR(255),
-    "resetPasswordExpires" TIMESTAMP WITH TIME ZONE,
-    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-  );
-
-  -- Categories table
-  CREATE TABLE IF NOT EXISTS "categories" (
-    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    "name" VARCHAR(255) NOT NULL,
-    "slug" VARCHAR(255) NOT NULL UNIQUE,
-    "description" TEXT,
-    "icon" VARCHAR(255),
-    "parentId" UUID,
-    "order" INTEGER DEFAULT 0,
-    "isActive" BOOLEAN DEFAULT TRUE,
-    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    CONSTRAINT "categories_parentId_fkey" FOREIGN KEY ("parentId") 
-      REFERENCES "categories" ("id") ON DELETE CASCADE ON UPDATE CASCADE
-  );
-
-  -- Listings table
-  CREATE TABLE IF NOT EXISTS "listings" (
-    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    "title" VARCHAR(255) NOT NULL,
-    "slug" VARCHAR(255) NOT NULL UNIQUE,
-    "description" TEXT NOT NULL,
-    "price" DECIMAL(10, 2) NOT NULL,
-    "currency" "enum_listings_currency" DEFAULT 'AZN' NOT NULL,
-    "condition" "enum_listings_condition",
-    "location" VARCHAR(255) NOT NULL,
-    "images" TEXT[] DEFAULT ARRAY[]::TEXT[],
-    "featuredImage" VARCHAR(255),
-    "status" "enum_listings_status" DEFAULT 'pending' NOT NULL,
-    "isFeatured" BOOLEAN DEFAULT FALSE,
-    "featuredUntil" TIMESTAMP WITH TIME ZONE,
-    "isPromoted" BOOLEAN DEFAULT FALSE,
-    "promotionEndDate" TIMESTAMP WITH TIME ZONE,
-    "views" INTEGER DEFAULT 0,
-    "contactPhone" VARCHAR(255),
-    "contactEmail" VARCHAR(255),
-    "attributes" JSONB DEFAULT '{}'::JSONB,
-    "expiryDate" TIMESTAMP WITH TIME ZONE,
-    "userId" UUID NOT NULL,
-    "categoryId" UUID,
-    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    CONSTRAINT "listings_userId_fkey" FOREIGN KEY ("userId") 
-      REFERENCES "users" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT "listings_categoryId_fkey" FOREIGN KEY ("categoryId") 
-      REFERENCES "categories" ("id") ON DELETE SET NULL ON UPDATE CASCADE
-  );
-
-  -- Listing Reports table
-  CREATE TABLE IF NOT EXISTS "listing_reports" (
-    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    "reason" VARCHAR(255) NOT NULL,
-    "description" TEXT,
-    "status" VARCHAR(50) DEFAULT 'pending',
-    "listingId" UUID NOT NULL,
-    "reporterId" UUID NOT NULL,
-    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    CONSTRAINT "listing_reports_listingId_fkey" FOREIGN KEY ("listingId") 
-      REFERENCES "listings" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT "listing_reports_reporterId_fkey" FOREIGN KEY ("reporterId") 
-      REFERENCES "users" ("id") ON DELETE CASCADE ON UPDATE CASCADE
-  );
-
-  -- Favorites table
-  CREATE TABLE IF NOT EXISTS "favorites" (
-    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    "userId" UUID NOT NULL,
-    "listingId" UUID NOT NULL,
-    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    CONSTRAINT "favorites_userId_fkey" FOREIGN KEY ("userId") 
-      REFERENCES "users" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT "favorites_listingId_fkey" FOREIGN KEY ("listingId") 
-      REFERENCES "listings" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-    UNIQUE ("userId", "listingId")
-  );
-
-  -- SEO Settings table
-  CREATE TABLE IF NOT EXISTS "seo_settings" (
-    "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    "pagePath" VARCHAR(255) NOT NULL UNIQUE,
-    "title" VARCHAR(255) NOT NULL,
-    "description" TEXT,
-    "keywords" TEXT,
-    "ogTitle" VARCHAR(255),
-    "ogDescription" TEXT,
-    "ogImage" VARCHAR(255),
-    "isActive" BOOLEAN DEFAULT TRUE,
-    "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    "updatedAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-  );
   `;
-  
-  // Create admin user SQL
-  const createAdminUserSQL = `
-  INSERT INTO "users" ("id", "email", "password", "firstName", "lastName", "phone", "role", "status")
-  SELECT gen_random_uuid(), 'admin@mart.az', '$2a$10$ywMNY5xyRABjDu/OGtS.XuI5rc2t0RFFRooBr0hQBt2mCpMQYQQPK', 'Admin', 'User', '+994501234567', 'admin', 'active'
-  WHERE NOT EXISTS (SELECT 1 FROM "users" WHERE "email" = 'admin@mart.az');
-  `;
-  
-  // Create sample category SQL
-  const createSampleCategorySQL = `
-  INSERT INTO "categories" ("id", "name", "slug", "description", "icon", "isActive")
-  SELECT gen_random_uuid(), 'Electronics', 'electronics', 'Electronic devices and gadgets', 'laptop', true
-  WHERE NOT EXISTS (SELECT 1 FROM "categories" WHERE "slug" = 'electronics');
-  `;
-  
+
   // Execute SQL directly for maximum reliability
   try {
     // Try each part separately to better isolate issues
@@ -263,31 +173,7 @@ async function initializeDatabase() {
     // First try to create ENUM types
     logger.info('Step 1: Creating ENUM types...');
     try {
-      const enumSQL = `
-      DO $$
-      BEGIN
-        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'enum_users_role') THEN
-          CREATE TYPE "enum_users_role" AS ENUM ('user', 'admin');
-        END IF;
-        
-        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'enum_users_status') THEN
-          CREATE TYPE "enum_users_status" AS ENUM ('active', 'inactive', 'banned');
-        END IF;
-        
-        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'enum_listings_currency') THEN
-          CREATE TYPE "enum_listings_currency" AS ENUM ('AZN', 'USD', 'EUR');
-        END IF;
-        
-        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'enum_listings_condition') THEN
-          CREATE TYPE "enum_listings_condition" AS ENUM ('new', 'like-new', 'good', 'fair', 'poor');
-        END IF;
-        
-        IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'enum_listings_status') THEN
-          CREATE TYPE "enum_listings_status" AS ENUM ('active', 'pending', 'sold', 'expired', 'deleted');
-        END IF;
-      END
-      $$;`;
-      await sequelize.query(enumSQL);
+      await sequelize.query(createTablesSQL);
       logger.success('✅ ENUM types created successfully');
     } catch (error) {
       logger.error(`❌ Failed to create ENUM types: ${error.message}`);
@@ -299,7 +185,7 @@ async function initializeDatabase() {
     try {
       const usersSQL = `
       CREATE TABLE IF NOT EXISTS "users" (
-        "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "id" UUID PRIMARY KEY DEFAULT ${uuidDefault},
         "email" VARCHAR(255) NOT NULL UNIQUE,
         "password" VARCHAR(255) NOT NULL,
         "firstName" VARCHAR(255) NOT NULL,
@@ -331,7 +217,7 @@ async function initializeDatabase() {
     try {
       const categoriesSQL = `
       CREATE TABLE IF NOT EXISTS "categories" (
-        "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "id" UUID PRIMARY KEY DEFAULT ${uuidDefault},
         "name" VARCHAR(255) NOT NULL,
         "slug" VARCHAR(255) NOT NULL UNIQUE,
         "description" TEXT,
@@ -351,9 +237,6 @@ async function initializeDatabase() {
       return { success: false, error };
     }
     
-    // Continue with remaining tables (one by one)
-    // ... similar pattern for listings, listing_reports, favorites, and seo_settings ...
-    
     // Create remaining tables
     logger.info('Step 4: Creating remaining tables...');
     try {
@@ -361,7 +244,7 @@ async function initializeDatabase() {
       logger.info('Creating listings table...');
       const listingsSQL = `
       CREATE TABLE IF NOT EXISTS "listings" (
-        "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "id" UUID PRIMARY KEY DEFAULT ${uuidDefault},
         "title" VARCHAR(255) NOT NULL,
         "slug" VARCHAR(255) NOT NULL UNIQUE,
         "description" TEXT NOT NULL,
@@ -397,7 +280,7 @@ async function initializeDatabase() {
       logger.info('Creating listing_reports table...');
       const reportsSQL = `
       CREATE TABLE IF NOT EXISTS "listing_reports" (
-        "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "id" UUID PRIMARY KEY DEFAULT ${uuidDefault},
         "reason" VARCHAR(255) NOT NULL,
         "description" TEXT,
         "status" VARCHAR(50) DEFAULT 'pending',
@@ -417,7 +300,7 @@ async function initializeDatabase() {
       logger.info('Creating favorites table...');
       const favoritesSQL = `
       CREATE TABLE IF NOT EXISTS "favorites" (
-        "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "id" UUID PRIMARY KEY DEFAULT ${uuidDefault},
         "userId" UUID NOT NULL,
         "listingId" UUID NOT NULL,
         "createdAt" TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -435,7 +318,7 @@ async function initializeDatabase() {
       logger.info('Creating seo_settings table...');
       const seoSettingsSQL = `
       CREATE TABLE IF NOT EXISTS "seo_settings" (
-        "id" UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        "id" UUID PRIMARY KEY DEFAULT ${uuidDefault},
         "pagePath" VARCHAR(255) NOT NULL UNIQUE,
         "title" VARCHAR(255) NOT NULL,
         "description" TEXT,
@@ -457,6 +340,12 @@ async function initializeDatabase() {
     // Create admin user
     logger.info('Step 5: Creating admin user...');
     try {
+      const createAdminUserSQL = `
+      INSERT INTO "users" ("id", "email", "password", "firstName", "lastName", "phone", "role", "status")
+      SELECT ${uuidDefault}, 'admin@mart.az', '$2a$10$ywMNY5xyRABjDu/OGtS.XuI5rc2t0RFFRooBr0hQBt2mCpMQYQQPK', 'Admin', 'User', '+994501234567', 'admin', 'active'
+      WHERE NOT EXISTS (SELECT 1 FROM "users" WHERE "email" = 'admin@mart.az');
+      `;
+      
       await sequelize.query(createAdminUserSQL);
       logger.success('✅ Admin user created or already exists');
     } catch (error) {
@@ -467,6 +356,12 @@ async function initializeDatabase() {
     // Create sample category
     logger.info('Step 6: Creating sample category...');
     try {
+      const createSampleCategorySQL = `
+      INSERT INTO "categories" ("id", "name", "slug", "description", "icon", "isActive")
+      SELECT ${uuidDefault}, 'Electronics', 'electronics', 'Electronic devices and gadgets', 'laptop', true
+      WHERE NOT EXISTS (SELECT 1 FROM "categories" WHERE "slug" = 'electronics');
+      `;
+      
       await sequelize.query(createSampleCategorySQL);
       logger.success('✅ Sample category created or already exists');
     } catch (error) {
