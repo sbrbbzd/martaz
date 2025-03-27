@@ -16,7 +16,11 @@
     "db:create-report-table": "node scripts/force-create-report-table.js",
     "render:db:setup": "NODE_ENV=production RENDER=true node scripts/render-db-setup.js",
     "render:migrate": "NODE_ENV=production RENDER=true node scripts/render-migration.js",
-    "emergency:create-tables": "NODE_ENV=production RENDER=true node src/database/init.js"
+    "emergency:create-tables": "NODE_ENV=production RENDER=true node src/database/init.js",
+    "supabase:setup": "NODE_ENV=production USE_SUPABASE=true node scripts/supabase-sync.js",
+    "supabase:reset": "NODE_ENV=production USE_SUPABASE=true node scripts/supabase-sync.js --force",
+    "supabase:migrate": "NODE_ENV=production USE_SUPABASE=true node scripts/run-migrations.js",
+    "supabase:seed": "NODE_ENV=production USE_SUPABASE=true node src/seeders/index.js"
   },
   "author": "",
   "license": "ISC",
@@ -49,7 +53,7 @@
     "sequelize": "^6.37.6",
     "sequelize-cli": "^6.6.2",
     "slugify": "^1.6.6",
-    "umzug": "^3.8.2",
+    "umzug": "^3.8.8",
     "uuid": "^9.0.1",
     "winston": "^3.17.0"
   },

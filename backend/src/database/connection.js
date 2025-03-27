@@ -10,14 +10,22 @@ const dbPort = config.database.port || process.env.DB_PORT || process.env.PGPORT
 const dbName = config.database.name || process.env.DB_NAME || process.env.PGDATABASE || 'martaz';
 const dbUser = config.database.user || process.env.DB_USERNAME || process.env.DB_USER || process.env.PGUSER || 'postgres';
 const dbPassword = config.database.password || process.env.DB_PASSWORD || process.env.PGPASSWORD || '';
+const useSSL = config.database.ssl || process.env.DB_SSL === 'true' || config.env === 'production';
 
 logger.debug(`Database config: ${config.env} environment, host: ${dbHost}, port: ${dbPort}, database: ${dbName}, user: ${dbUser}`);
+logger.debug(`SSL enabled: ${useSSL}`);
 
 // For debugging connection issues
-if (config.env === 'production') {
-  logger.info('Production environment detected - enabling SSL with relaxed settings');
+if (useSSL) {
+  logger.info('SSL enabled for database connection with relaxed settings');
 } else {
-  logger.info('Development environment detected - disabling SSL');
+  logger.info('SSL disabled for database connection');
+}
+
+// Check for Supabase host
+const isSupabase = dbHost && dbHost.includes('supabase.co');
+if (isSupabase) {
+  logger.info('Supabase database detected - configuring connection accordingly');
 }
 
 // Create Sequelize instance
@@ -31,11 +39,11 @@ const sequelize = new Sequelize(
     dialect: 'postgres',
     logging: (msg) => logger.debug(msg),
     dialectOptions: {
-      ssl: config.env === 'production' ? {
+      ssl: useSSL ? {
         require: true,
-        rejectUnauthorized: false // This is necessary for Render's PostgreSQL
+        rejectUnauthorized: false // Required for Supabase & Render's PostgreSQL
       } : false,
-      // Add additional options for Render
+      // Add additional options
       application_name: 'mart-az-app'
     },
     pool: {
@@ -71,6 +79,11 @@ const testConnection = async () => {
     logger.info('Testing database connection...');
     await sequelize.authenticate();
     logger.success('Database connection has been established successfully.');
+    
+    if (isSupabase) {
+      logger.info('Successfully connected to Supabase PostgreSQL database');
+    }
+    
     return true;
   } catch (error) {
     logger.error('Unable to connect to the database:');

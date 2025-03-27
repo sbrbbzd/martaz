@@ -14,6 +14,7 @@
     "@mui/icons-material": "^6.4.8",
     "@mui/material": "^6.4.8",
     "@reduxjs/toolkit": "^2.6.1",
+    "@supabase/supabase-js": "^2.49.3",
     "@types/redux-persist": "^4.0.0",
     "bcryptjs": "^3.0.2",
     "bootstrap": "^5.3.3",

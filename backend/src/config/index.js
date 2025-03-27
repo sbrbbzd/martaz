@@ -53,6 +53,11 @@ const EMERGENCY_FALLBACKS = env === 'production' ? {
   DB_PASSWORD: '510O4GNI0s70CRxsgvr5Rpe2B1UCi2Q8'
 } : {};
 
+// Detect if we're using Supabase
+const isSupabase = 
+  (getEnvVar('DB_HOST', 'DATABASE_HOST', 'PGHOST') || '').includes('supabase.co') ||
+  process.env.USE_SUPABASE === 'true';
+
 // Base configuration object
 const config = {
   env,
@@ -68,7 +73,14 @@ const config = {
     port: getEnvVar('DB_PORT', 'DATABASE_PORT', 'PGPORT') || EMERGENCY_FALLBACKS.DB_PORT,
     name: getEnvVar('DB_NAME', 'DATABASE_NAME', 'PGDATABASE') || EMERGENCY_FALLBACKS.DB_NAME,
     user: getEnvVar('DB_USERNAME', 'DATABASE_USER', 'DB_USER', 'PGUSER') || EMERGENCY_FALLBACKS.DB_USER,
-    password: getEnvVar('DB_PASSWORD', 'DATABASE_PASSWORD', 'PGPASSWORD') || EMERGENCY_FALLBACKS.DB_PASSWORD
+    password: getEnvVar('DB_PASSWORD', 'DATABASE_PASSWORD', 'PGPASSWORD') || EMERGENCY_FALLBACKS.DB_PASSWORD,
+    ssl: getEnvVar('DB_SSL') === 'true' || isSupabase || env === 'production'
+  },
+  // Supabase config (if used)
+  supabase: {
+    enabled: isSupabase,
+    url: process.env.SUPABASE_URL,
+    key: process.env.SUPABASE_KEY
   },
   aws: {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID,
@@ -95,6 +107,11 @@ logConfig(`Port: ${config.database.port || 'undefined'}`);
 logConfig(`Database: ${config.database.name || 'undefined'}`);
 logConfig(`User: ${config.database.user || 'undefined'}`);
 logConfig(`Password: ${config.database.password ? '******** (set)' : 'undefined'}`);
+logConfig(`SSL Enabled: ${config.database.ssl ? 'Yes' : 'No'}`);
+
+if (isSupabase) {
+  logConfig('Supabase database detected');
+}
 
 // Log critical configuration issues early
 if (!config.jwt.secret) {

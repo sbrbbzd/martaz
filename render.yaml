@@ -7,6 +7,17 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
+      # Supabase client-side credentials  
+      - key: NEXT_PUBLIC_SUPABASE_URL
+        value: https://ltwqmnffgrrigyeujyvc.supabase.co
+      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx0d3FtbmZmZ3JyaWd5ZXVqeXZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMwNzMyNzIsImV4cCI6MjA1ODY0OTI3Mn0.9TGlb-Nu4tAODzYiGFnDzWlttTw_qfiWsz4cfd7eXnc
+      # API URL
+      - key: NEXT_PUBLIC_API_URL
+        value: https://mart-az-backend.onrender.com/api
+      # Other configuration
+      - key: NEXT_PUBLIC_APP_URL
+        value: https://mart-az-frontend.onrender.com
     healthCheckPath: /
 
   - type: web
@@ -15,57 +26,38 @@ services:
     buildCommand: >
       cd backend && 
       npm install && 
-      npm run emergency:create-tables && 
-      npm run render:migrate && 
-      npm run render:db:setup
+      npm run supabase:setup && 
+      npm run supabase:migrate && 
+      npm run supabase:seed
     startCommand: cd backend && npm start
     envVars:
       - key: NODE_ENV
         value: production
-      - key: RENDER
+      - key: USE_SUPABASE
         value: true
       - key: RUN_MIGRATIONS
         value: true
       - key: RUN_SEEDERS
         value: true
-      # Database configuration with multiple naming conventions
+      # Supabase Database configuration
       - key: DB_HOST
-        value: dpg-cvi8s6pr0fns73c407tg-a
-      - key: DATABASE_HOST
-        value: dpg-cvi8s6pr0fns73c407tg-a
-      - key: PGHOST
-        value: dpg-cvi8s6pr0fns73c407tg-a
-        
+        value: db.ltwqmnffgrrigyeujyvc.supabase.co
       - key: DB_PORT
         value: 5432
-      - key: DATABASE_PORT
-        value: 5432
-      - key: PGPORT
-        value: 5432
-        
       - key: DB_NAME
-        value: martaz_cxju
-      - key: DATABASE_NAME
-        value: martaz_cxju
-      - key: PGDATABASE
-        value: martaz_cxju
-        
-      - key: DB_USERNAME
-        value: martaz
+        value: postgres
       - key: DB_USER
-        value: martaz
-      - key: PGUSER
-        value: martaz
-        
+        value: postgres
       - key: DB_PASSWORD
-        value: 510O4GNI0s70CRxsgvr5Rpe2B1UCi2Q8
-      - key: DATABASE_PASSWORD
-        value: 510O4GNI0s70CRxsgvr5Rpe2B1UCi2Q8
-      - key: PGPASSWORD
-        value: 510O4GNI0s70CRxsgvr5Rpe2B1UCi2Q8
-        
-      - key: PGSSLMODE
-        value: no-verify
+        value: REPLACE_WITH_YOUR_SUPABASE_DB_PASSWORD
+      - key: DB_SSL
+        value: true
+      # Supabase API config
+      - key: SUPABASE_URL
+        value: https://ltwqmnffgrrigyeujyvc.supabase.co
+      - key: SUPABASE_KEY
+        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx0d3FtbmZmZ3JyaWd5ZXVqeXZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMwNzMyNzIsImV4cCI6MjA1ODY0OTI3Mn0.9TGlb-Nu4tAODzYiGFnDzWlttTw_qfiWsz4cfd7eXnc
+      # Other app config
       - key: JWT_SECRET
         value: mart-az-super-secret-key-for-production-2024
       - key: JWT_EXPIRES_IN
@@ -78,6 +70,4 @@ services:
         value: https://mart-az-frontend.onrender.com
       - key: LOG_LEVEL
         value: debug
-      - key: FORCE_INIT
-        value: true
     healthCheckPath: /api/health 
