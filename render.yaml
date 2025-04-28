@@ -68,4 +68,3 @@ services:
     name: mart-az-db
     env: postgres
     plan: free
-    ipAllowList: []
