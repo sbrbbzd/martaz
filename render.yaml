@@ -7,67 +7,65 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      # Supabase client-side credentials  
-      - key: NEXT_PUBLIC_SUPABASE_URL
-        value: https://ltwqmnffgrrigyeujyvc.supabase.co
-      - key: NEXT_PUBLIC_SUPABASE_ANON_KEY
-        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx0d3FtbmZmZ3JyaWd5ZXVqeXZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMwNzMyNzIsImV4cCI6MjA1ODY0OTI3Mn0.9TGlb-Nu4tAODzYiGFnDzWlttTw_qfiWsz4cfd7eXnc
       # API URL
       - key: NEXT_PUBLIC_API_URL
         value: https://mart-az-backend.onrender.com/api
       # Other configuration
       - key: NEXT_PUBLIC_APP_URL
-        value: https://mart-az-frontend.onrender.com
+        value: https://mart-az.onrender.com
     healthCheckPath: /
 
   - type: web
     name: mart-az-backend
     env: node
-    buildCommand: >
-      cd backend && 
-      npm install && 
-      npm run supabase:setup && 
-      npm run supabase:migrate && 
-      npm run supabase:seed
+    buildCommand: cd backend && npm install && npm run db:migrate && npm run db:seed
     startCommand: cd backend && npm start
     envVars:
       - key: NODE_ENV
         value: production
-      - key: USE_SUPABASE
-        value: true
       - key: RUN_MIGRATIONS
         value: true
       - key: RUN_SEEDERS
         value: true
-      # Supabase Database configuration
+      # Render PostgreSQL configuration
       - key: DB_HOST
-        value: ltwqmnffgrrigyeujyvc.supabase.co
+        fromDatabase:
+          name: mart-az-db
+          property: host
       - key: DB_PORT
-        value: 5432
+        fromDatabase:
+          name: mart-az-db
+          property: port
       - key: DB_NAME
-        value: postgres
+        fromDatabase:
+          name: mart-az-db
+          property: database
       - key: DB_USER
-        value: postgres
+        fromDatabase:
+          name: mart-az-db
+          property: user
       - key: DB_PASSWORD
-        value: REPLACE_WITH_YOUR_SUPABASE_DB_PASSWORD
-      - key: DB_SSL
-        value: true
-      # Supabase API config
-      - key: SUPABASE_URL
-        value: https://ltwqmnffgrrigyeujyvc.supabase.co
-      - key: SUPABASE_KEY
-        value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx0d3FtbmZmZ3JyaWd5ZXVqeXZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDMwNzMyNzIsImV4cCI6MjA1ODY0OTI3Mn0.9TGlb-Nu4tAODzYiGFnDzWlttTw_qfiWsz4cfd7eXnc
+        fromDatabase:
+          name: mart-az-db
+          property: password
       # Other app config
       - key: JWT_SECRET
         value: mart-az-super-secret-key-for-production-2024
       - key: JWT_EXPIRES_IN
         value: 7d
       - key: FRONTEND_URL
-        value: https://mart-az-frontend.onrender.com
+        value: https://mart-az.onrender.com
       - key: PORT
         value: 10000
       - key: CORS_ORIGIN
-        value: https://mart-az-frontend.onrender.com
+        value: https://mart-az.onrender.com
       - key: LOG_LEVEL
         value: debug
-    healthCheckPath: /api/health 
+    healthCheckPath: /api/health
+
+  # Add PostgreSQL database
+  - type: pserv
+    name: mart-az-db
+    env: postgres
+    plan: free
+    ipAllowList: []
