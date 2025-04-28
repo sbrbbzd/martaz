@@ -7,12 +7,10 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      # API URL
       - key: NEXT_PUBLIC_API_URL
         value: https://mart-az-backend.onrender.com/api
-      # Other configuration
       - key: NEXT_PUBLIC_APP_URL
-        value: https://mart-az.onrender.com
+        value: https://mart-az-frontend.onrender.com
     healthCheckPath: /
 
   - type: web
@@ -27,7 +25,6 @@ services:
         value: true
       - key: RUN_SEEDERS
         value: true
-      # Render PostgreSQL configuration
       - key: DB_HOST
         fromDatabase:
           name: mart-az-db
@@ -48,23 +45,22 @@ services:
         fromDatabase:
           name: mart-az-db
           property: password
-      # Other app config
       - key: JWT_SECRET
         value: mart-az-super-secret-key-for-production-2024
       - key: JWT_EXPIRES_IN
         value: 7d
       - key: FRONTEND_URL
-        value: https://mart-az.onrender.com
+        value: https://mart-az-frontend.onrender.com
       - key: PORT
         value: 10000
       - key: CORS_ORIGIN
-        value: https://mart-az.onrender.com
+        value: https://mart-az-frontend.onrender.com
       - key: LOG_LEVEL
         value: debug
     healthCheckPath: /api/health
 
-  # Add PostgreSQL database
-  - type: pserv
+  # PostgreSQL database (corrected configuration)
+  - type: postgres
     name: mart-az-db
-    env: postgres
     plan: free
+    version: "14"
