@@ -59,4 +59,5 @@ services:
   # PostgreSQL database
   - type: pserv
     name: mart-az-db
+    env: postgres
     plan: free
