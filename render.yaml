@@ -27,7 +27,7 @@ services:
         value: production
       - key: DATABASE_URL
         value: postgres://user:password@db.mart.az:5432/mart
-  - type: database
-    name: mart-database
+databases:
+  - name: mart-database
     plan: free
    
