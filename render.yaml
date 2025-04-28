@@ -60,7 +60,7 @@ services:
     healthCheckPath: /api/health
 
   # PostgreSQL database (corrected configuration)
-  - type: postgres
-    name: mart-az-db
+databases:
+
+  - name: mart-az-db
     plan: free
-    version: "14"
