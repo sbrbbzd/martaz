@@ -12,7 +12,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: API_URL
-        value: https://api.mart.az
+        value: https://mart-backend-g0vt.onrender.com
   - type: web
     name: mart-backend
     env: node
@@ -26,7 +26,7 @@ services:
       - key: NODE_ENV
         value: production
       - key: DATABASE_URL
-        value: postgres://user:password@db.mart.az:5432/mart
+        value: postgresql://mart_database_user:I4MQVDPXfyMgEi81KU32gqhWJ97jMxZe@dpg-d07ut19r0fns73a6ch4g-a.oregon-postgres.render.com/mart_database
 databases:
   - name: mart-database
     plan: free
