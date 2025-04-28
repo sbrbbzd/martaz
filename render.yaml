@@ -1,62 +1,33 @@
 services:
-  # Frontend web service
   - type: web
-    name: mart-az-frontend
-    runtime: node
-    buildCommand: cd frontend && npm install && npm run render-build
-    startCommand: cd frontend && npm start
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: NEXT_PUBLIC_API_URL
-        value: https://mart-az-backend.onrender.com/api
-      - key: NEXT_PUBLIC_APP_URL
-        value: https://mart-az-frontend.onrender.com
-
-  # Backend API service
-  - type: web
-    name: mart-az-backend
-    runtime: node
-    buildCommand: cd backend && npm install && npm run db:migrate
-    startCommand: cd backend && npm start
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: PORT
-        value: 10000
-      - key: JWT_SECRET
-        generateValue: true
-      - key: JWT_EXPIRES_IN
-        value: 7d
-      - key: FRONTEND_URL
-        value: https://mart-az-frontend.onrender.com
-      - key: CORS_ORIGIN
-        value: https://mart-az-frontend.onrender.com
-      - key: LOG_LEVEL
-        value: debug
-      - key: DB_HOST
-        fromDatabase:
-          name: mart-az-db
-          property: host
-      - key: DB_PORT
-        fromDatabase:
-          name: mart-az-db
-          property: port
-      - key: DB_NAME
-        fromDatabase:
-          name: mart-az-db
-          property: database
-      - key: DB_USER
-        fromDatabase:
-          name: mart-az-db
-          property: user
-      - key: DB_PASSWORD
-        fromDatabase:
-          name: mart-az-db
-          property: password
-    healthCheckPath: /api/health
-
-  # PostgreSQL database
-  - type: pserv
-    name: mart-az-db
+    name: mart-frontend
+    env: node
+    buildCommand: npm run build
+    startCommand: npm start
     plan: free
+    region: oregon
+    branch: main
+    healthCheckPath: /
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: API_URL
+        value: https://api.mart.az
+  - type: web
+    name: mart-backend
+    env: node
+    buildCommand: npm run build
+    startCommand: npm start
+    plan: free
+    region: oregon
+    branch: main
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        value: postgres://user:password@db.mart.az:5432/mart
+  - type: database
+    name: mart-database
+    plan: free
+   
