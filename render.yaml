@@ -59,5 +59,6 @@ services:
   # PostgreSQL database
   - type: pserv
     name: mart-az-db
-    env: postgres
+    runtime: postgres:14
+    startCommand: docker-entrypoint.sh postgres
     plan: free
