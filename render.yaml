@@ -57,6 +57,7 @@ services:
     healthCheckPath: /api/health
 
   # PostgreSQL database
-  - type: postgres
+  - type: pserv
     name: mart-az-db
+    env: postgres
     plan: free
