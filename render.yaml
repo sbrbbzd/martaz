@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: mart-frontend
+    name: mart
     env: node
     buildCommand: npm run build
     startCommand: npm start
