@@ -1,4 +1,5 @@
 services:
+  # Frontend web service
   - type: web
     name: mart-az-frontend
     env: node
@@ -11,20 +12,28 @@ services:
         value: https://mart-az-backend.onrender.com/api
       - key: NEXT_PUBLIC_APP_URL
         value: https://mart-az-frontend.onrender.com
-    healthCheckPath: /
 
+  # Backend API service
   - type: web
     name: mart-az-backend
     env: node
-    buildCommand: cd backend && npm install && npm run db:migrate && npm run db:seed
+    buildCommand: cd backend && npm install && npm run db:migrate
     startCommand: cd backend && npm start
     envVars:
       - key: NODE_ENV
         value: production
-      - key: RUN_MIGRATIONS
-        value: true
-      - key: RUN_SEEDERS
-        value: true
+      - key: PORT
+        value: 10000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: FRONTEND_URL
+        value: https://mart-az-frontend.onrender.com
+      - key: CORS_ORIGIN
+        value: https://mart-az-frontend.onrender.com
+      - key: LOG_LEVEL
+        value: debug
       - key: DB_HOST
         fromDatabase:
           name: mart-az-db
@@ -45,22 +54,8 @@ services:
         fromDatabase:
           name: mart-az-db
           property: password
-      - key: JWT_SECRET
-        value: mart-az-super-secret-key-for-production-2024
-      - key: JWT_EXPIRES_IN
-        value: 7d
-      - key: FRONTEND_URL
-        value: https://mart-az-frontend.onrender.com
-      - key: PORT
-        value: 10000
-      - key: CORS_ORIGIN
-        value: https://mart-az-frontend.onrender.com
-      - key: LOG_LEVEL
-        value: debug
     healthCheckPath: /api/health
 
-  # PostgreSQL database (corrected configuration)
-databases:
-
+  # PostgreSQL database
   - name: mart-az-db
     plan: free
