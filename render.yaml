@@ -60,5 +60,4 @@ services:
   - type: pserv
     name: mart-az-db
     env: postgres
-    version: "14"
     plan: free
