@@ -59,5 +59,4 @@ services:
   # PostgreSQL database
   - type: pserv
     name: mart-az-db
-    runtime: postgres
     plan: free
