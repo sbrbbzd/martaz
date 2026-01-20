@@ -9,6 +9,9 @@ const initImageServer = require('./services/image-server');
 // But we're not starting its server - we'll use it as middleware
 const backendApp = require('./backend/src/app');
 
+// Import SSR middleware for better SEO
+const { ssrHomePage, ssrCategoryPage, ssrListingPage } = require('./backend/src/middleware/ssr');
+
 // Initialize the main app
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -54,9 +57,9 @@ app.get('/api/categories', async (req, res) => {
     });
   } catch (error) {
     logger.error(`Error in direct category route: ${error.message}`);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      error: 'Failed to fetch categories' 
+      error: 'Failed to fetch categories'
     });
   }
 });
@@ -67,22 +70,22 @@ app.get('/api/listings', async (req, res) => {
     const { Listing } = require('./backend/src/models');
     const limit = parseInt(req.query.limit) || 20;
     const offset = parseInt(req.query.offset) || 0;
-    
-    const listings = await Listing.findAll({ 
-      limit, 
+
+    const listings = await Listing.findAll({
+      limit,
       offset,
       order: [['createdAt', 'DESC']]
     });
-    
+
     res.json({
       success: true,
       data: listings
     });
   } catch (error) {
     logger.error(`Error in direct listing route: ${error.message}`);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      error: 'Failed to fetch listings' 
+      error: 'Failed to fetch listings'
     });
   }
 });
@@ -96,16 +99,16 @@ app.get('/api/users', async (req, res) => {
       attributes: ['id', 'email', 'firstName', 'lastName', 'role', 'createdAt'],
       order: [['createdAt', 'DESC']]
     });
-    
+
     res.json({
       success: true,
       data: users
     });
   } catch (error) {
     logger.error(`Error in direct users route: ${error.message}`);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      error: 'Failed to fetch users' 
+      error: 'Failed to fetch users'
     });
   }
 });
@@ -152,12 +155,12 @@ app.get('/api/health', (req, res) => {
       imageServer: true
     }
   };
-  
+
   // Check if image server is working
   try {
     const fs = require('fs');
     const imageDir = imageServerConfig.uploadsDir;
-    
+
     // Check if uploads directory exists and is accessible
     const dirExists = fs.existsSync(imageDir);
     if (!dirExists) {
@@ -169,7 +172,7 @@ app.get('/api/health', (req, res) => {
     healthData.services.imageServer = false;
     healthData.status = 'degraded';
   }
-  
+
   res.json(healthData);
 });
 
@@ -180,14 +183,14 @@ app.use('/api', (req, res, next) => {
     logger.debug(`Image API request: ${req.method} ${req.path}`);
     return next();
   }
-  
+
   // Log API requests for debugging
   logger.debug(`API request to ${req.method} ${req.path}`);
   console.log(`MAIN SERVER: Handling API request: ${req.method} ${req.path}`);
-  
+
   // Set a flag to indicate this is an API request through the main app
   req.isApiRequest = true;
-  
+
   // For API routes, the main backend app expects paths WITHOUT the /api prefix
   // Example: /api/categories should be handled as /categories in the backend app
   // IMPORTANT: Do not modify the path for root API requests
@@ -198,7 +201,7 @@ app.use('/api', (req, res, next) => {
     req._parsedUrl.pathname = req.path;
     console.log(`MAIN SERVER: Rewriting path from ${originalPath} to ${req.path} before forwarding to backend`);
   }
-  
+
   // Use the backend app to handle the request
   backendApp(req, res, next);
 });
@@ -207,8 +210,20 @@ app.use('/api', (req, res, next) => {
 logger.info(`Serving frontend files from: ${path.join(__dirname, 'frontend/dist')}`);
 app.use(express.static(path.join(__dirname, 'frontend/dist')));
 
-// For any request that doesn't match an API route or static file, serve the frontend index.html
-// This enables client-side routing
+// SSR Routes for better SEO
+// These routes will pre-render content on the server
+
+// Home page with SSR
+app.get('/', ssrHomePage);
+
+// Category pages with SSR
+app.get('/category/:slug', ssrCategoryPage);
+
+// Listing detail pages with SSR
+app.get('/listing/:id', ssrListingPage);
+
+// For any other request that doesn't match an API route or static file, serve the frontend index.html
+// This enables client-side routing for admin pages, user dashboard, etc.
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'frontend/dist', 'index.html'));
 });

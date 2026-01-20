@@ -3,16 +3,19 @@
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
   async up (queryInterface, Sequelize) {
-    // Add featuredUntil column to listings table
-    await queryInterface.addColumn('listings', 'featuredUntil', {
-      type: Sequelize.DATE,
-      allowNull: true
-    });
-    
-    // Check if isFeatured column exists
+    // Check if columns exist before adding
     const tableInfo = await queryInterface.describeTable('listings');
+    
+    // Add featuredUntil column to listings table if it doesn't exist
+    if (!tableInfo.featuredUntil) {
+      await queryInterface.addColumn('listings', 'featuredUntil', {
+        type: Sequelize.DATE,
+        allowNull: true
+      });
+    }
+    
+    // Add isFeatured column if it doesn't exist
     if (!tableInfo.isFeatured) {
-      // Add isFeatured column if it doesn't exist
       await queryInterface.addColumn('listings', 'isFeatured', {
         type: Sequelize.BOOLEAN,
         defaultValue: false

@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { AxiosRequestConfig } from 'axios';
 import { API_BASE_URL } from './api';
 
 /**
@@ -30,13 +30,12 @@ export const fetchWithAuth = async (
     console.log('Request headers:', headers);
     if (data) console.log('Request data:', data);
     
-    const config = {
+    const config: AxiosRequestConfig = {
       method,
       headers,
       url,
       data: method !== 'GET' ? data : undefined
     };
-    
     const response = await axios(config);
     console.log(`Response from ${endpoint}:`, response.status, response.data);
     return response.data;
@@ -62,4 +61,4 @@ export const fetchWithAuth = async (
       message: error.message || 'Network error occurred'
     };
   }
-}; 
+};

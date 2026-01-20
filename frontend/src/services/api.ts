@@ -1,6 +1,6 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { RootState } from '../store';
-import axios from 'axios';
+import axios, { AxiosRequestConfig } from 'axios';
 import { store } from '../store';
 import { transformApiError } from '../utils/errorHandling';
 import { createEntityAdapter } from '@reduxjs/toolkit';
@@ -284,7 +284,7 @@ export const axiosInstance = axios.create({
 });
 
 // Add auth token to all requests
-axiosInstance.interceptors.request.use((config) => {
+axiosInstance.interceptors.request.use((config: AxiosRequestConfig) => {
   const token = localStorage.getItem('authToken') || localStorage.getItem('token') || store.getState().auth.token;
   if (token) {
     config.headers['Authorization'] = `Bearer ${token}`;
@@ -1493,4 +1493,4 @@ const mockReportedListings = (page = 1, limit = 10) => {
   };
 };
 
-// You could also add specific API methods here as named exports 
+// You could also add specific API methods here as named exports

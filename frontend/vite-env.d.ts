@@ -5,6 +5,8 @@ interface ImportMetaEnv {
   readonly VITE_IMAGE_SERVER_HOST: string;
   readonly VITE_IMAGE_SERVER_PORT: string;
   readonly VITE_IMAGE_SERVER_PATH: string;
+  readonly VITE_DEV_SERVER_PORT: string;
+  readonly MODE: string;
   readonly DEV: boolean;
   // Add other environment variables here...
 }

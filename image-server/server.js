@@ -6,7 +6,7 @@ const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 // Enable CORS for all routes
 app.use(cors({
@@ -77,8 +77,8 @@ app.get('/test', (req, res) => {
       files: files
     });
   } catch (error) {
-    res.status(500).json({ 
-      error: error.message 
+    res.status(500).json({
+      error: error.message
     });
   }
 });
@@ -94,7 +94,7 @@ app.post('/upload', upload.array('images', 10), (req, res) => {
     }
 
     console.log(`Received ${req.files.length} files for upload`);
-    
+
     // Return the uploaded file paths
     const uploadedFiles = req.files.map(file => {
       return {
@@ -124,7 +124,7 @@ app.post('/upload', upload.array('images', 10), (req, res) => {
 app.get('/check/:filename', (req, res) => {
   const filename = req.params.filename;
   const filePath = path.join(UPLOADS_DIR, filename);
-  
+
   try {
     if (fs.existsSync(filePath)) {
       const stats = fs.statSync(filePath);
@@ -151,26 +151,26 @@ app.get('/check/:filename', (req, res) => {
 app.use('/images', (req, res, next) => {
   const filePath = path.join(UPLOADS_DIR, req.path);
   console.log(`[DEBUG] Attempting to serve: ${filePath}`);
-  
+
   try {
     if (fs.existsSync(filePath)) {
       console.log(`[DEBUG] File exists: ${filePath}`);
-      
+
       // Add additional headers to prevent caching and allow CORS for images
       res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');
       res.setHeader('Surrogate-Control', 'no-store');
-      
+
       // Add CORS headers specifically for images
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
       res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless');
-      
+
       next(); // Continue to the static middleware
     } else {
       console.log(`[DEBUG] File does not exist: ${filePath}`);
-      res.status(404).json({ 
+      res.status(404).json({
         error: 'File not found',
         requestedPath: req.path,
         fullPath: filePath

@@ -22,7 +22,9 @@
     "supabase:migrate": "NODE_ENV=production USE_SUPABASE=true node scripts/run-migrations.js",
     "supabase:seed": "NODE_ENV=production USE_SUPABASE=true node src/seeders/index.js",
     "supabase:check": "node scripts/check-supabase.js",
-    "supabase:test": "node test-app.js"
+    "supabase:test": "node test-app.js",
+    "admin:create": "node scripts/create-admin.js",
+    "admin:reset-password": "node scripts/reset-admin-password.js"
   },
   "author": "",
   "license": "ISC",

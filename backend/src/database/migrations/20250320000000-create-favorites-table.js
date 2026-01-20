@@ -2,6 +2,13 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
+    // Check if table already exists
+    const tables = await queryInterface.showAllTables();
+    if (tables.includes('favorites')) {
+      console.log('favorites table already exists, skipping creation');
+      return;
+    }
+
     await queryInterface.createTable('favorites', {
       id: {
         type: Sequelize.INTEGER,

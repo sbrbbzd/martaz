@@ -27,6 +27,7 @@
     "uuid": "^9.0.1"
   },
   "devDependencies": {
+    "@types/axios": "^0.9.36",
     "@types/react-dom": "^19.1.2",
     "form-data": "^4.0.2",
     "node-fetch": "^2.7.0"
