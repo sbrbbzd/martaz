@@ -16,10 +16,13 @@ const api = axios.create({
 
 // Add a request interceptor to include auth token
 api.interceptors.request.use(
-  (config) => {
+  (config: any) => {
     const token = localStorage.getItem('token');
     if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+      if (!config.headers) {
+        config.headers = {};
+      }
+      (config.headers as any).Authorization = `Bearer ${token}`;
     }
     return config;
   },
@@ -51,15 +54,15 @@ api.interceptors.response.use(
  */
 export function getImageUrl(imagePath: string | undefined): string {
   if (!imagePath) return '';
-  
+
   // If it's already a full URL, return it
   if (imagePath.startsWith('http://') || imagePath.startsWith('https://')) {
     return imagePath;
   }
-  
+
   // Remove leading slash if present
   const cleanPath = imagePath.startsWith('/') ? imagePath.substring(1) : imagePath;
-  
+
   // Join with image server URL
   return `${IMAGE_SERVER_URL}/${cleanPath}`;
 }

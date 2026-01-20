@@ -1,4 +1,4 @@
-import axios, { AxiosRequestConfig } from 'axios';
+import axios from 'axios';
 import { API_BASE_URL } from './api';
 
 /**
@@ -18,19 +18,19 @@ export const fetchWithAuth = async (
     const headers: Record<string, string> = {
       'Content-Type': 'application/json'
     };
-    
+
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     } else {
       console.warn('No authentication token found in localStorage');
     }
-    
+
     const url = `${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : '/' + endpoint}`;
     console.log(`Making ${method} request to: ${url}`);
     console.log('Request headers:', headers);
     if (data) console.log('Request data:', data);
-    
-    const config: AxiosRequestConfig = {
+
+    const config: any = {
       method,
       headers,
       url,
@@ -42,7 +42,7 @@ export const fetchWithAuth = async (
   } catch (error: any) {
     // Handle error
     console.error(`API error for ${endpoint}:`, error);
-    
+
     if (error.response) {
       // Log more details about the error response
       console.error(`Status: ${error.response.status}`, error.response.data);
@@ -54,7 +54,7 @@ export const fetchWithAuth = async (
       // Something happened in setting up the request
       console.error('Error setting up request:', error.message);
     }
-    
+
     // Generic error object for network errors
     return {
       success: false,

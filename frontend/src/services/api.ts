@@ -1,6 +1,6 @@
 import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import { RootState } from '../store';
-import axios, { AxiosRequestConfig } from 'axios';
+import axios from 'axios';
 import { store } from '../store';
 import { transformApiError } from '../utils/errorHandling';
 import { createEntityAdapter } from '@reduxjs/toolkit';
@@ -284,10 +284,14 @@ export const axiosInstance = axios.create({
 });
 
 // Add auth token to all requests
-axiosInstance.interceptors.request.use((config: AxiosRequestConfig) => {
+axiosInstance.interceptors.request.use((config: any) => {
   const token = localStorage.getItem('authToken') || localStorage.getItem('token') || store.getState().auth.token;
   if (token) {
-    config.headers['Authorization'] = `Bearer ${token}`;
+    if (!config.headers) {
+      config.headers = {};
+    }
+    // Handle both newer Axios (AxiosHeaders) and older (plain object) or just cast to any to be safe
+    (config.headers as any).Authorization = `Bearer ${token}`;
   }
   return config;
 });
@@ -300,11 +304,11 @@ export const api = createApi({
     prepareHeaders: (headers, { getState }) => {
       // Add specific debugging for auth
       console.log('Preparing headers for API request');
-      
+
       // Get token from auth state
       const token = (getState() as RootState).auth.token;
       console.log('Token from state:', token ? 'Present (hidden for security)' : 'Not present');
-      
+
       // If we have a token, add it to the headers
       if (token) {
         headers.set('authorization', `Bearer ${token}`);
@@ -312,7 +316,7 @@ export const api = createApi({
       } else {
         console.log('Warning: No auth token available');
       }
-      
+
       return headers;
     },
     responseHandler: async (response) => {
@@ -321,7 +325,7 @@ export const api = createApi({
       if (contentType && contentType.indexOf('application/json') !== -1) {
         return response.json();
       }
-      
+
       // If it's not JSON, log it and try to return the text
       console.error('Received non-JSON response:', await response.text());
       throw new Error('Non-JSON response received from API');
@@ -345,7 +349,7 @@ export const api = createApi({
         }
       },
     }),
-    
+
     register: builder.mutation<AuthResponse, RegisterRequest>({
       query: (userData) => ({
         url: '/auth/register',
@@ -353,13 +357,13 @@ export const api = createApi({
         body: userData,
       }),
     }),
-    
+
     // User endpoints
     getProfile: builder.query<SingleResponse<User>, void>({
       query: () => '/users/profile',
       providesTags: ['User'],
     }),
-    
+
     updateProfile: builder.mutation<SingleResponse<User>, Partial<User>>({
       query: (userData) => ({
         url: '/users/profile',
@@ -368,7 +372,7 @@ export const api = createApi({
       }),
       invalidatesTags: ['User'],
     }),
-    
+
     // Category endpoints
     getCategories: builder.query<Category[], void>({
       query: () => '/categories',
@@ -391,7 +395,7 @@ export const api = createApi({
           // After data is cached, log success
           const currentData = getCacheEntry().data;
           console.log('Categories cached successfully, count:', currentData?.length || 0);
-          
+
           // Store in localStorage as backup
           if (currentData && currentData.length > 0) {
             try {
@@ -419,23 +423,23 @@ export const api = createApi({
         await cacheEntryRemoved;
       },
     }),
-    
+
     getCategoryTree: builder.query<Category[], void>({
       query: () => '/categories/tree',
       transformResponse: (response: { status: string; data: Category[] }) => response.data,
       providesTags: ['Category'],
     }),
-    
+
     getCategory: builder.query<SingleResponse<Category>, string>({
       query: (idOrSlug) => `/categories/${idOrSlug}`,
       providesTags: (result, error, id) => [{ type: 'Category', id }],
     }),
-    
+
     // Listing endpoints
     getListings: builder.query<any, ListingQueryParams>({
       query: (params) => {
         const queryParams = new URLSearchParams();
-        
+
         if (params.page) queryParams.append('page', params.page.toString());
         if (params.limit) queryParams.append('limit', params.limit.toString());
         if (params.sort) queryParams.append('sort', params.sort);
@@ -444,7 +448,7 @@ export const api = createApi({
         if (params.category) {
           // Check if the category is a UUID (categoryId) or a slug
           const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.category);
-          
+
           if (isUuid) {
             // If it's a UUID, use it as categoryId directly
             queryParams.append('categoryId', params.category);
@@ -463,13 +467,13 @@ export const api = createApi({
         if (params.favorites) queryParams.append('favorites', 'true');
         if (params.promoted) queryParams.append('promoted', 'true');
         if (params.random) queryParams.append('random', 'true');
-        
+
         const queryString = queryParams.toString();
         console.log('getListings API call:', {
           url: `/listings${queryString ? `?${queryString}` : ''}`,
           params: params
         });
-        
+
         return {
           url: `/listings${queryString ? `?${queryString}` : ''}`,
           method: 'GET',
@@ -481,7 +485,7 @@ export const api = createApi({
       },
       transformResponse: (response: any) => {
         console.log('Raw listings response:', response);
-        
+
         // Handle the different possible response formats
         if (response && response.data) {
           if (Array.isArray(response.data)) {
@@ -503,7 +507,7 @@ export const api = createApi({
             return response;
           }
         }
-        
+
         // Handle unexpected format
         console.error('Unexpected response format:', response);
         return {
@@ -526,12 +530,12 @@ export const api = createApi({
         console.error('Listings API error response:', response);
         return { error: 'Failed to load listings', details: response };
       },
-      providesTags: (result) => 
+      providesTags: (result) =>
         result && result.data && result.data.listings
           ? [
-              ...result.data.listings.map(({ id }: { id: string }) => ({ type: 'Listing' as const, id })),
-              { type: 'Listing', id: 'LIST' },
-            ]
+            ...result.data.listings.map(({ id }: { id: string }) => ({ type: 'Listing' as const, id })),
+            { type: 'Listing', id: 'LIST' },
+          ]
           : [{ type: 'Listing', id: 'LIST' }],
       // Keep cached data for 5 minutes (300 seconds) to reduce excessive API calls
       keepUnusedDataFor: 300,
@@ -540,7 +544,7 @@ export const api = createApi({
         retryDelay: (attempt: number) => attempt * 1000, // 1s, 2s, 3s
       },
     }),
-    
+
     getListing: builder.query<any, string>({
       query: (idOrSlug) => `/listings/${idOrSlug}`,
       transformResponse: (response: any) => {
@@ -553,29 +557,29 @@ export const api = createApi({
       // Keep cached data for 5 minutes (300 seconds) to reduce excessive API calls
       keepUnusedDataFor: 300,
     }),
-    
+
     getFeaturedListings: builder.query<PaginatedResponse<Listing>, void>({
       query: () => '/listings/featured',
       providesTags: ['Listing'],
     }),
-    
+
     getMyListings: builder.query<PaginatedResponse<Listing>, ListingQueryParams>({
       query: (params) => {
         // Convert params to query string
         const queryParams = new URLSearchParams();
-        
+
         Object.entries(params).forEach(([key, value]) => {
           if (value !== undefined) {
             queryParams.append(key, value.toString());
           }
         });
-        
+
         // Fix path to match the backend route directly
         return `/users/listings?${queryParams.toString()}`;
       },
       providesTags: [{ type: 'Listing', id: 'MY_LISTINGS' }],
     }),
-    
+
     createListing: builder.mutation<SingleResponse<Listing>, Partial<Listing>>({
       query: (listing) => ({
         url: '/listings',
@@ -584,12 +588,12 @@ export const api = createApi({
       }),
       invalidatesTags: [{ type: 'Listing', id: 'LIST' }, { type: 'Listing', id: 'MY_LISTINGS' }],
     }),
-    
+
     updateListing: builder.mutation<SingleResponse<Listing>, { id: string; listing: Partial<Listing> }>({
       query: ({ id, listing }) => {
         console.log('Updating listing:', id);
         console.log('With data:', JSON.stringify(listing));
-        
+
         return {
           url: `/listings/${id}`,
           method: 'PUT',
@@ -602,7 +606,7 @@ export const api = createApi({
         { type: 'Listing', id: 'MY_LISTINGS' },
       ],
     }),
-    
+
     deleteListing: builder.mutation<{ status: string; message: string }, string>({
       query: (id) => ({
         url: `/listings/${id}`,
@@ -610,7 +614,7 @@ export const api = createApi({
       }),
       invalidatesTags: [{ type: 'Listing', id: 'LIST' }, { type: 'Listing', id: 'MY_LISTINGS' }],
     }),
-    
+
     changeListingStatus: builder.mutation<SingleResponse<Listing>, { id: string; status: string }>({
       query: ({ id, status }) => ({
         url: `/listings/${id}/status`,
@@ -623,7 +627,7 @@ export const api = createApi({
         { type: 'Listing', id: 'MY_LISTINGS' },
       ],
     }),
-    
+
     featureListing: builder.mutation<SingleResponse<Listing>, { id: string; duration: FeatureDuration }>({
       query: ({ id, duration }) => ({
         url: `/listings/${id}/feature`,
@@ -637,7 +641,7 @@ export const api = createApi({
         'FeaturedListings',
       ],
     }),
-    
+
     // Favorites endpoints
     getFavorites: builder.query<PaginatedResponse<Listing>, { page?: number; limit?: number; sort?: string }>({
       query: (params) => ({
@@ -682,7 +686,7 @@ export const api = createApi({
       }),
       providesTags: ['Favorites'],
     }),
-    
+
     // Legacy toggleFavorite endpoint that uses the new favorites API
     toggleFavorite: builder.mutation<{ status: string; message: string }, string>({
       query: (id) => ({
@@ -692,7 +696,7 @@ export const api = createApi({
       }),
       invalidatesTags: ['Favorites', 'Listing'],
     }),
-    
+
     // Admin endpoints
     getAdminDashboardData: builder.query<AdminDashboardData, void>({
       query: () => '/admin/dashboard/data',
@@ -700,7 +704,7 @@ export const api = createApi({
       providesTags: ['User', 'Listing', 'Category'],
       keepUnusedDataFor: 60, // Cache for 60 seconds
     }),
-    
+
     getAdminCategories: builder.query<Category[], void>({
       query: () => '/admin/categories',
       transformResponse: (response: { status: string; data: Category[] }) => {
@@ -710,7 +714,7 @@ export const api = createApi({
       providesTags: ['Category'],
       keepUnusedDataFor: 60, // Cache for 1 minute
     }),
-    
+
     // Import endpoints
     importFromUrl: builder.mutation<{ status: string, message: string, data: Listing }, { url: string, categoryId?: string }>({
       query: (data) => ({
@@ -720,12 +724,12 @@ export const api = createApi({
       }),
       invalidatesTags: [{ type: 'Listing', id: 'LIST' }],
     }),
-    
+
     getSupportedImportSources: builder.query<{ name: string, domains: string[] }[], void>({
       query: () => '/import/sources',
       transformResponse: (response: { status: string, data: { name: string, domains: string[] }[] }) => response.data,
     }),
-    
+
     getAdminUsers: builder.query<UsersResponse, { page?: number; limit?: number; search?: string; status?: string; role?: string }>({
       query: (params) => ({
         url: '/admin/users',
@@ -754,11 +758,11 @@ export const api = createApi({
           await queryFulfilled;
         } catch (rawError) {
           console.error('Admin users API error:', rawError);
-          
+
           // Use our utility to transform the error
           const transformedError = transformApiError(rawError);
           console.log('Transformed error:', transformedError);
-          
+
           // If server returned 500 error or network error, provide mock data
           if (transformedError.type === 'serverError' || transformedError.type === 'networkError') {
             // Create mock user that matches User type
@@ -774,14 +778,14 @@ export const api = createApi({
               createdAt: new Date(Date.now() - index * 86400000).toISOString(), // Each user created a day apart
               updatedAt: new Date(Date.now() - index * 43200000).toISOString(), // Each user updated half a day apart
             });
-            
+
             const mockData: UsersResponse = {
               users: Array(8).fill(null).map((_, index) => createMockUser(index)),
               total: 25,
               page: arg.page || 1,
               limit: arg.limit || 10
             };
-            
+
             // Dispatch result manually to update the store with mock data
             dispatch(
               api.util.upsertQueryData(
@@ -800,7 +804,7 @@ export const api = createApi({
         return { message: transformedError.message };
       }
     }),
-    
+
     updateUserStatus: builder.mutation<{ message: string }, { id: string; status: string }>({
       query: ({ id, status }) => ({
         url: `/admin/users/${id}/status`,
@@ -809,7 +813,7 @@ export const api = createApi({
       }),
       invalidatesTags: [{ type: 'User', id: 'LIST' }],
     }),
-    
+
     deleteUser: builder.mutation<{ message: string }, string>({
       query: (id) => ({
         url: `/admin/users/${id}`,
@@ -817,7 +821,7 @@ export const api = createApi({
       }),
       invalidatesTags: [{ type: 'User', id: 'LIST' }],
     }),
-    
+
     getAdminListings: builder.query<ListingsResponse, { page?: number; limit?: number; search?: string; status?: string; sort?: string }>({
       query: (params) => ({
         url: '/admin/listings',
@@ -846,11 +850,11 @@ export const api = createApi({
           await queryFulfilled;
         } catch (rawError) {
           console.error('Admin listings API error:', rawError);
-          
+
           // Use our utility to transform the error
           const transformedError = transformApiError(rawError);
           console.log('Transformed error:', transformedError);
-          
+
           // If server returned 500 error or network error, provide mock data
           if (transformedError.type === 'serverError' || transformedError.type === 'networkError') {
             // Create mock listing that matches Listing type
@@ -897,14 +901,14 @@ export const api = createApi({
                 updatedAt: new Date(Date.now() - 1000000).toISOString()
               }
             });
-            
+
             const mockData: ListingsResponse = {
               listings: Array(5).fill(null).map((_, index) => createMockListing(index)),
               total: 15,
               page: arg.page || 1,
               limit: arg.limit || 10
             };
-            
+
             // Dispatch result manually to update the store with mock data
             dispatch(
               api.util.upsertQueryData(
@@ -916,12 +920,12 @@ export const api = createApi({
           }
         }
       },
-      providesTags: (result) => 
+      providesTags: (result) =>
         result
           ? [
-              ...result.listings.map(({ id }) => ({ type: 'Listing' as const, id })),
-              { type: 'Listing', id: 'LIST' },
-            ]
+            ...result.listings.map(({ id }) => ({ type: 'Listing' as const, id })),
+            { type: 'Listing', id: 'LIST' },
+          ]
           : [{ type: 'Listing', id: 'LIST' }],
       // Add error handling to transform errors
       transformErrorResponse: (response: any) => {
@@ -929,7 +933,7 @@ export const api = createApi({
         return { message: transformedError.message };
       }
     }),
-    
+
     approveListing: builder.mutation<ListingActionResponse, string>({
       query: (id) => ({
         url: `/admin/listings/${id}/approve`,
@@ -940,7 +944,7 @@ export const api = createApi({
         { type: 'Listing', id: 'LIST' }
       ],
     }),
-    
+
     adminDeleteListing: builder.mutation<{ message: string }, string>({
       query: (id) => ({
         url: `/admin/listings/${id}`,
@@ -948,7 +952,7 @@ export const api = createApi({
       }),
       invalidatesTags: [{ type: 'Listing', id: 'LIST' }],
     }),
-    
+
     createCategory: builder.mutation<Category, Partial<Category>>({
       query: (category) => ({
         url: '/admin/categories',
@@ -957,7 +961,7 @@ export const api = createApi({
       }),
       invalidatesTags: ['Category'],
     }),
-    
+
     updateCategory: builder.mutation<Category, { id: string } & Partial<Category>>({
       query: ({ id, ...updates }) => ({
         url: `/admin/categories/${id}`,
@@ -969,7 +973,7 @@ export const api = createApi({
         { type: 'Category', id: 'LIST' }
       ],
     }),
-    
+
     deleteCategory: builder.mutation<{ message: string }, string>({
       query: (id) => ({
         url: `/admin/categories/${id}`,
@@ -1096,7 +1100,7 @@ axiosInstance.interceptors.response.use(
     if (error.response?.status === 401) {
       store.dispatch({ type: 'auth/logout' });
     }
-    
+
     return Promise.reject(error);
   }
 );
@@ -1113,53 +1117,53 @@ const compressImage = async (file: File, maxSizeMB: number = 1): Promise<Blob> =
     const img = new Image();
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
-    
+
     if (!ctx) {
       reject(new Error('Could not get canvas context'));
       return;
     }
-    
+
     // Create a FileReader to read the file
     const reader = new FileReader();
-    
+
     // Set up the FileReader onload callback
     reader.onload = (event) => {
       if (!event.target?.result) {
         reject(new Error('File read failed'));
         return;
       }
-      
+
       // Create an image from the data URL
       img.onload = () => {
         // Calculate dimensions to maintain aspect ratio
         let width = img.width;
         let height = img.height;
-        
+
         // If image is very large, scale it down
         const MAX_WIDTH = 1920;
         const MAX_HEIGHT = 1080;
-        
+
         if (width > MAX_WIDTH) {
           height = Math.round(height * (MAX_WIDTH / width));
           width = MAX_WIDTH;
         }
-        
+
         if (height > MAX_HEIGHT) {
           width = Math.round(width * (MAX_HEIGHT / height));
           height = MAX_HEIGHT;
         }
-        
+
         // Set canvas dimensions
         canvas.width = width;
         canvas.height = height;
-        
+
         // Draw the image on the canvas
         ctx.drawImage(img, 0, 0, width, height);
-        
+
         // Start with high quality
         let quality = 0.9;
         let compressedBlob: Blob | null = null;
-        
+
         // Function to get blob from canvas
         const getBlob = (q: number): Promise<Blob> => {
           return new Promise((resolve) => {
@@ -1169,14 +1173,14 @@ const compressImage = async (file: File, maxSizeMB: number = 1): Promise<Blob> =
             }, file.type, q);
           });
         };
-        
+
         // Try to compress the image to the target size
         const tryCompress = async () => {
           try {
             // Use a loop instead of recursion to prevent stack overflow
             while (true) {
               compressedBlob = await getBlob(quality);
-              
+
               // If the image is still too large and quality is still good, reduce quality
               if (compressedBlob.size > maxSizeMB * 1024 * 1024 && quality > 0.2) {
                 quality -= 0.1;
@@ -1191,19 +1195,19 @@ const compressImage = async (file: File, maxSizeMB: number = 1): Promise<Blob> =
             reject(err);
           }
         };
-        
+
         tryCompress();
       };
-      
+
       // Set the image source to the data URL
       img.src = event.target.result as string;
     };
-    
+
     // Handle read errors
     reader.onerror = () => {
       reject(new Error('Error reading file'));
     };
-    
+
     // Read the file as a data URL
     reader.readAsDataURL(file);
   });
@@ -1238,7 +1242,7 @@ export const uploadListingImages = async (
   console.log(`Starting image upload to listing ${listingId}`);
   console.log(`Images type:`, typeof images, Array.isArray(images) ? 'array' : 'not array');
   console.log(`Append to existing:`, appendToExisting);
-  
+
   // If no images, return an error
   if (!images || (Array.isArray(images) && images.length === 0)) {
     console.error('No images provided to uploadListingImages');
@@ -1248,15 +1252,15 @@ export const uploadListingImages = async (
       data: null,
     };
   }
-  
+
   try {
     // CASE 1: Handle direct FileList/File[] upload
     if (images instanceof FileList || (Array.isArray(images) && images[0] instanceof File)) {
       console.log(`Uploading ${images.length} files directly`);
-      
+
       // First upload the files to get URLs
       const formData = new FormData();
-      
+
       // Use a type-safe way to add files to FormData
       if (images instanceof FileList) {
         Array.from(images as FileList).forEach((file: File) => {
@@ -1270,7 +1274,7 @@ export const uploadListingImages = async (
           formData.append('images', file);
         });
       }
-      
+
       console.log('Sending files to /images endpoint');
       const uploadResponse = await axiosInstance.post<ApiResponse<UploadImagesResponse>>(
         '/images',
@@ -1282,7 +1286,7 @@ export const uploadListingImages = async (
           },
         }
       );
-      
+
       if (!uploadResponse.data.success) {
         console.error('Error uploading images to image server:', uploadResponse.data.message);
         return {
@@ -1291,7 +1295,7 @@ export const uploadListingImages = async (
           data: null,
         };
       }
-      
+
       // Extract image URLs from response
       const imageUrls = uploadResponse.data.data?.files.map(
         (file) => {
@@ -1312,7 +1316,7 @@ export const uploadListingImages = async (
           }
         }
       ) || [];
-      
+
       console.log(`Extracted ${imageUrls.length} image URLs:`, imageUrls);
       if (imageUrls.length === 0) {
         console.error('No image URLs returned from image server');
@@ -1322,7 +1326,7 @@ export const uploadListingImages = async (
           data: null,
         };
       }
-      
+
       // Now attach these URLs to the listing using JSON approach (more reliable)
       console.log(`Sending ${imageUrls.length} image URLs to listing ${listingId}`);
       const listingResponse = await axiosInstance.post<ApiResponse<UploadListingImagesResponse>>(
@@ -1337,7 +1341,7 @@ export const uploadListingImages = async (
           },
         }
       );
-      
+
       console.log('Listing response:', listingResponse.data);
       return {
         success: listingResponse.data.success,
@@ -1348,7 +1352,7 @@ export const uploadListingImages = async (
     // CASE 2: Handle string URLs directly
     else if (Array.isArray(images) && typeof images[0] === 'string') {
       console.log(`Sending ${images.length} URLs directly to listing ${listingId}`);
-      
+
       // Send the URLs directly to the listing endpoint
       const response = await axiosInstance.post<ApiResponse<UploadListingImagesResponse>>(
         `/listings/${listingId}/images`,
@@ -1362,7 +1366,7 @@ export const uploadListingImages = async (
           },
         }
       );
-      
+
       console.log('Listing response with direct URLs:', response.data);
       return {
         success: response.data.success,
@@ -1392,47 +1396,47 @@ export const uploadListingImages = async (
 // Helper function to convert image URLs
 const convertImageUrls = (data: any) => {
   if (!data) return data;
-  
+
   // Get the image server URL from environment variables
   const imageServerUrl = import.meta.env.VITE_IMAGE_SERVER_URL || 'http://localhost:3001/api/images';
-  
+
   // Process a single image URL
   const processImage = (url: string) => {
     if (!url) return url;
-    
+
     // If already an absolute URL but pointing to the backend server
     if (url.startsWith('http://localhost:3000/tmp/')) {
       const filename = url.substring('http://localhost:3000/tmp/'.length);
       return `${imageServerUrl}/${filename}`;
     }
-    
+
     // If it's a relative /tmp/ path
     if (url.startsWith('/tmp/')) {
       const filename = url.substring(5);
       return `${imageServerUrl}/${filename}`;
     }
-    
+
     return url;
   };
-  
+
   // Deep clone the data to avoid mutating the original
   const result = JSON.parse(JSON.stringify(data));
-  
+
   // Process featured image
   if (result.featuredImage) {
     result.featuredImage = processImage(result.featuredImage);
   }
-  
+
   // Process images array
   if (Array.isArray(result.images)) {
     result.images = result.images.map(processImage);
   }
-  
+
   // Process user profileImage if present
   if (result.user && result.user.profileImage) {
     result.user.profileImage = processImage(result.user.profileImage);
   }
-  
+
   return result;
 };
 
@@ -1481,7 +1485,7 @@ const mockReportedListings = (page = 1, limit = 10) => {
       updatedAt: new Date(Date.now() - (index * 3000000)).toISOString()
     };
   });
-  
+
   return {
     success: true,
     data: {
